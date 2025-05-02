@@ -8,7 +8,6 @@ _translator = pipeline(
     tokenizer="Helsinki-NLP/opus-mt-vi-en"
 )
 
-
 def is_vietnamese(text: str) -> bool:
     """
     Detect if text is Vietnamese.

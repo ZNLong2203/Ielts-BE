@@ -1,6 +1,6 @@
 # compiled output
 /dist
-/node_modules
+*/node_modules
 /build
 
 Backend/node_modules
@@ -28,6 +28,7 @@ lerna-debug.log*
 *.launch
 .settings/
 *.sublime-workspace
+*__pycache__/
 
 # IDE - VSCode
 .vscode/*

@@ -7,7 +7,7 @@ app = FastAPI(title="IELTS Assistant Chatbot API")
 
 @app.post("/chat", response_model=ChatResponse)
 async def chat_endpoint(req: ChatRequest):
-    text = req.user_input
+    text = req.message
     # Translate if Vietnamese
     if is_vietnamese(text):
         text = await translate_vi_to_en(text)
