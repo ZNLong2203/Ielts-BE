@@ -5,7 +5,6 @@ import {
   Logger,
   NestInterceptor,
 } from '@nestjs/common';
-import chalk from 'chalk';
 import { Observable } from 'rxjs';
 import { tap } from 'rxjs/operators';
 
@@ -18,7 +17,7 @@ export class LoggingInterceptor implements NestInterceptor {
     const method = request.method;
     const url = request.url;
 
-    this.logger.log(chalk.white(`Incoming request: ${method} ${url}`));
+    this.logger.log(`Incoming request: ${method} ${url}`);
 
     const now = Date.now();
     return next.handle().pipe(
@@ -28,11 +27,11 @@ export class LoggingInterceptor implements NestInterceptor {
         const logMessage = `Outgoing response: ${method} ${url} - ${statusCode} - ${Date.now() - now}ms`;
 
         if (statusCode >= 400 && statusCode < 500) {
-          this.logger.warn(chalk.yellow(logMessage));
+          this.logger.warn(logMessage);
         } else if (statusCode >= 500) {
-          this.logger.error(chalk.red(logMessage));
+          this.logger.error(logMessage);
         } else {
-          this.logger.log(chalk.green(logMessage));
+          this.logger.log(logMessage);
         }
       }),
     );

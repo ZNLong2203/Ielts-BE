@@ -20,7 +20,7 @@ export class HttpExceptionFilter implements ExceptionFilter {
     const url = request.url;
     const now = Date.now();
     let message = exception.message;
-    let responseMessage = null;
+    let responseMessage: any = null;
     if (exception.getResponse) {
       responseMessage = exception.getResponse();
     }
