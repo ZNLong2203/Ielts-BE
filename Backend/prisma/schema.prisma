@@ -1,0 +1,536 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model blog_categories {
+  id          String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name        String    @db.VarChar(100)
+  slug        String    @unique @db.VarChar(100)
+  description String?
+  ordering    Int?      @default(0)
+  is_active   Boolean?  @default(true)
+  created_at  DateTime? @default(now()) @db.Timestamp(6)
+  blogs       blogs[]
+}
+
+model blog_comments {
+  id                  String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  blog_id             String?         @db.Uuid
+  user_id             String?         @db.Uuid
+  parent_comment_id   String?         @db.Uuid
+  content             String
+  is_approved         Boolean?        @default(true)
+  like_count          Int?            @default(0)
+  created_at          DateTime?       @default(now()) @db.Timestamp(6)
+  updated_at          DateTime?       @default(now()) @db.Timestamp(6)
+  blogs               blogs?          @relation(fields: [blog_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  blog_comments       blog_comments?  @relation("blog_commentsToblog_comments", fields: [parent_comment_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  other_blog_comments blog_comments[] @relation("blog_commentsToblog_comments")
+  users               users?          @relation(fields: [user_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+}
+
+model blogs {
+  id               String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  author_id        String?          @db.Uuid
+  category_id      String?          @db.Uuid
+  title            String           @db.VarChar(255)
+  slug             String           @unique @db.VarChar(255)
+  excerpt          String?
+  content          String
+  featured_image   String?          @db.VarChar(500)
+  tags             String[]
+  status           String?          @default("draft") @db.VarChar(20)
+  is_featured      Boolean?         @default(false)
+  view_count       Int?             @default(0)
+  like_count       Int?             @default(0)
+  reading_time     Int?
+  meta_title       String?          @db.VarChar(255)
+  meta_description String?
+  published_at     DateTime?        @db.Timestamp(6)
+  created_at       DateTime?        @default(now()) @db.Timestamp(6)
+  updated_at       DateTime?        @default(now()) @db.Timestamp(6)
+  blog_comments    blog_comments[]
+  users            users?           @relation(fields: [author_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  blog_categories  blog_categories? @relation(fields: [category_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@index([status, published_at], map: "idx_blogs_status_published")
+}
+
+model cart_items {
+  id              String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  cart_id         String?   @db.Uuid
+  course_id       String?   @db.Uuid
+  price           Decimal   @db.Decimal(10, 2)
+  discount_amount Decimal?  @default(0) @db.Decimal(10, 2)
+  created_at      DateTime? @default(now()) @db.Timestamp(6)
+  carts           carts?    @relation(fields: [cart_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  courses         courses?  @relation(fields: [course_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([cart_id, course_id])
+}
+
+model carts {
+  id         String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id    String?      @db.Uuid
+  is_active  Boolean?     @default(true)
+  created_at DateTime?    @default(now()) @db.Timestamp(6)
+  updated_at DateTime?    @default(now()) @db.Timestamp(6)
+  cart_items cart_items[]
+  users      users?       @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+}
+
+model coupon_usage {
+  id              String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  coupon_id       String?   @db.Uuid
+  user_id         String?   @db.Uuid
+  order_id        String?   @db.Uuid
+  discount_amount Decimal?  @db.Decimal(10, 2)
+  used_at         DateTime? @default(now()) @db.Timestamp(6)
+  coupons         coupons?  @relation(fields: [coupon_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  orders          orders?   @relation(fields: [order_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  users           users?    @relation(fields: [user_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@unique([coupon_id, user_id, order_id])
+}
+
+model coupons {
+  id                 String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  code               String         @unique @db.VarChar(50)
+  name               String         @db.VarChar(255)
+  description        String?
+  discount_type      String         @db.VarChar(20)
+  discount_value     Decimal        @db.Decimal(10, 2)
+  minimum_amount     Decimal?       @db.Decimal(10, 2)
+  maximum_discount   Decimal?       @db.Decimal(10, 2)
+  usage_limit        Int?
+  used_count         Int?           @default(0)
+  valid_from         DateTime       @db.Timestamp(6)
+  valid_until        DateTime       @db.Timestamp(6)
+  is_active          Boolean?       @default(true)
+  applicable_courses String[]       @db.Uuid
+  created_by         String?        @db.Uuid
+  created_at         DateTime?      @default(now()) @db.Timestamp(6)
+  updated_at         DateTime?      @default(now()) @db.Timestamp(6)
+  coupon_usage       coupon_usage[]
+  users              users?         @relation(fields: [created_by], references: [id], onDelete: NoAction, onUpdate: NoAction)
+}
+
+model course_categories {
+  id          String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name        String    @db.VarChar(100)
+  description String?
+  icon        String?   @db.VarChar(255)
+  ordering    Int?      @default(0)
+  is_active   Boolean?  @default(true)
+  created_at  DateTime? @default(now()) @db.Timestamp(6)
+  updated_at  DateTime? @default(now()) @db.Timestamp(6)
+  courses     courses[]
+}
+
+model courses {
+  id                 String             @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  teacher_id         String?            @db.Uuid
+  category_id        String?            @db.Uuid
+  title              String             @db.VarChar(255)
+  description        String?
+  thumbnail          String?            @db.VarChar(500)
+  skill_focus        String?            @db.VarChar(20)
+  difficulty_level   String?            @db.VarChar(20)
+  estimated_duration Int?
+  price              Decimal?           @default(0) @db.Decimal(10, 2)
+  discount_price     Decimal?           @db.Decimal(10, 2)
+  is_free            Boolean?           @default(false)
+  is_published       Boolean?           @default(false)
+  is_featured        Boolean?           @default(false)
+  enrollment_count   Int?               @default(0)
+  rating             Decimal?           @default(0) @db.Decimal(2, 1)
+  rating_count       Int?               @default(0)
+  requirements       String[]
+  what_you_learn     String[]
+  course_outline     Json?
+  meta_title         String?            @db.VarChar(255)
+  meta_description   String?
+  tags               String[]
+  created_at         DateTime?          @default(now()) @db.Timestamp(6)
+  updated_at         DateTime?          @default(now()) @db.Timestamp(6)
+  published_at       DateTime?          @db.Timestamp(6)
+  cart_items         cart_items[]
+  course_categories  course_categories? @relation(fields: [category_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  teachers           teachers?          @relation(fields: [teacher_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  enrollments        enrollments[]
+  lessons            lessons[]
+  order_items        order_items[]
+  user_progress      user_progress[]
+
+  @@index([category_id], map: "idx_courses_category")
+  @@index([teacher_id], map: "idx_courses_teacher")
+}
+
+model enrollments {
+  id                  String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id             String?   @db.Uuid
+  course_id           String?   @db.Uuid
+  enrollment_date     DateTime? @default(now()) @db.Timestamp(6)
+  completion_date     DateTime? @db.Timestamp(6)
+  progress_percentage Decimal?  @default(0) @db.Decimal(5, 2)
+  certificate_url     String?   @db.VarChar(500)
+  is_active           Boolean?  @default(true)
+  courses             courses?  @relation(fields: [course_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  users               users?    @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([user_id, course_id])
+  @@index([course_id], map: "idx_enrollments_course")
+  @@index([user_id], map: "idx_enrollments_user")
+}
+
+model exercise_types {
+  id          String      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name        String      @db.VarChar(50)
+  description String?
+  created_at  DateTime?   @default(now()) @db.Timestamp(6)
+  exercises   exercises[]
+}
+
+model exercises {
+  id               String             @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  lesson_id        String?            @db.Uuid
+  exercise_type_id String?            @db.Uuid
+  title            String             @db.VarChar(255)
+  instruction      String?
+  content          Json?
+  time_limit       Int?
+  max_attempts     Int?               @default(1)
+  passing_score    Decimal?           @db.Decimal(5, 2)
+  ordering         Int?               @default(0)
+  is_active        Boolean?           @default(true)
+  created_at       DateTime?          @default(now()) @db.Timestamp(6)
+  updated_at       DateTime?          @default(now()) @db.Timestamp(6)
+  exercise_types   exercise_types?    @relation(fields: [exercise_type_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  lessons          lessons?           @relation(fields: [lesson_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  questions        questions[]
+  user_submissions user_submissions[]
+}
+
+model learning_paths {
+  id                  String                @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name                String                @db.VarChar(255)
+  description         String?
+  target_band_score   Decimal?              @db.Decimal(2, 1)
+  skill_focus         String?               @db.VarChar(20)
+  difficulty_level    String?               @db.VarChar(20)
+  estimated_duration  Int?
+  course_sequence     String[]              @db.Uuid
+  prerequisites       String[]
+  is_published        Boolean?              @default(false)
+  created_by          String?               @db.Uuid
+  created_at          DateTime?             @default(now()) @db.Timestamp(6)
+  updated_at          DateTime?             @default(now()) @db.Timestamp(6)
+  teachers            teachers?             @relation(fields: [created_by], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  user_learning_paths user_learning_paths[]
+}
+
+model lesson_notes {
+  id                 String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id            String?   @db.Uuid
+  lesson_id          String?   @db.Uuid
+  content            String
+  timestamp_in_video Int?
+  is_public          Boolean?  @default(false)
+  created_at         DateTime? @default(now()) @db.Timestamp(6)
+  updated_at         DateTime? @default(now()) @db.Timestamp(6)
+  lessons            lessons?  @relation(fields: [lesson_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  users              users?    @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+}
+
+model lessons {
+  id             String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  course_id      String?         @db.Uuid
+  title          String          @db.VarChar(255)
+  description    String?
+  content        String?
+  video_url      String?         @db.VarChar(500)
+  video_duration Int?
+  audio_url      String?         @db.VarChar(500)
+  materials_urls String[]
+  ordering       Int?            @default(0)
+  is_preview     Boolean?        @default(false)
+  is_published   Boolean?        @default(true)
+  transcript     String?
+  subtitles      Json?
+  created_at     DateTime?       @default(now()) @db.Timestamp(6)
+  updated_at     DateTime?       @default(now()) @db.Timestamp(6)
+  exercises      exercises[]
+  lesson_notes   lesson_notes[]
+  courses        courses?        @relation(fields: [course_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  user_progress  user_progress[]
+
+  @@index([course_id], map: "idx_lessons_course")
+}
+
+model mock_tests {
+  id               String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  title            String         @db.VarChar(255)
+  description      String?
+  test_type        String?        @db.VarChar(20)
+  duration         Int?
+  total_questions  Int?
+  max_score        Decimal?       @db.Decimal(5, 2)
+  difficulty_level String?        @db.VarChar(20)
+  is_published     Boolean?       @default(false)
+  created_by       String?        @db.Uuid
+  created_at       DateTime?      @default(now()) @db.Timestamp(6)
+  updated_at       DateTime?      @default(now()) @db.Timestamp(6)
+  teachers         teachers?      @relation(fields: [created_by], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  test_results     test_results[]
+}
+
+model order_items {
+  id              String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  order_id        String?   @db.Uuid
+  course_id       String?   @db.Uuid
+  course_title    String?   @db.VarChar(255)
+  price           Decimal   @db.Decimal(10, 2)
+  discount_amount Decimal?  @default(0) @db.Decimal(10, 2)
+  created_at      DateTime? @default(now()) @db.Timestamp(6)
+  courses         courses?  @relation(fields: [course_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  orders          orders?   @relation(fields: [order_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+}
+
+model orders {
+  id              String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id         String?        @db.Uuid
+  order_code      String         @unique @db.VarChar(50)
+  total_amount    Decimal        @db.Decimal(10, 2)
+  discount_amount Decimal?       @default(0) @db.Decimal(10, 2)
+  final_amount    Decimal        @db.Decimal(10, 2)
+  status          String?        @default("pending") @db.VarChar(20)
+  payment_method  String?        @db.VarChar(50)
+  payment_status  String?        @default("pending") @db.VarChar(20)
+  notes           String?
+  created_at      DateTime?      @default(now()) @db.Timestamp(6)
+  updated_at      DateTime?      @default(now()) @db.Timestamp(6)
+  coupon_usage    coupon_usage[]
+  order_items     order_items[]
+  users           users?         @relation(fields: [user_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  payments        payments[]
+}
+
+model payments {
+  id               String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  order_id         String?   @db.Uuid
+  payment_method   String    @db.VarChar(50)
+  transaction_id   String?   @db.VarChar(255)
+  amount           Decimal   @db.Decimal(10, 2)
+  currency         String?   @default("VND") @db.VarChar(3)
+  status           String?   @default("pending") @db.VarChar(20)
+  gateway_response Json?
+  processed_at     DateTime? @db.Timestamp(6)
+  created_at       DateTime? @default(now()) @db.Timestamp(6)
+  updated_at       DateTime? @default(now()) @db.Timestamp(6)
+  orders           orders?   @relation(fields: [order_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+}
+
+model profiles {
+  id                  String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id             String?   @unique @db.Uuid
+  full_name           String?   @db.VarChar(255)
+  avatar              String?   @db.VarChar(500)
+  phone               String?   @db.VarChar(20)
+  date_of_birth       DateTime? @db.Date
+  gender              String?   @db.VarChar(10)
+  bio                 String?
+  country             String?   @db.VarChar(100)
+  city                String?   @db.VarChar(100)
+  target_ielts_score  Decimal?  @db.Decimal(2, 1)
+  current_level       String?   @db.VarChar(20)
+  learning_goals      String[]
+  timezone            String?   @db.VarChar(50)
+  language_preference String?   @default("vi") @db.VarChar(10)
+  privacy_settings    Json?
+  created_at          DateTime? @default(now()) @db.Timestamp(6)
+  updated_at          DateTime? @default(now()) @db.Timestamp(6)
+  users               users?    @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+}
+
+model question_answers {
+  id               String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  submission_id    String?           @db.Uuid
+  question_id      String?           @db.Uuid
+  answer_text      String?
+  selected_options String[]          @db.Uuid
+  media_url        String?           @db.VarChar(500)
+  is_correct       Boolean?
+  points_earned    Decimal?          @db.Decimal(5, 2)
+  created_at       DateTime?         @default(now()) @db.Timestamp(6)
+  questions        questions?        @relation(fields: [question_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  user_submissions user_submissions? @relation(fields: [submission_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+}
+
+model question_options {
+  id          String     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  question_id String?    @db.Uuid
+  option_text String
+  is_correct  Boolean?   @default(false)
+  ordering    Int?       @default(0)
+  explanation String?
+  created_at  DateTime?  @default(now()) @db.Timestamp(6)
+  updated_at  DateTime?  @default(now()) @db.Timestamp(6)
+  questions   questions? @relation(fields: [question_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+}
+
+model questions {
+  id               String             @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  exercise_id      String?            @db.Uuid
+  question_text    String
+  question_type    String             @db.VarChar(20)
+  media_url        String?            @db.VarChar(500)
+  explanation      String?
+  points           Decimal?           @default(1) @db.Decimal(5, 2)
+  ordering         Int?               @default(0)
+  difficulty_level String?            @db.VarChar(20)
+  created_at       DateTime?          @default(now()) @db.Timestamp(6)
+  updated_at       DateTime?          @default(now()) @db.Timestamp(6)
+  question_answers question_answers[]
+  question_options question_options[]
+  exercises        exercises?         @relation(fields: [exercise_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([exercise_id], map: "idx_questions_exercise")
+}
+
+model teachers {
+  id               String             @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id          String?            @unique @db.Uuid
+  qualification    String?
+  experience_years Int?
+  specializations  String[]
+  ielts_band_score Decimal?           @db.Decimal(2, 1)
+  certificate_urls String[]
+  teaching_style   String?
+  hourly_rate      Decimal?           @db.Decimal(10, 2)
+  availability     Json?
+  rating           Decimal?           @default(0) @db.Decimal(2, 1)
+  total_students   Int?               @default(0)
+  total_courses    Int?               @default(0)
+  is_verified      Boolean?           @default(false)
+  created_at       DateTime?          @default(now()) @db.Timestamp(6)
+  updated_at       DateTime?          @default(now()) @db.Timestamp(6)
+  courses          courses[]
+  learning_paths   learning_paths[]
+  mock_tests       mock_tests[]
+  users            users?             @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  user_submissions user_submissions[]
+}
+
+model test_results {
+  id               String      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id          String?     @db.Uuid
+  mock_test_id     String?     @db.Uuid
+  overall_score    Decimal?    @db.Decimal(5, 2)
+  band_score       Decimal?    @db.Decimal(2, 1)
+  reading_score    Decimal?    @db.Decimal(5, 2)
+  writing_score    Decimal?    @db.Decimal(5, 2)
+  listening_score  Decimal?    @db.Decimal(5, 2)
+  speaking_score   Decimal?    @db.Decimal(5, 2)
+  time_taken       Int?
+  detailed_results Json?
+  recommendations  String?
+  strengths        String[]
+  weaknesses       String[]
+  created_at       DateTime?   @default(now()) @db.Timestamp(6)
+  mock_tests       mock_tests? @relation(fields: [mock_test_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  users            users?      @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+}
+
+model user_learning_paths {
+  id                   String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id              String?         @db.Uuid
+  learning_path_id     String?         @db.Uuid
+  current_course_index Int?            @default(0)
+  progress_percentage  Decimal?        @default(0) @db.Decimal(5, 2)
+  started_at           DateTime?       @default(now()) @db.Timestamp(6)
+  estimated_completion DateTime?       @db.Date
+  actual_completion    DateTime?       @db.Timestamp(6)
+  is_active            Boolean?        @default(true)
+  learning_paths       learning_paths? @relation(fields: [learning_path_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  users                users?          @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+}
+
+model user_progress {
+  id                    String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id               String?   @db.Uuid
+  course_id             String?   @db.Uuid
+  lesson_id             String?   @db.Uuid
+  status                String?   @default("not_started") @db.VarChar(20)
+  progress_percentage   Decimal?  @default(0) @db.Decimal(5, 2)
+  time_spent            Int?      @default(0)
+  last_watched_position Int?      @default(0)
+  completion_date       DateTime? @db.Timestamp(6)
+  created_at            DateTime? @default(now()) @db.Timestamp(6)
+  updated_at            DateTime? @default(now()) @db.Timestamp(6)
+  courses               courses?  @relation(fields: [course_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  lessons               lessons?  @relation(fields: [lesson_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  users                 users?    @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([user_id, lesson_id])
+  @@index([user_id, course_id], map: "idx_user_progress_user_course")
+}
+
+model user_submissions {
+  id               String             @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id          String?            @db.Uuid
+  exercise_id      String?            @db.Uuid
+  attempt_number   Int?               @default(1)
+  answers          Json?
+  score            Decimal?           @db.Decimal(5, 2)
+  max_score        Decimal?           @db.Decimal(5, 2)
+  time_taken       Int?
+  feedback         String?
+  teacher_feedback String?
+  teacher_score    Decimal?           @db.Decimal(5, 2)
+  graded_by        String?            @db.Uuid
+  graded_at        DateTime?          @db.Timestamp(6)
+  status           String?            @default("submitted") @db.VarChar(20)
+  created_at       DateTime?          @default(now()) @db.Timestamp(6)
+  updated_at       DateTime?          @default(now()) @db.Timestamp(6)
+  question_answers question_answers[]
+  exercises        exercises?         @relation(fields: [exercise_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  teachers         teachers?          @relation(fields: [graded_by], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  users            users?             @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+}
+
+model users {
+  id                       String                @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  email                    String                @unique @db.VarChar(255)
+  password                 String                @db.VarChar(255)
+  role                     String                @db.VarChar(20)
+  status                   String?               @default("active") @db.VarChar(20)
+  email_verified           Boolean?              @default(false)
+  email_verification_token String?               @db.VarChar(255)
+  password_reset_token     String?               @db.VarChar(255)
+  password_reset_expires   DateTime?             @db.Timestamp(6)
+  last_login               DateTime?             @db.Timestamp(6)
+  login_count              Int?                  @default(0)
+  created_at               DateTime?             @default(now()) @db.Timestamp(6)
+  updated_at               DateTime?             @default(now()) @db.Timestamp(6)
+  blog_comments            blog_comments[]
+  blogs                    blogs[]
+  carts                    carts[]
+  coupon_usage             coupon_usage[]
+  coupons                  coupons[]
+  enrollments              enrollments[]
+  lesson_notes             lesson_notes[]
+  orders                   orders[]
+  profiles                 profiles?
+  teachers                 teachers?
+  test_results             test_results[]
+  user_learning_paths      user_learning_paths[]
+  user_progress            user_progress[]
+  user_submissions         user_submissions[]
+
+  @@index([email], map: "idx_users_email")
+}
