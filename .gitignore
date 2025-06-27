@@ -4,6 +4,8 @@
 /build
 
 Backend/node_modules
+Backend/dist
+Backend/test
 # Logs
 logs
 *.log
