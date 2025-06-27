@@ -1,17 +1,8 @@
-CREATE TABLE roles (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    name VARCHAR(50) UNIQUE NOT NULL, -- guest, student, teacher, admin
-    description TEXT,
-    permissions JSONB, -- JSON array of permissions
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-
 CREATE TABLE users (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     email VARCHAR(255) UNIQUE NOT NULL,
     password VARCHAR(255) NOT NULL,
-    role_id UUID REFERENCES roles(id),
+    role   VARCHAR(20) NOT NULL, -- admin, teacher, student
     status VARCHAR(20) DEFAULT 'active', -- active, inactive, banned
     email_verified BOOLEAN DEFAULT FALSE,
     email_verification_token VARCHAR(255),
@@ -432,7 +423,6 @@ CREATE TABLE user_learning_paths (
 );
 
 CREATE INDEX idx_users_email ON users(email);
-CREATE INDEX idx_users_role ON users(role_id);
 CREATE INDEX idx_courses_teacher ON courses(teacher_id);
 CREATE INDEX idx_courses_category ON courses(category_id);
 CREATE INDEX idx_lessons_course ON lessons(course_id);
@@ -441,4 +431,5 @@ CREATE INDEX idx_enrollments_user ON enrollments(user_id);
 CREATE INDEX idx_enrollments_course ON enrollments(course_id);
 CREATE INDEX idx_questions_exercise ON questions(exercise_id);
 CREATE INDEX idx_blogs_status_published ON blogs(status, published_at);
+
 
