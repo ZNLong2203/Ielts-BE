@@ -1,79 +1,183 @@
-import { BadRequestException, Injectable } from '@nestjs/common';
-import * as bcrypt from 'bcryptjs';
+import {
+  BadRequestException,
+  Injectable,
+  UnauthorizedException,
+} from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
+import { JwtService } from '@nestjs/jwt';
+import { Request, Response } from 'express';
+import * as ms from 'ms';
+import { StringValue } from 'ms';
+import { IJwtPayload } from 'src/interface/jwt-payload.interface';
+import { IUser } from 'src/interface/users.interface';
 import { MailService } from 'src/mail/mail.service';
 import { PrismaService } from 'src/prisma/prisma.service';
+import { RedisService } from 'src/redis/redis.service';
 import { CreateUserDto } from 'src/users/dto/create-user.dto';
-import { v4 as uuidv4 } from 'uuid';
+import { UsersService } from 'src/users/users.service';
 
 @Injectable()
 export class AuthService {
   constructor(
     private prisma: PrismaService,
     private mailService: MailService,
+    private redisService: RedisService,
+    private jwtService: JwtService,
+    private configService: ConfigService,
+    private usersService: UsersService,
   ) {}
 
   async register(dto: CreateUserDto) {
-    // Kiểm tra email đã tồn tại chưa
-    const existing = await this.prisma.users.findUnique({
-      where: { email: dto.email },
-    });
-    if (existing) throw new BadRequestException('Email already exists');
-
-    // Hash password
-    const hashedPassword = await bcrypt.hash(dto.password, 10);
-
-    // generate email verification token unique, if exists, generate again
-    let token = uuidv4();
-    let existingToken = await this.prisma.users.findFirst({
-      where: { email_verification_token: token },
-    });
-    while (existingToken) {
-      token = uuidv4();
-      existingToken = await this.prisma.users.findFirst({
-        where: { email_verification_token: token },
-      });
-    }
-
-    // Tạo user
-    const user = await this.prisma.users.create({
-      data: {
-        email: dto.email,
-        password: hashedPassword,
-        email_verification_token: token,
-        email_verified: false,
-        role: dto.role || 'STUDENT',
-      },
-    });
-
+    const { token, user } = await this.usersService.register(dto);
     // Gửi email xác thực
     await this.mailService.sendVerificationEmail(user.email, token);
 
     return {
-      message:
-        'Register successfully. Please check your email to verify your account.',
+      createdAt: user.created_at,
     };
   }
 
   async verifyEmail(token: string) {
-    // Tìm user theo token
-    console.log('Verifying email with token:', token);
-    const user = await this.prisma.users.findFirst({
-      where: { email_verification_token: token },
+    const user = await this.usersService.verifyEmail(token);
+
+    if (!user) {
+      throw new BadRequestException('Invalid or expired verification token');
+    }
+
+    return {
+      updatedAt: user.updated_at,
+    };
+  }
+
+  async validateUser(email: string, password: string) {
+    const user = await this.prisma.users.findUnique({
+      where: { email },
+      include: { profiles: true },
     });
+    if (!user) return null;
+    const match = this.usersService.isValidPassword(user, password);
+    return match ? user : null;
+  }
 
-    if (!user) throw new BadRequestException('Invalid verification token');
+  async login(user: IUser, res: Response) {
+    const payload = {
+      sub: 'Token Login',
+      iss: 'Server',
+      id: user.id,
+      full_name: user.profiles.full_name,
+      email: user.email,
+      role: user.role,
+    };
+    return this.createBothTokens(payload, payload, user, res, user.id);
+  }
 
-    // Cập nhật trạng thái đã xác thực
-    await this.prisma.users.update({
-      where: { id: user.id },
-      data: {
-        email_verified: true,
-        email_verification_token: null, // Xoá token sau khi xác thực
+  async refresh(req: Request, res: Response) {
+    const refresh_token = req.cookies['refresh_token'] as string | undefined;
+    if (!refresh_token) {
+      throw new UnauthorizedException('Invalid refresh token');
+    }
+    let payload: IJwtPayload;
+
+    try {
+      payload = this.jwtService.verify(refresh_token, {
+        secret: this.configService.get<string>('JWT_REFRESH_SECRET'),
+      });
+    } catch (e) {
+      throw new BadRequestException('Invalid refresh token');
+    }
+
+    const user = await this.usersService.findByRefreshToken(refresh_token);
+
+    if (!user) {
+      throw new BadRequestException('User not found');
+    }
+
+    payload = {
+      sub: 'Token Refresh',
+      iss: 'Server',
+      id: user.id,
+      full_name: user.profiles?.full_name || '',
+      email: user.email,
+      role: user.role,
+    };
+
+    const resData = {
+      id: user.id,
+      profiles: {
+        full_name: user.profiles?.full_name || '',
       },
+      email: user.email,
+      role: user.role,
+    };
+
+    return this.createBothTokens(payload, payload, resData, res, user.id);
+  }
+
+  async logout(currentUser: IUser, res: Response) {
+    await this.delRefreshToken(currentUser.id);
+    res.clearCookie('refresh_token');
+    return {
+      logoutAt: new Date().toISOString(),
+    };
+  }
+
+  createAccessToken(payload: object | Buffer) {
+    return this.jwtService.sign(payload);
+  }
+
+  createRefreshToken(payload: object | Buffer) {
+    const time =
+      this.configService.get<string>('JWT_REFRESH_EXPIRES_IN') || '7d';
+    return this.jwtService.sign(payload, {
+      secret: this.configService.get<string>('JWT_REFRESH_SECRET'),
+      expiresIn: ms(time as StringValue) / 1000,
+    });
+  }
+
+  async createBothTokens(
+    payloadAccessToken: IJwtPayload,
+    payloadRefreshToken: IJwtPayload,
+    resData: IUser,
+    res: Response,
+    userId: string,
+  ) {
+    const { id, full_name, email, role } = payloadAccessToken;
+    const access_token = this.createAccessToken(payloadAccessToken);
+    const refresh_token = this.createRefreshToken(payloadRefreshToken);
+
+    res.clearCookie('refresh_token');
+
+    const time =
+      this.configService.get<string>('JWT_REFRESH_EXPIRES_IN') || '7d';
+
+    await this.saveRefreshToken(
+      userId,
+      refresh_token,
+      ms(time as StringValue) / 1000,
+    );
+
+    res.cookie('refresh_token', refresh_token, {
+      httpOnly: true,
+      maxAge: ms(time as StringValue),
     });
 
     return {
-      message: 'Email verified successfully. Please log in to your account.',
+      access_token,
+      user: resData,
     };
+  }
+
+  async saveRefreshToken(userId: string, token: string, ttl: number) {
+    await this.delRefreshToken(userId);
+    await this.redisService.set(`refresh:${userId}`, token, ttl);
+    await this.redisService.set(`refresh_token:${token}`, userId, ttl);
+  }
+
+  async delRefreshToken(userId: string) {
+    const token = await this.redisService.get(`refresh:${userId}`);
+    if (token) {
+      await this.redisService.del(`refresh:${userId}`);
+      await this.redisService.del(`refresh_token:${token}`);
+    }
   }
 }
