@@ -1,12 +1,15 @@
 import { Injectable, Logger } from '@nestjs/common';
-import * as bcrypt from 'bcryptjs';
 import { PrismaService } from 'src/prisma/prisma.service';
+import { UsersService } from 'src/users/users.service';
 
 @Injectable()
 export class DatabaseService {
   private readonly logger = new Logger(DatabaseService.name);
 
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private usersService: UsersService,
+  ) {}
 
   async createAdminUser() {
     const email = 'admin@example.com';
@@ -18,12 +21,10 @@ export class DatabaseService {
       return existing;
     }
 
-    const hashed = await bcrypt.hash(password, 10);
-
     const admin = await this.prisma.users.create({
       data: {
         email,
-        password: hashed,
+        password: this.usersService.getHashPassword(password),
         role: 'ADMIN', // ensure this is a valid enum in your schema
         status: 'active',
         email_verified: true,
