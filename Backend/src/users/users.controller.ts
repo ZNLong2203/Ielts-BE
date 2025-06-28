@@ -1,42 +1,69 @@
+import { Controller, Delete, Get, Put } from '@nestjs/common';
+import { Action } from 'src/casl/casl.interface';
+import * as ISubject from 'src/casl/subject.interface';
 import {
-  Controller,
-  Get,
-  Post,
-  Body,
-  Patch,
-  Param,
-  Delete,
-} from '@nestjs/common';
-import { UsersService } from './users.service';
-import { CreateUserDto } from './dto/create-user.dto';
-import { UpdateUserDto } from './dto/update-user.dto';
+  CheckPolicies,
+  Public,
+  SkipCheckPermission,
+} from 'src/decorator/customize';
 
-@Controller('users')
+@Controller('profile')
 export class UsersController {
-  constructor(private readonly usersService: UsersService) {}
-
-  @Post()
-  create(@Body() createUserDto: CreateUserDto) {
-    return this.usersService.create(createUserDto);
+  // ✅ Case 1: Route công khai, bỏ qua JWT và CASL
+  @Public()
+  @Get('public-info')
+  getPublicInfo() {
+    return 'Anyone can access this public info';
   }
 
+  // ✅ Case 2: Chỉ cần xác thực JWT, bỏ qua check CASL
+  @SkipCheckPermission()
+  @Get('me')
+  getMyProfile() {
+    return 'User info (auth required, no permission check)';
+  }
+
+  // ✅ Case 3: Cần cả xác thực và quyền đọc profile
+  @CheckPolicies((ability, req) =>
+    ability.can(
+      Action.Read,
+      new ISubject.Profile({ userId: req.user?.id as string }),
+    ),
+  )
   @Get()
-  findAll() {
-    return this.usersService.findAll();
+  getProfile() {
+    return 'User profile (permission required)';
   }
 
-  @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.usersService.findOne(+id);
+  // ✅ Case 4: Cần quyền update profile
+  @CheckPolicies((ability, req) =>
+    ability.can(
+      Action.Update,
+      new ISubject.Profile({ userId: req.user?.id as string }),
+    ),
+  )
+  @Put()
+  updateProfile() {
+    return 'Profile updated (permission required)';
   }
 
-  @Patch(':id')
-  update(@Param('id') id: string, @Body() updateUserDto: UpdateUserDto) {
-    return this.usersService.update(+id, updateUserDto);
+  // ✅ Case 5: Không cần auth hoặc permission (ví dụ health check)
+  @Public()
+  @SkipCheckPermission()
+  @Get('status')
+  getStatus() {
+    return { status: 'ok' };
   }
 
-  @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.usersService.remove(+id);
+  // ✅ Case 6: Bị chặn nếu không có quyền delete
+  @CheckPolicies((ability, req) =>
+    ability.can(
+      Action.Delete,
+      new ISubject.Profile({ userId: req.user?.id as string }),
+    ),
+  )
+  @Delete()
+  deleteAccount() {
+    return 'Account deleted (permission required)';
   }
 }
