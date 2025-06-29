@@ -1,0 +1,14 @@
+#!/bin/sh
+
+ollama serve &
+
+echo "Waiting for Ollama server to be ready..."
+until ollama list >/dev/null 2>&1; do
+  sleep 1
+done
+
+echo "Pulling model..."
+ollama pull hf.co/Zkare/Chatbot_Ielts_Assistant:F16
+
+# Giữ container sống
+wait

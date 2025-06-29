@@ -1,0 +1,40 @@
+services:
+  ollama:
+    image: ollama/ollama:latest
+    container_name: ollama-ielts
+    ports:
+      - "11435:11434"
+    volumes:
+      - ollama-test-data:/root/.ollama
+      - ./scripts/entrypoint.sh:/entrypoint.sh
+    environment:
+      - OLLAMA_HOST=0.0.0.0
+      - OLLAMA_KEEP_ALIVE=24h
+      - OLLAMA_NUM_PARALLEL=2
+      - OLLAMA_MAX_LOADED_MODELS=1
+    entrypoint: ["sh", "/entrypoint.sh"]
+    networks:
+      - ai-test
+    restart: unless-stopped
+
+  ielts-ai:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: ai-ielts
+    ports:
+      - "8000:8000"
+    environment:
+      - OLLAMA_API_URL=http://ollama:11434/api/generate
+    depends_on:
+      - ollama
+    networks:
+      - ai-test
+    restart: unless-stopped
+
+networks:
+  ai-test:
+    driver: bridge
+
+volumes:
+  ollama-test-data:
