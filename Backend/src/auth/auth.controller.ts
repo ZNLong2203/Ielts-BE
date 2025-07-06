@@ -8,7 +8,7 @@ import {
   Res,
   UseGuards,
 } from '@nestjs/common';
-import { ApiBody } from '@nestjs/swagger';
+import { ApiBody, ApiOperation } from '@nestjs/swagger';
 import { Request, Response } from 'express';
 import { LocalAuthGuard } from 'src/auth/guards/local-auth.guard';
 import {
@@ -25,6 +25,10 @@ import { AuthService } from './auth.service';
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
+  @ApiOperation({
+    summary: 'Register user',
+    description: 'Register a new user and send verification email.',
+  })
   @Public()
   @Post('register')
   @MessageResponse(
@@ -34,6 +38,10 @@ export class AuthController {
     return this.authService.register(dto);
   }
 
+  @ApiOperation({
+    summary: 'Verify email',
+    description: 'Verify a user account using the token sent via email.',
+  })
   @Public()
   @Get('verify')
   @MessageResponse('Email verification successful. You can now log in.')
@@ -41,6 +49,10 @@ export class AuthController {
     return this.authService.verifyEmail(token);
   }
 
+  @ApiOperation({
+    summary: 'Login',
+    description: 'Login using email and password credentials.',
+  })
   @Public()
   @UseGuards(LocalAuthGuard)
   @ApiBody({
@@ -56,6 +68,10 @@ export class AuthController {
     return this.authService.login(req.user, res);
   }
 
+  @ApiOperation({
+    summary: 'Logout',
+    description: 'Logout the currently authenticated user.',
+  })
   @SkipCheckPermission()
   @Post('logout')
   @MessageResponse('User has been logged out successfully!')
@@ -66,6 +82,11 @@ export class AuthController {
     return this.authService.logout(user, res);
   }
 
+  @ApiOperation({
+    summary: 'Refresh access token',
+    description:
+      'Refresh JWT access token using refresh token stored in cookies.',
+  })
   @Public()
   @Get('refresh')
   @MessageResponse('Token has been refreshed successfully!')
