@@ -8,7 +8,14 @@ import {
   Res,
   UseGuards,
 } from '@nestjs/common';
-import { ApiBody, ApiOperation } from '@nestjs/swagger';
+import {
+  ApiBody,
+  ApiOperation,
+  ApiQuery,
+  ApiTags,
+  ApiBearerAuth,
+  ApiCookieAuth,
+} from '@nestjs/swagger';
 import { Request, Response } from 'express';
 import { LocalAuthGuard } from 'src/auth/guards/local-auth.guard';
 import {
@@ -20,7 +27,9 @@ import {
 import { IUser } from 'src/interface/users.interface';
 import { CreateUserDto, UserLoginDto } from 'src/users/dto/create-user.dto';
 import { AuthService } from './auth.service';
+import { MESSAGE } from 'src/common/message';
 
+@ApiTags('Authentication')
 @Controller('auth')
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
@@ -29,11 +38,13 @@ export class AuthController {
     summary: 'Register user',
     description: 'Register a new user and send verification email.',
   })
+  @ApiBody({
+    description: 'User registration data',
+    type: CreateUserDto,
+  })
   @Public()
   @Post('register')
-  @MessageResponse(
-    'Register successfully. Please check your email to verify your account.',
-  )
+  @MessageResponse(MESSAGE.AUTH.REGISTER_SUCCESS)
   register(@Body() dto: CreateUserDto) {
     return this.authService.register(dto);
   }
@@ -42,9 +53,15 @@ export class AuthController {
     summary: 'Verify email',
     description: 'Verify a user account using the token sent via email.',
   })
+  @ApiQuery({
+    name: 'token',
+    description: 'Email verification token',
+    required: true,
+    type: String,
+  })
   @Public()
   @Get('verify')
-  @MessageResponse('Email verification successful. You can now log in.')
+  @MessageResponse(MESSAGE.AUTH.EMAIL_VERIFICATION_SUCCESS)
   verifyEmail(@Query('token') token: string) {
     return this.authService.verifyEmail(token);
   }
@@ -53,14 +70,14 @@ export class AuthController {
     summary: 'Login',
     description: 'Login using email and password credentials.',
   })
-  @Public()
-  @UseGuards(LocalAuthGuard)
   @ApiBody({
     description: 'Login with email and password',
     type: UserLoginDto,
   })
+  @Public()
+  @UseGuards(LocalAuthGuard)
   @Post('login')
-  @MessageResponse('Login successful')
+  @MessageResponse(MESSAGE.AUTH.LOGIN_SUCCESS)
   login(
     @Req() req: Request & { user: IUser },
     @Res({ passthrough: true }) res: Response,
@@ -72,9 +89,10 @@ export class AuthController {
     summary: 'Logout',
     description: 'Logout the currently authenticated user.',
   })
+  @ApiBearerAuth()
   @SkipCheckPermission()
   @Post('logout')
-  @MessageResponse('User has been logged out successfully!')
+  @MessageResponse(MESSAGE.AUTH.LOGOUT_SUCCESS)
   async handleLogout(
     @Res({ passthrough: true }) res: Response,
     @CurrentUser() user: IUser,
@@ -87,9 +105,10 @@ export class AuthController {
     description:
       'Refresh JWT access token using refresh token stored in cookies.',
   })
+  @ApiCookieAuth('refresh_token')
   @Public()
   @Get('refresh')
-  @MessageResponse('Token has been refreshed successfully!')
+  @MessageResponse(MESSAGE.AUTH.TOKEN_REFRESH_SUCCESS)
   async handleRefresh(
     @Req() req: Request,
     @Res({ passthrough: true }) res: Response,

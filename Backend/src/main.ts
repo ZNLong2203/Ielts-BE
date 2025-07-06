@@ -14,6 +14,7 @@ import { AppModule } from './app.module';
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
   const configService = app.get(ConfigService);
+  const port = configService.get<number>('PORT') || 3000;
   const reflector = app.get(Reflector);
 
   app.useGlobalPipes(
@@ -66,8 +67,15 @@ async function bootstrap() {
       },
       'token',
     )
+    .addCookieAuth('refresh_token', {
+      type: 'apiKey',
+      in: 'cookie',
+      name: 'refresh_token',
+      description: 'Refresh token stored in HTTP-only cookie',
+    })
     .addSecurityRequirements('token')
-    // .addTag('cats')
+    .addTag('Authentication', 'User authentication and authorization')
+    .addTag('User Profile', 'User profile management')
     .build();
   const documentFactory = () => SwaggerModule.createDocument(app, config);
   SwaggerModule.setup('swagger', app, documentFactory, {
@@ -78,6 +86,6 @@ async function bootstrap() {
 
   const dbService = app.get(DatabaseService);
   await dbService.createAdminUser();
-  await app.listen(process.env.PORT ?? 3000);
+  await app.listen(port);
 }
-bootstrap();
+void bootstrap();
