@@ -49,7 +49,7 @@ CREATE TABLE teachers (
     rating DECIMAL(2,1) DEFAULT 0,
     total_students INTEGER DEFAULT 0,
     total_courses INTEGER DEFAULT 0,
-    is_verified BOOLEAN DEFAULT FALSE,
+    status TEXT DEFAULT 'pending',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );

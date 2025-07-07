@@ -13,7 +13,10 @@ import { IUser } from 'src/interface/users.interface';
 import { MailService } from 'src/mail/mail.service';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { RedisService } from 'src/redis/redis.service';
-import { CreateUserDto } from 'src/users/dto/create-user.dto';
+import {
+  RegisterStudentDto,
+  RegisterTeacherDto,
+} from 'src/users/dto/create-user.dto';
 import { UsersService } from 'src/users/users.service';
 
 @Injectable()
@@ -27,8 +30,18 @@ export class AuthService {
     private usersService: UsersService,
   ) {}
 
-  async register(dto: CreateUserDto) {
-    const { token, user } = await this.usersService.register(dto);
+  async registerStudent(dto: RegisterStudentDto) {
+    const { token, user } = await this.usersService.registerStudent(dto);
+    // Gửi email xác thực
+    await this.mailService.sendVerificationEmail(user.email, token);
+
+    return {
+      createdAt: user.created_at,
+    };
+  }
+
+  async registerTeacher(dto: RegisterTeacherDto) {
+    const { token, user } = await this.usersService.registerTeacher(dto);
     // Gửi email xác thực
     await this.mailService.sendVerificationEmail(user.email, token);
 
@@ -52,7 +65,7 @@ export class AuthService {
   async validateUser(email: string, password: string) {
     const user = await this.prisma.users.findUnique({
       where: { email },
-      include: { profiles: true },
+      include: { profiles: true, teachers: true },
     });
     if (!user) return null;
     const match = this.usersService.isValidPassword(user, password);

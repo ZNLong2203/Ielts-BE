@@ -9,15 +9,17 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import {
+  ApiBearerAuth,
   ApiBody,
+  ApiCookieAuth,
+  ApiExtraModels,
   ApiOperation,
   ApiQuery,
   ApiTags,
-  ApiBearerAuth,
-  ApiCookieAuth,
 } from '@nestjs/swagger';
 import { Request, Response } from 'express';
 import { LocalAuthGuard } from 'src/auth/guards/local-auth.guard';
+import { MESSAGE } from 'src/common/message';
 import {
   CurrentUser,
   MessageResponse,
@@ -25,28 +27,47 @@ import {
   SkipCheckPermission,
 } from 'src/decorator/customize';
 import { IUser } from 'src/interface/users.interface';
-import { CreateUserDto, UserLoginDto } from 'src/users/dto/create-user.dto';
+import {
+  RegisterTeacherDto,
+  UserLoginDto,
+} from 'src/users/dto/create-user.dto';
+import { RegisterStudentDto } from './../users/dto/create-user.dto';
 import { AuthService } from './auth.service';
-import { MESSAGE } from 'src/common/message';
 
+@ApiExtraModels(RegisterStudentDto, RegisterTeacherDto)
 @ApiTags('Authentication')
 @Controller('auth')
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
   @ApiOperation({
-    summary: 'Register user',
-    description: 'Register a new user and send verification email.',
+    summary: 'Register student',
+    description: 'Register a new student and send verification email.',
   })
   @ApiBody({
-    description: 'User registration data',
-    type: CreateUserDto,
+    description: 'Student registration data',
+    type: RegisterStudentDto,
   })
   @Public()
-  @Post('register')
+  @Post('register-student')
   @MessageResponse(MESSAGE.AUTH.REGISTER_SUCCESS)
-  register(@Body() dto: CreateUserDto) {
-    return this.authService.register(dto);
+  registerStudent(@Body() dto: RegisterStudentDto) {
+    return this.authService.registerStudent(dto);
+  }
+
+  @ApiOperation({
+    summary: 'Register teacher',
+    description: 'Register a new teacher and send verification email.',
+  })
+  @ApiBody({
+    description: 'Teacher registration data',
+    type: RegisterTeacherDto,
+  })
+  @Public()
+  @Post('register-teacher')
+  @MessageResponse(MESSAGE.AUTH.REGISTER_SUCCESS)
+  registerTeacher(@Body() dto: RegisterTeacherDto) {
+    return this.authService.registerTeacher(dto);
   }
 
   @ApiOperation({

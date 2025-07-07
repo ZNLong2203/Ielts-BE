@@ -7,6 +7,60 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+model profiles {
+  id                  String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id             String?   @unique @db.Uuid
+  full_name           String?   @db.VarChar(255)
+  avatar              String?   @db.VarChar(500)
+  phone               String?   @db.VarChar(20)
+  date_of_birth       DateTime? @db.Date
+  gender              String?   @db.VarChar(10)
+  bio                 String?
+  country             String?   @db.VarChar(100)
+  city                String?   @db.VarChar(100)
+  target_ielts_score  Decimal?  @db.Decimal(2, 1)
+  current_level       String?   @db.VarChar(20)
+  learning_goals      String[]
+  timezone            String?   @db.VarChar(50)
+  language_preference String?   @default("vi") @db.VarChar(10)
+  privacy_settings    Json?
+  created_at          DateTime? @default(now()) @db.Timestamp(6)
+  updated_at          DateTime? @default(now()) @db.Timestamp(6)
+  users               users?    @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+}
+
+model users {
+  id                       String                @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  email                    String                @unique @db.VarChar(255)
+  password                 String                @db.VarChar(255)
+  role                     String                @db.VarChar(20)
+  status                   String?               @default("active") @db.VarChar(20)
+  email_verified           Boolean?              @default(false)
+  email_verification_token String?               @db.VarChar(255)
+  password_reset_token     String?               @db.VarChar(255)
+  password_reset_expires   DateTime?             @db.Timestamp(6)
+  last_login               DateTime?             @db.Timestamp(6)
+  login_count              Int?                  @default(0)
+  created_at               DateTime?             @default(now()) @db.Timestamp(6)
+  updated_at               DateTime?             @default(now()) @db.Timestamp(6)
+  blog_comments            blog_comments[]
+  blogs                    blogs[]
+  carts                    carts[]
+  coupon_usage             coupon_usage[]
+  coupons                  coupons[]
+  enrollments              enrollments[]
+  lesson_notes             lesson_notes[]
+  orders                   orders[]
+  profiles                 profiles?
+  teachers                 teachers?
+  test_results             test_results[]
+  user_learning_paths      user_learning_paths[]
+  user_progress            user_progress[]
+  user_submissions         user_submissions[]
+
+  @@index([email], map: "idx_users_email")
+}
+
 model blog_categories {
   id          String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   name        String    @db.VarChar(100)
@@ -335,28 +389,6 @@ model payments {
   orders           orders?   @relation(fields: [order_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
 }
 
-model profiles {
-  id                  String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  user_id             String?   @unique @db.Uuid
-  full_name           String?   @db.VarChar(255)
-  avatar              String?   @db.VarChar(500)
-  phone               String?   @db.VarChar(20)
-  date_of_birth       DateTime? @db.Date
-  gender              String?   @db.VarChar(10)
-  bio                 String?
-  country             String?   @db.VarChar(100)
-  city                String?   @db.VarChar(100)
-  target_ielts_score  Decimal?  @db.Decimal(2, 1)
-  current_level       String?   @db.VarChar(20)
-  learning_goals      String[]
-  timezone            String?   @db.VarChar(50)
-  language_preference String?   @default("vi") @db.VarChar(10)
-  privacy_settings    Json?
-  created_at          DateTime? @default(now()) @db.Timestamp(6)
-  updated_at          DateTime? @default(now()) @db.Timestamp(6)
-  users               users?    @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
-}
-
 model question_answers {
   id               String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   submission_id    String?           @db.Uuid
@@ -416,7 +448,7 @@ model teachers {
   rating           Decimal?           @default(0) @db.Decimal(2, 1)
   total_students   Int?               @default(0)
   total_courses    Int?               @default(0)
-  is_verified      Boolean?           @default(false)
+  status           String?            @default("pending")
   created_at       DateTime?          @default(now()) @db.Timestamp(6)
   updated_at       DateTime?          @default(now()) @db.Timestamp(6)
   courses          courses[]
@@ -501,36 +533,4 @@ model user_submissions {
   exercises        exercises?         @relation(fields: [exercise_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
   teachers         teachers?          @relation(fields: [graded_by], references: [id], onDelete: NoAction, onUpdate: NoAction)
   users            users?             @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
-}
-
-model users {
-  id                       String                @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  email                    String                @unique @db.VarChar(255)
-  password                 String                @db.VarChar(255)
-  role                     String                @db.VarChar(20)
-  status                   String?               @default("active") @db.VarChar(20)
-  email_verified           Boolean?              @default(false)
-  email_verification_token String?               @db.VarChar(255)
-  password_reset_token     String?               @db.VarChar(255)
-  password_reset_expires   DateTime?             @db.Timestamp(6)
-  last_login               DateTime?             @db.Timestamp(6)
-  login_count              Int?                  @default(0)
-  created_at               DateTime?             @default(now()) @db.Timestamp(6)
-  updated_at               DateTime?             @default(now()) @db.Timestamp(6)
-  blog_comments            blog_comments[]
-  blogs                    blogs[]
-  carts                    carts[]
-  coupon_usage             coupon_usage[]
-  coupons                  coupons[]
-  enrollments              enrollments[]
-  lesson_notes             lesson_notes[]
-  orders                   orders[]
-  profiles                 profiles?
-  teachers                 teachers?
-  test_results             test_results[]
-  user_learning_paths      user_learning_paths[]
-  user_progress            user_progress[]
-  user_submissions         user_submissions[]
-
-  @@index([email], map: "idx_users_email")
 }
