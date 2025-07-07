@@ -1,5 +1,11 @@
-import { Controller, Delete, Get, Put } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
+import { Body, Controller, Delete, Get, Put } from '@nestjs/common';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiBearerAuth,
+  ApiBody,
+  ApiExtraModels,
+} from '@nestjs/swagger';
 import { Action } from 'src/casl/casl.interface';
 import * as ISubject from 'src/casl/subject.interface';
 import {
@@ -8,7 +14,9 @@ import {
   SkipCheckPermission,
 } from 'src/decorator/customize';
 import { MESSAGE } from 'src/common/message';
+import { UpdateProfileDto } from './dto/update-user.dto';
 
+@ApiExtraModels(UpdateProfileDto)
 @ApiTags('User Profile')
 @Controller('profile')
 export class UsersController {
@@ -57,6 +65,10 @@ export class UsersController {
     summary: 'Update user profile',
     description: 'Update user profile with update permission check.',
   })
+  @ApiBody({
+    description: 'Profile update data',
+    type: UpdateProfileDto,
+  })
   @ApiBearerAuth()
   @CheckPolicies((ability, req) =>
     ability.can(
@@ -65,7 +77,7 @@ export class UsersController {
     ),
   )
   @Put()
-  updateProfile() {
+  updateProfile(@Body() dto: UpdateProfileDto) {
     return MESSAGE.USER.PROFILE_UPDATED;
   }
 

@@ -68,11 +68,121 @@ export class CreateUserDto {
 
 export class RegisterStudentDto extends OmitType(CreateUserDto, [
   'role',
-] as const) {}
+] as const) {
+  @ApiProperty({
+    example: 'student@gmail.com',
+    description: 'Student email for registration',
+  })
+  email: string;
+
+  @ApiProperty({
+    example: '123456789',
+    description: 'Student password (minimum 8 characters)',
+  })
+  password: string;
+
+  @ApiProperty({
+    example: 'John Doe',
+    description: 'Full name of the student',
+  })
+  full_name: string;
+
+  @ApiProperty({
+    example: 'student',
+    description: 'Role of the user',
+  })
+  @IsString()
+  @IsNotEmpty({ message: 'Role is required' })
+  role: string;
+
+  @ApiProperty({
+    example: '20',
+    description: 'Age of the student',
+    required: false,
+  })
+  @IsOptional()
+  @IsNumber()
+  @Min(13)
+  @Max(100)
+  age?: number;
+
+  @ApiProperty({
+    example: 'male',
+    description: 'Gender of the student',
+    required: false,
+  })
+  @IsOptional()
+  @IsEnum(Gender)
+  gender?: Gender;
+
+  @ApiProperty({
+    example: 'Vietnam',
+    description: 'Country of the student',
+    required: false,
+  })
+  @IsOptional()
+  @IsString()
+  country?: string;
+
+  @ApiProperty({
+    example: 'Hanoi',
+    description: 'City of the student',
+    required: false,
+  })
+  @IsOptional()
+  @IsString()
+  city?: string;
+
+  @ApiProperty({
+    example: 'Beginner',
+    description: 'Current English level of the student',
+    required: false,
+  })
+  @IsOptional()
+  @IsString()
+  english_level?: string;
+
+  @ApiProperty({
+    example: '6.5',
+    description: 'Target IELTS band score',
+    required: false,
+  })
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  @Max(9)
+  target_band_score?: number;
+}
 
 export class RegisterTeacherDto extends OmitType(CreateUserDto, [
   'role',
 ] as const) {
+  @ApiProperty({
+    example: 'student@gmail.com',
+    description: 'Student email for registration',
+  })
+  email: string;
+
+  @ApiProperty({
+    example: '123456789',
+    description: 'Student password (minimum 8 characters)',
+  })
+  password: string;
+
+  @ApiProperty({
+    example: 'John Doe',
+    description: 'Full name of the student',
+  })
+  full_name: string;
+
+  @ApiProperty({
+    example: 'student',
+    description: 'Role of the user',
+  })
+  @IsString()
+  @IsNotEmpty({ message: 'Role is required' })
+  role: string;
+
   @ApiProperty({
     example: '+84123456789',
     description: 'Phone number of the teacher',
