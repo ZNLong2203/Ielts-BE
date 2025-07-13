@@ -15,6 +15,7 @@ import { PrismaModule } from './prisma/prisma.module';
 import { RedisModule } from './redis/redis.module';
 import { UsersModule } from './modules/users/users.module';
 import { UtilsModule } from './utils/utils.module';
+import { BlogsModule } from './modules/blogs/blogs.module';
 
 @Module({
   imports: [
@@ -29,6 +30,7 @@ import { UtilsModule } from './utils/utils.module';
     UtilsModule,
     RedisModule,
     CaslModule,
+    BlogsModule,
   ],
   controllers: [AppController, DatabaseController],
   providers: [
