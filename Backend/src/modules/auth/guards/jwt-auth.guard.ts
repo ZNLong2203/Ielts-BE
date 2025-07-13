@@ -5,7 +5,7 @@ import {
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { AuthGuard } from '@nestjs/passport';
-import { IS_PUBLIC_KEY } from '../../decorator/customize';
+import { IS_PUBLIC_KEY } from '../../../decorator/customize';
 
 // This is a custom guard that extends the built-in AuthGuard class (like Middleware)
 @Injectable()

@@ -6,7 +6,7 @@ import { RedisService } from 'src/redis/redis.service';
 import {
   RegisterStudentDto,
   RegisterTeacherDto,
-} from 'src/users/dto/create-user.dto';
+} from 'src/modules/users/dto/create-user.dto';
 import { v4 as uuidv4 } from 'uuid';
 
 @Injectable()
