@@ -10,7 +10,7 @@ import { CaslModule } from './casl/casl.module';
 import { DatabaseController } from './database/database.controller';
 import { DatabaseModule } from './database/database.module';
 import { DatabaseService } from './database/database.service';
-import { MailModule } from './mail/mail.module';
+import { MailModule } from './modules/mail/mail.module';
 import { PrismaModule } from './prisma/prisma.module';
 import { RedisModule } from './redis/redis.module';
 import { UsersModule } from './modules/users/users.module';

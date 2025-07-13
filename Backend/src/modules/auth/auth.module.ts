@@ -6,7 +6,7 @@ import * as ms from 'ms';
 import { StringValue } from 'ms';
 import { JwtStrategy } from 'src/modules/auth/strategies/jwt.strategy';
 import { LocalStrategy } from 'src/modules/auth/strategies/local.strategy';
-import { MailModule } from 'src/mail/mail.module';
+import { MailModule } from 'src/modules/mail/mail.module';
 import { PrismaModule } from 'src/prisma/prisma.module';
 import { RedisModule } from 'src/redis/redis.module';
 import { UsersModule } from 'src/modules/users/users.module';

@@ -16,27 +16,27 @@ export class BlogsController {
   constructor(private readonly blogsService: BlogsService) {}
 
   @Post()
-  create(@Body() createBlogDto: CreateBlogDto) {
+  async create(@Body() createBlogDto: CreateBlogDto) {
     return this.blogsService.create(createBlogDto);
   }
 
   @Get()
-  findAll() {
+  async findAll() {
     return this.blogsService.findAll();
   }
 
   @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.blogsService.findOne(+id);
+  async findOne(@Param('id') id: string) {
+    return this.blogsService.findOne(id);
   }
 
   @Patch(':id')
-  update(@Param('id') id: string, @Body() updateBlogDto: UpdateBlogDto) {
-    return this.blogsService.update(+id, updateBlogDto);
+  async update(@Param('id') id: string, @Body() updateBlogDto: UpdateBlogDto) {
+    return this.blogsService.update(id, updateBlogDto);
   }
 
   @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.blogsService.remove(+id);
+  async remove(@Param('id') id: string) {
+    return this.blogsService.remove(id);
   }
 }

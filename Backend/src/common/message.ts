@@ -1,5 +1,4 @@
 export const MESSAGE = {
-  // Auth messages
   AUTH: {
     REGISTER_SUCCESS:
       'Register successfully. Please check your email to verify your account.',
@@ -10,7 +9,6 @@ export const MESSAGE = {
     TOKEN_REFRESH_SUCCESS: 'Token has been refreshed successfully!',
   },
 
-  // User messages
   USER: {
     PROFILE_UPDATED: 'Profile updated (permission required)',
     ACCOUNT_DELETED: 'Account deleted (permission required)',
@@ -20,7 +18,15 @@ export const MESSAGE = {
     STATUS_OK: 'Service status is ok',
   },
 
-  // General messages
+  BLOG: {
+    BLOG_CREATED: 'Blog post created successfully',
+    BLOG_UPDATED: 'Blog post updated successfully',
+    BLOG_DELETED: 'Blog post deleted successfully',
+    BLOG_NOT_FOUND: 'Blog post not found',
+    COMMENT_ADDED: 'Comment added successfully',
+    COMMENT_DELETED: 'Comment deleted successfully',
+  },
+
   GENERAL: {
     OPERATION_SUCCESS: 'Operation completed successfully',
     UNAUTHORIZED: 'Unauthorized access',
@@ -29,7 +35,6 @@ export const MESSAGE = {
     INTERNAL_ERROR: 'Internal server error',
   },
 
-  // Error messages
   ERROR: {
     INVALID_TOKEN: 'Invalid or expired token',
     INVALID_CREDENTIALS: 'Invalid email or password',

@@ -10,7 +10,7 @@ import * as ms from 'ms';
 import { StringValue } from 'ms';
 import { IJwtPayload } from 'src/interface/jwt-payload.interface';
 import { IUser } from 'src/interface/users.interface';
-import { MailService } from 'src/mail/mail.service';
+import { MailService } from 'src/modules/mail/mail.service';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { RedisService } from 'src/redis/redis.service';
 import {
