@@ -16,8 +16,7 @@ export class BlogsService {
     const blog = await this.prismaService.blogs.create({
       data: {
         ...createBlogDto,
-        slug: createBlogDto.slug || '',
-        featured_image: createBlogDto.featured_image || '',
+        image: createBlogDto.image || '',
       },
     });
     return blog;

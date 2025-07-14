@@ -7,33 +7,18 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model profiles {
-  id                  String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  user_id             String?   @unique @db.Uuid
-  full_name           String?   @db.VarChar(255)
-  avatar              String?   @db.VarChar(500)
-  phone               String?   @db.VarChar(20)
-  date_of_birth       DateTime? @db.Date
-  gender              String?   @db.VarChar(10)
-  bio                 String?
-  country             String?   @db.VarChar(100)
-  city                String?   @db.VarChar(100)
-  target_ielts_score  Decimal?  @db.Decimal(2, 1)
-  current_level       String?   @db.VarChar(20)
-  learning_goals      String[]
-  timezone            String?   @db.VarChar(50)
-  language_preference String?   @default("vi") @db.VarChar(10)
-  privacy_settings    Json?
-  created_at          DateTime? @default(now()) @db.Timestamp(6)
-  updated_at          DateTime? @default(now()) @db.Timestamp(6)
-  users               users?    @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
-}
-
 model users {
   id                       String                @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   email                    String                @unique @db.VarChar(255)
   password                 String                @db.VarChar(255)
   role                     String                @db.VarChar(20)
+  full_name                String?               @db.VarChar(255)
+  avatar                   String?               @db.VarChar(500)
+  phone                    String?               @db.VarChar(20)
+  date_of_birth            DateTime?             @db.Date
+  gender                   String?               @db.VarChar(10)
+  country                  String?               @db.VarChar(100)
+  city                     String?               @db.VarChar(100)
   status                   String?               @default("active") @db.VarChar(20)
   email_verified           Boolean?              @default(false)
   email_verification_token String?               @db.VarChar(255)
@@ -51,7 +36,7 @@ model users {
   enrollments              enrollments[]
   lesson_notes             lesson_notes[]
   orders                   orders[]
-  profiles                 profiles?
+  students                 students?
   teachers                 teachers?
   test_results             test_results[]
   user_learning_paths      user_learning_paths[]
@@ -89,28 +74,22 @@ model blog_comments {
 }
 
 model blogs {
-  id               String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  author_id        String?          @db.Uuid
-  category_id      String?          @db.Uuid
-  title            String           @db.VarChar(255)
-  slug             String           @unique @db.VarChar(255)
-  excerpt          String?
-  content          String
-  featured_image   String?          @db.VarChar(500)
-  tags             String[]
-  status           String?          @default("draft") @db.VarChar(20)
-  is_featured      Boolean?         @default(false)
-  view_count       Int?             @default(0)
-  like_count       Int?             @default(0)
-  reading_time     Int?
-  meta_title       String?          @db.VarChar(255)
-  meta_description String?
-  published_at     DateTime?        @db.Timestamp(6)
-  created_at       DateTime?        @default(now()) @db.Timestamp(6)
-  updated_at       DateTime?        @default(now()) @db.Timestamp(6)
-  blog_comments    blog_comments[]
-  users            users?           @relation(fields: [author_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  blog_categories  blog_categories? @relation(fields: [category_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  id              String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  author_id       String?          @db.Uuid
+  category_id     String?          @db.Uuid
+  title           String           @db.VarChar(255)
+  content         String
+  image           String?          @db.VarChar(500)
+  tags            String[]
+  status          String?          @default("draft") @db.VarChar(20)
+  is_featured     Boolean?         @default(false)
+  like_count      Int?             @default(0)
+  published_at    DateTime?        @db.Timestamp(6)
+  created_at      DateTime?        @default(now()) @db.Timestamp(6)
+  updated_at      DateTime?        @default(now()) @db.Timestamp(6)
+  blog_comments   blog_comments[]
+  users           users?           @relation(fields: [author_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  blog_categories blog_categories? @relation(fields: [category_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
 
   @@index([status, published_at], map: "idx_blogs_status_published")
 }
@@ -207,8 +186,6 @@ model courses {
   requirements       String[]
   what_you_learn     String[]
   course_outline     Json?
-  meta_title         String?            @db.VarChar(255)
-  meta_description   String?
   tags               String[]
   created_at         DateTime?          @default(now()) @db.Timestamp(6)
   updated_at         DateTime?          @default(now()) @db.Timestamp(6)
@@ -533,4 +510,18 @@ model user_submissions {
   exercises        exercises?         @relation(fields: [exercise_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
   teachers         teachers?          @relation(fields: [graded_by], references: [id], onDelete: NoAction, onUpdate: NoAction)
   users            users?             @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+}
+
+model students {
+  id                  String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id             String?   @unique @db.Uuid
+  bio                 String?
+  target_ielts_score  Decimal?  @db.Decimal(2, 1)
+  current_level       String?   @db.VarChar(20)
+  learning_goals      String[]
+  timezone            String?   @db.VarChar(50)
+  language_preference String?   @default("vi") @db.VarChar(10)
+  created_at          DateTime? @default(now()) @db.Timestamp(6)
+  updated_at          DateTime? @default(now()) @db.Timestamp(6)
+  users               users?    @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
 }

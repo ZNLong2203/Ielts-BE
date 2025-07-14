@@ -19,9 +19,5 @@ export class CreateBlogDto {
 
   @IsString()
   @IsOptional()
-  slug?: string;
-
-  @IsString()
-  @IsOptional()
-  featured_image?: string;
+  image?: string;
 }
