@@ -17,6 +17,7 @@ CREATE TABLE users (
     password_reset_expires TIMESTAMP,
     last_login TIMESTAMP,
     login_count INTEGER DEFAULT 0,
+    deleted BOOLEAN DEFAULT FALSE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
@@ -30,6 +31,7 @@ CREATE TABLE students (
     learning_goals TEXT[],
     timezone VARCHAR(50),
     language_preference VARCHAR(10) DEFAULT 'vi',
+    deleted BOOLEAN DEFAULT FALSE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
@@ -49,6 +51,7 @@ CREATE TABLE teachers (
     total_students INTEGER DEFAULT 0,
     total_courses INTEGER DEFAULT 0,
     status TEXT DEFAULT 'pending', -- pending, approved, rejected, inactive
+    deleted BOOLEAN DEFAULT FALSE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
@@ -60,6 +63,7 @@ CREATE TABLE course_categories (
     icon VARCHAR(255),
     ordering INTEGER DEFAULT 0,
     is_active BOOLEAN DEFAULT TRUE,
+    deleted BOOLEAN DEFAULT FALSE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
@@ -86,9 +90,10 @@ CREATE TABLE courses (
     what_you_learn TEXT[],
     course_outline JSONB,
     tags TEXT[],
+    published_at TIMESTAMP,
+    deleted BOOLEAN DEFAULT FALSE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    published_at TIMESTAMP
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE TABLE lessons (
@@ -106,6 +111,7 @@ CREATE TABLE lessons (
     is_published BOOLEAN DEFAULT TRUE,
     transcript TEXT,
     subtitles JSONB, -- multi-language subtitles
+    deleted BOOLEAN DEFAULT FALSE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
@@ -117,6 +123,7 @@ CREATE TABLE lesson_notes (
     content TEXT NOT NULL,
     timestamp_in_video INTEGER, -- position in video where note was taken
     is_public BOOLEAN DEFAULT FALSE,
+    deleted BOOLEAN DEFAULT FALSE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
@@ -131,6 +138,7 @@ CREATE TABLE user_progress (
     time_spent INTEGER DEFAULT 0, -- in seconds
     last_watched_position INTEGER DEFAULT 0, -- for video lessons
     completion_date TIMESTAMP,
+    deleted BOOLEAN DEFAULT FALSE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     UNIQUE(user_id, lesson_id)
@@ -145,6 +153,9 @@ CREATE TABLE enrollments (
     progress_percentage DECIMAL(5,2) DEFAULT 0,
     certificate_url VARCHAR(500),
     is_active BOOLEAN DEFAULT TRUE,
+    deleted BOOLEAN DEFAULT FALSE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     UNIQUE(user_id, course_id)
 );
 
@@ -152,7 +163,9 @@ CREATE TABLE exercise_types (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     name VARCHAR(50) NOT NULL, -- quiz, essay, speaking, listening
     description TEXT,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    deleted BOOLEAN DEFAULT FALSE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE TABLE exercises (
@@ -167,6 +180,7 @@ CREATE TABLE exercises (
     passing_score DECIMAL(5,2),
     ordering INTEGER DEFAULT 0,
     is_active BOOLEAN DEFAULT TRUE,
+    deleted BOOLEAN DEFAULT FALSE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
@@ -181,6 +195,7 @@ CREATE TABLE questions (
     points DECIMAL(5,2) DEFAULT 1,
     ordering INTEGER DEFAULT 0,
     difficulty_level VARCHAR(20), -- easy, medium, hard
+    deleted BOOLEAN DEFAULT FALSE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
@@ -192,6 +207,7 @@ CREATE TABLE question_options (
     is_correct BOOLEAN DEFAULT FALSE,
     ordering INTEGER DEFAULT 0,
     explanation TEXT,
+    deleted BOOLEAN DEFAULT FALSE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
@@ -211,6 +227,7 @@ CREATE TABLE user_submissions (
     graded_by UUID REFERENCES teachers(id),
     graded_at TIMESTAMP,
     status VARCHAR(20) DEFAULT 'submitted', -- submitted, graded, needs_review
+    deleted BOOLEAN DEFAULT FALSE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
@@ -224,7 +241,9 @@ CREATE TABLE question_answers (
     media_url VARCHAR(500), -- for speaking/audio answers
     is_correct BOOLEAN,
     points_earned DECIMAL(5,2),
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    deleted BOOLEAN DEFAULT FALSE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE TABLE mock_tests (
@@ -238,6 +257,7 @@ CREATE TABLE mock_tests (
     difficulty_level VARCHAR(20),
     is_published BOOLEAN DEFAULT FALSE,
     created_by UUID REFERENCES teachers(id),
+    deleted BOOLEAN DEFAULT FALSE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
@@ -257,7 +277,9 @@ CREATE TABLE test_results (
     recommendations TEXT,
     strengths TEXT[],
     weaknesses TEXT[],
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    deleted BOOLEAN DEFAULT FALSE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE TABLE blog_categories (
@@ -267,7 +289,9 @@ CREATE TABLE blog_categories (
     description TEXT,
     ordering INTEGER DEFAULT 0,
     is_active BOOLEAN DEFAULT TRUE,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    deleted BOOLEAN DEFAULT FALSE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE TABLE blogs (
@@ -282,6 +306,7 @@ CREATE TABLE blogs (
     is_featured BOOLEAN DEFAULT FALSE,
     like_count INTEGER DEFAULT 0,
     published_at TIMESTAMP,
+    deleted BOOLEAN DEFAULT FALSE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
@@ -294,6 +319,7 @@ CREATE TABLE blog_comments (
     content TEXT NOT NULL,
     is_approved BOOLEAN DEFAULT TRUE,
     like_count INTEGER DEFAULT 0,
+    deleted BOOLEAN DEFAULT FALSE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
@@ -302,6 +328,7 @@ CREATE TABLE carts (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id UUID REFERENCES users(id) ON DELETE CASCADE,
     is_active BOOLEAN DEFAULT TRUE,
+    deleted BOOLEAN DEFAULT FALSE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
@@ -312,7 +339,9 @@ CREATE TABLE cart_items (
     course_id UUID REFERENCES courses(id) ON DELETE CASCADE,
     price DECIMAL(10,2) NOT NULL,
     discount_amount DECIMAL(10,2) DEFAULT 0,
+    deleted BOOLEAN DEFAULT FALSE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     UNIQUE(cart_id, course_id)
 );
 
@@ -327,6 +356,7 @@ CREATE TABLE orders (
     payment_method VARCHAR(50),
     payment_status VARCHAR(20) DEFAULT 'pending',
     notes TEXT,
+    deleted BOOLEAN DEFAULT FALSE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
@@ -338,7 +368,9 @@ CREATE TABLE order_items (
     course_title VARCHAR(255),
     price DECIMAL(10,2) NOT NULL,
     discount_amount DECIMAL(10,2) DEFAULT 0,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    deleted BOOLEAN DEFAULT FALSE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE TABLE payments (
@@ -351,6 +383,7 @@ CREATE TABLE payments (
     status VARCHAR(20) DEFAULT 'pending', -- pending, completed, failed, refunded
     gateway_response JSONB,
     processed_at TIMESTAMP,
+    deleted BOOLEAN DEFAULT FALSE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
@@ -371,6 +404,7 @@ CREATE TABLE coupons (
     is_active BOOLEAN DEFAULT TRUE,
     applicable_courses UUID[], -- specific courses or null for all
     created_by UUID REFERENCES users(id),
+    deleted BOOLEAN DEFAULT FALSE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
@@ -382,6 +416,9 @@ CREATE TABLE coupon_usage (
     order_id UUID REFERENCES orders(id),
     discount_amount DECIMAL(10,2),
     used_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    deleted BOOLEAN DEFAULT FALSE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     UNIQUE(coupon_id, user_id, order_id)
 );
 
@@ -397,6 +434,7 @@ CREATE TABLE learning_paths (
     prerequisites TEXT[],
     is_published BOOLEAN DEFAULT FALSE,
     created_by UUID REFERENCES teachers(id),
+    deleted BOOLEAN DEFAULT FALSE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
@@ -410,7 +448,10 @@ CREATE TABLE user_learning_paths (
     started_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     estimated_completion DATE,
     actual_completion TIMESTAMP,
-    is_active BOOLEAN DEFAULT TRUE
+    is_active BOOLEAN DEFAULT TRUE,
+    deleted BOOLEAN DEFAULT FALSE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE INDEX idx_users_email ON users(email);
