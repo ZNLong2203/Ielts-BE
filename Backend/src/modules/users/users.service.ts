@@ -228,6 +228,10 @@ export class UsersService {
     return await this.findUniqueUserByCondition({ email });
   }
 
+  async findById(id: string) {
+    return await this.findUniqueUserByCondition({ id });
+  }
+
   async findByRefreshToken(refreshToken: string) {
     const userId = await this.redisService.get(`refresh_token:${refreshToken}`);
     if (userId) {

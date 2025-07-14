@@ -18,7 +18,6 @@ import {
   ApiTags,
 } from '@nestjs/swagger';
 import { Request, Response } from 'express';
-import { LocalAuthGuard } from 'src/modules/auth/guards/local-auth.guard';
 import { MESSAGE } from 'src/common/message';
 import {
   CurrentUser,
@@ -27,6 +26,7 @@ import {
   SkipCheckPermission,
 } from 'src/decorator/customize';
 import { IUser } from 'src/interface/users.interface';
+import { LocalAuthGuard } from 'src/modules/auth/guards/local-auth.guard';
 import {
   RegisterTeacherDto,
   UserLoginDto,
@@ -135,5 +135,16 @@ export class AuthController {
     @Res({ passthrough: true }) res: Response,
   ) {
     return this.authService.refresh(req, res);
+  }
+
+  @ApiOperation({
+    summary: 'Get user profile',
+    description:
+      'Retrieve the profile information of the currently authenticated user.',
+  })
+  @ApiBearerAuth()
+  @Get('profile')
+  getProfile(@CurrentUser() user: IUser) {
+    return this.authService.getProfile(user);
   }
 }

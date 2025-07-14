@@ -129,6 +129,15 @@ export class AuthService {
     };
   }
 
+  async getProfile(user: IUser) {
+    const userProfile = await this.usersService.findByEmail(user.id);
+    if (!userProfile) {
+      throw new BadRequestException('User not found');
+    }
+    const { password, id, ...userInfo } = userProfile;
+    return userInfo;
+  }
+
   createAccessToken(payload: object | Buffer) {
     return this.jwtService.sign(payload);
   }

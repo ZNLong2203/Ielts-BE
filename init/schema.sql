@@ -48,7 +48,7 @@ CREATE TABLE teachers (
     rating DECIMAL(2,1) DEFAULT 0,
     total_students INTEGER DEFAULT 0,
     total_courses INTEGER DEFAULT 0,
-    status TEXT DEFAULT 'pending',
+    status TEXT DEFAULT 'pending', -- pending, approved, rejected, inactive
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );

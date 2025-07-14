@@ -1,21 +1,23 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { APP_GUARD } from '@nestjs/core';
-import { JwtAuthGuard } from 'src/modules/auth/guards/jwt-auth.guard';
 import { PermissionGuard } from 'src/casl/guards/permission.guard';
+import { JwtAuthGuard } from 'src/modules/auth/guards/jwt-auth.guard';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
-import { AuthModule } from './modules/auth/auth.module';
 import { CaslModule } from './casl/casl.module';
 import { DatabaseController } from './database/database.controller';
 import { DatabaseModule } from './database/database.module';
 import { DatabaseService } from './database/database.service';
+import { AuthModule } from './modules/auth/auth.module';
+import { BlogsModule } from './modules/blogs/blogs.module';
 import { MailModule } from './modules/mail/mail.module';
+import { StudentsModule } from './modules/students/students.module';
+import { TeachersModule } from './modules/teachers/teachers.module';
+import { UsersModule } from './modules/users/users.module';
 import { PrismaModule } from './prisma/prisma.module';
 import { RedisModule } from './redis/redis.module';
-import { UsersModule } from './modules/users/users.module';
 import { UtilsModule } from './utils/utils.module';
-import { BlogsModule } from './modules/blogs/blogs.module';
 
 @Module({
   imports: [
@@ -31,6 +33,8 @@ import { BlogsModule } from './modules/blogs/blogs.module';
     RedisModule,
     CaslModule,
     BlogsModule,
+    StudentsModule,
+    TeachersModule,
   ],
   controllers: [AppController, DatabaseController],
   providers: [
