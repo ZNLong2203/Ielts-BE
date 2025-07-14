@@ -3,6 +3,13 @@ CREATE TABLE users (
     email VARCHAR(255) UNIQUE NOT NULL,
     password VARCHAR(255) NOT NULL,
     role   VARCHAR(20) NOT NULL, -- admin, teacher, student
+    full_name VARCHAR(255),
+    avatar VARCHAR(500),
+    phone VARCHAR(20),
+    date_of_birth DATE,
+    gender VARCHAR(10),
+    country VARCHAR(100),
+    city VARCHAR(100),
     status VARCHAR(20) DEFAULT 'active', -- active, inactive, banned
     email_verified BOOLEAN DEFAULT FALSE,
     email_verification_token VARCHAR(255),
@@ -14,23 +21,15 @@ CREATE TABLE users (
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE TABLE profiles (
+CREATE TABLE students (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id UUID UNIQUE REFERENCES users(id) ON DELETE CASCADE,
-    full_name VARCHAR(255),
-    avatar VARCHAR(500),
-    phone VARCHAR(20),
-    date_of_birth DATE,
-    gender VARCHAR(10),
     bio TEXT,
-    country VARCHAR(100),
-    city VARCHAR(100),
     target_ielts_score DECIMAL(2,1), -- target IELTS band score
     current_level VARCHAR(20), -- beginner, intermediate, advanced
     learning_goals TEXT[],
     timezone VARCHAR(50),
     language_preference VARCHAR(10) DEFAULT 'vi',
-    privacy_settings JSONB,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
@@ -86,8 +85,6 @@ CREATE TABLE courses (
     requirements TEXT[],
     what_you_learn TEXT[],
     course_outline JSONB,
-    meta_title VARCHAR(255),
-    meta_description TEXT,
     tags TEXT[],
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -278,18 +275,12 @@ CREATE TABLE blogs (
     author_id UUID REFERENCES users(id),
     category_id UUID REFERENCES blog_categories(id),
     title VARCHAR(255) NOT NULL,
-    slug VARCHAR(255) UNIQUE NOT NULL,
-    excerpt TEXT,
     content TEXT NOT NULL,
-    featured_image VARCHAR(500),
+    image VARCHAR(500),
     tags TEXT[],
     status VARCHAR(20) DEFAULT 'draft', -- draft, published, archived
     is_featured BOOLEAN DEFAULT FALSE,
-    view_count INTEGER DEFAULT 0,
     like_count INTEGER DEFAULT 0,
-    reading_time INTEGER, -- estimated reading time in minutes
-    meta_title VARCHAR(255),
-    meta_description TEXT,
     published_at TIMESTAMP,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
