@@ -88,14 +88,6 @@ export class RegisterStudentDto extends OmitType(CreateUserDto, [
   full_name: string;
 
   @ApiProperty({
-    example: 'student',
-    description: 'Role of the user',
-  })
-  @IsString()
-  @IsNotEmpty({ message: 'Role is required' })
-  role: string;
-
-  @ApiProperty({
     example: '20',
     description: 'Age of the student',
     required: false,
@@ -174,14 +166,6 @@ export class RegisterTeacherDto extends OmitType(CreateUserDto, [
     description: 'Full name of the student',
   })
   full_name: string;
-
-  @ApiProperty({
-    example: 'student',
-    description: 'Role of the user',
-  })
-  @IsString()
-  @IsNotEmpty({ message: 'Role is required' })
-  role: string;
 
   @ApiProperty({
     example: '+84123456789',

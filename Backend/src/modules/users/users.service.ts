@@ -1,12 +1,13 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
-import { users } from '@prisma/client';
+import { Prisma, users } from '@prisma/client';
 import * as bcrypt from 'bcryptjs';
-import { PrismaService } from 'src/prisma/prisma.service';
-import { RedisService } from 'src/redis/redis.service';
+import { Role } from 'src/casl/casl.interface';
 import {
   RegisterStudentDto,
   RegisterTeacherDto,
 } from 'src/modules/users/dto/create-user.dto';
+import { PrismaService } from 'src/prisma/prisma.service';
+import { RedisService } from 'src/redis/redis.service';
 import { v4 as uuidv4 } from 'uuid';
 
 @Injectable()
@@ -54,23 +55,24 @@ export class UsersService {
           data: {
             email: dto.email,
             password: hashedPassword,
+            full_name: dto.full_name,
             email_verification_token: token,
             email_verified: false,
-            role: 'STUDENT',
+            role: Role.STUDENT,
           },
         });
 
-        // Tạo profile
-        const profile = await tx.profiles.create({
+        // Tạo student
+        const student = await tx.students.create({
           data: {
-            full_name: dto.full_name,
             user_id: user.id,
+            learning_goals: [],
           },
         });
 
         return {
           user,
-          profile,
+          student,
           token,
         };
       });
@@ -114,27 +116,20 @@ export class UsersService {
           data: {
             email: dto.email,
             password: hashedPassword,
-            email_verification_token: token,
-            email_verified: false,
-            role: 'TEACHER',
-          },
-        });
-
-        // Tạo profile
-        const profile = await tx.profiles.create({
-          data: {
             full_name: dto.full_name,
-            user_id: user.id,
             phone: dto.phone,
             date_of_birth: dto.date_of_birth,
             gender: dto.gender,
             country: dto.country,
             city: dto.city,
+            email_verification_token: token,
+            email_verified: false,
+            role: Role.TEACHER,
           },
         });
 
         // Tạo teacher profile
-        await tx.teachers.create({
+        const teacher = await tx.teachers.create({
           data: {
             user_id: user.id,
             qualification: dto.qualification,
@@ -147,7 +142,7 @@ export class UsersService {
 
         return {
           user,
-          profile,
+          teacher,
           token,
         };
       });
@@ -179,24 +174,64 @@ export class UsersService {
     });
   }
 
-  async findByEmail(email: string) {
-    return await this.prisma.users.findUnique({
-      where: { email },
+  async findUniqueUserByCondition(
+    whereCondition: Prisma.usersWhereUniqueInput,
+  ) {
+    const user = await this.prisma.users.findUnique({
+      where: whereCondition,
       include: {
-        profiles: true,
+        // Chỉ include students nếu role là STUDENT
+        students: {
+          where: {
+            users: {
+              role: Role.STUDENT,
+            },
+          },
+        },
+        // Chỉ include teachers nếu role là TEACHER
+        teachers: {
+          where: {
+            users: {
+              role: Role.TEACHER,
+            },
+          },
+        },
       },
     });
+
+    if (!user) {
+      return null;
+    }
+
+    switch (user.role) {
+      case Role.STUDENT: {
+        // Nếu là STUDENT, loại bỏ teachers
+        const { teachers, ...studentUser } = user;
+        return studentUser;
+      }
+
+      case Role.TEACHER: {
+        // Nếu là TEACHER, loại bỏ students
+        const { students, ...teacherUser } = user;
+        return teacherUser;
+      }
+
+      default: {
+        // Trường hợp khác (ADMIN, v.v.), loại bỏ cả hai
+        const { students, teachers, ...otherUser } = user;
+        return otherUser;
+      }
+    }
+  }
+
+  async findByEmail(email: string) {
+    return await this.findUniqueUserByCondition({ email });
   }
 
   async findByRefreshToken(refreshToken: string) {
     const userId = await this.redisService.get(`refresh_token:${refreshToken}`);
     if (userId) {
-      return await this.prisma.users.findUnique({
-        where: { id: userId },
-        include: {
-          profiles: true,
-        },
-      });
+      return await this.findUniqueUserByCondition({ id: userId });
     }
     return null;
   }

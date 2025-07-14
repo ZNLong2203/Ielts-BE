@@ -34,17 +34,17 @@ export class CaslAbilityFactory {
     }
 
     switch (user.role) {
-      case Role.ADMIN as unknown as string:
+      case Role.ADMIN:
         // Admin có thể làm mọi thứ
         can(Action.Manage, ISubject.All);
         break;
 
-      case Role.TEACHER as unknown as string:
+      case Role.TEACHER:
         can(Action.Read, ISubject.Profile, { userId: user.id } as MongoQuery);
         can(Action.Update, ISubject.Profile, { userId: user.id } as MongoQuery);
         break;
 
-      case Role.STUDENT as unknown as string:
+      case Role.STUDENT:
         can(Action.Read, ISubject.Profile, { userId: user.id } as MongoQuery);
         can(Action.Update, ISubject.Profile, { userId: user.id } as MongoQuery);
         break;

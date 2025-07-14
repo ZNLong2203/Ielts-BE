@@ -26,7 +26,7 @@ import { MailService } from './mail.service';
           from: `"No Reply" <${configService.get<string>('EMAIL_AUTH_USER')}>`,
         },
         template: {
-          dir: join(process.cwd(), 'src', 'mail', 'templates'),
+          dir: join(process.cwd(), 'src', 'modules', 'mail', 'templates'),
           adapter: new HandlebarsAdapter(),
           options: {
             strict: true,

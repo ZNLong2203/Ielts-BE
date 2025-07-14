@@ -11,13 +11,13 @@ import { StringValue } from 'ms';
 import { IJwtPayload } from 'src/interface/jwt-payload.interface';
 import { IUser } from 'src/interface/users.interface';
 import { MailService } from 'src/modules/mail/mail.service';
-import { PrismaService } from 'src/prisma/prisma.service';
-import { RedisService } from 'src/redis/redis.service';
 import {
   RegisterStudentDto,
   RegisterTeacherDto,
 } from 'src/modules/users/dto/create-user.dto';
 import { UsersService } from 'src/modules/users/users.service';
+import { PrismaService } from 'src/prisma/prisma.service';
+import { RedisService } from 'src/redis/redis.service';
 
 @Injectable()
 export class AuthService {
@@ -63,10 +63,7 @@ export class AuthService {
   }
 
   async validateUser(email: string, password: string) {
-    const user = await this.prisma.users.findUnique({
-      where: { email },
-      include: { profiles: true, teachers: true },
-    });
+    const user = await this.usersService.findByEmail(email);
     if (!user) return null;
     const match = this.usersService.isValidPassword(user, password);
     return match ? user : null;
@@ -77,7 +74,7 @@ export class AuthService {
       sub: 'Token Login',
       iss: 'Server',
       id: user.id,
-      full_name: user.profiles.full_name,
+      full_name: user.full_name,
       email: user.email,
       role: user.role,
     };
@@ -109,16 +106,14 @@ export class AuthService {
       sub: 'Token Refresh',
       iss: 'Server',
       id: user.id,
-      full_name: user.profiles?.full_name || '',
+      full_name: user.full_name || '',
       email: user.email,
       role: user.role,
     };
 
     const resData = {
       id: user.id,
-      profiles: {
-        full_name: user.profiles?.full_name || '',
-      },
+      full_name: user.full_name || '',
       email: user.email,
       role: user.role,
     };

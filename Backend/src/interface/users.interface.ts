@@ -1,10 +1,6 @@
 export interface IUser {
   id: string;
-  profiles: Profile;
+  full_name: string;
   email: string;
   role: string;
-}
-
-export interface Profile {
-  full_name: string;
 }

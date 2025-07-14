@@ -6,9 +6,11 @@ export enum Action {
   Delete = 'delete',
 }
 
-export enum Role {
-  ADMIN = 'ADMIN',
-  TEACHER = 'TEACHER',
-  STUDENT = 'STUDENT',
-  GUEST = 'GUEST',
-}
+export const Role = {
+  ADMIN: 'ADMIN',
+  TEACHER: 'TEACHER',
+  STUDENT: 'STUDENT',
+  GUEST: 'GUEST',
+} as const;
+
+export type RoleType = (typeof Role)[keyof typeof Role];
