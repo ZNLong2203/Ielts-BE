@@ -34,6 +34,16 @@ export const MESSAGE = {
     COMMENT_DELETED: 'Comment deleted successfully',
   },
 
+  FILES: {
+    FILE_USER_AVATAR_UPLOADED: 'User avatar uploaded successfully',
+    FILE_CERTIFICATE_UPLOADED: 'Certificate uploaded successfully',
+    FILE_BLOG_IMAGE_UPLOADED: 'Blog image uploaded successfully',
+    FILE_EXERCISE_IMAGE_UPLOADED: 'Exercise image uploaded successfully',
+    FILE_COURSE_THUMBNAIL_UPLOADED: 'Course thumbnail uploaded successfully',
+    FILE_LESSON_MATERIAL_UPLOADED: 'Lesson material uploaded successfully',
+    FILE_AUDIO_UPLOADED: 'Audio file uploaded successfully',
+  },
+
   GENERAL: {
     OPERATION_SUCCESS: 'Operation completed successfully',
     UNAUTHORIZED: 'Unauthorized access',
