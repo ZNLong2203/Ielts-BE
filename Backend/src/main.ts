@@ -5,6 +5,7 @@ import { NestExpressApplication } from '@nestjs/platform-express';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import * as cookieParser from 'cookie-parser';
 import helmet from 'helmet';
+import * as qs from 'qs';
 import { DatabaseService } from 'src/database/database.service';
 import { HttpExceptionFilter } from 'src/filter/http-exception.filter';
 import { LoggingInterceptor } from 'src/interceptor/logging.interceptor';
@@ -19,7 +20,7 @@ async function bootstrap() {
 
   app.useGlobalPipes(
     new ValidationPipe({
-      // whitelist: true (remove all properties that do not have any decorators that define in DTO)
+      transform: true,
       whitelist: true,
     }),
   );
@@ -53,6 +54,8 @@ async function bootstrap() {
   });
 
   app.use(helmet());
+
+  app.set('query parser', (str) => qs.parse(str));
 
   const config = new DocumentBuilder()
     .setTitle('English Learning API')

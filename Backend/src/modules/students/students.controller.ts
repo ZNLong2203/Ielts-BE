@@ -7,7 +7,9 @@ import {
   Patch,
   Post,
   Query,
+  Req,
 } from '@nestjs/common';
+import { Request } from 'express';
 import { PaginationQueryDto } from 'src/common/dto/pagination-query.dto';
 import { Public } from 'src/decorator/customize';
 import { CreateStudentDto } from './dto/create-student.dto';
@@ -25,8 +27,8 @@ export class StudentsController {
 
   @Public()
   @Get()
-  findAll(@Query() query: PaginationQueryDto) {
-    return this.studentsService.findAll(query);
+  findAll(@Query() query: PaginationQueryDto, @Req() req: Request) {
+    return this.studentsService.findAll(query, req.query);
   }
 
   @Get(':id')

@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { Role } from 'src/casl/casl.interface';
 import { PaginationQueryDto } from 'src/common/dto/pagination-query.dto';
@@ -9,6 +9,7 @@ import { UpdateStudentDto } from './dto/update-student.dto';
 
 @Injectable()
 export class StudentsService {
+  private readonly logger = new Logger(StudentsService.name);
   constructor(
     private readonly utilsService: UtilsService,
     private readonly prisma: PrismaService,
@@ -17,16 +18,13 @@ export class StudentsService {
     return 'This action adds a new student';
   }
 
-  async findAll(query: PaginationQueryDto) {
-    const whereCondition: Prisma.usersWhereInput = {
-      role: Role.STUDENT,
-    };
-    if (query.search) {
-      whereCondition.OR = [
-        { full_name: { contains: query.search, mode: 'insensitive' } },
-        { email: { contains: query.search, mode: 'insensitive' } },
-      ];
-    }
+  async findAll(query: PaginationQueryDto, rawQuery: Record<string, any>) {
+    const whereCondition: Prisma.usersWhereInput =
+      this.utilsService.buildWhereFromQuery(rawQuery);
+
+    whereCondition.role = Role.STUDENT;
+    console.log('whereCondition', whereCondition);
+
     return this.utilsService.paginate<
       Prisma.usersWhereInput,
       Prisma.usersInclude,
@@ -36,8 +34,19 @@ export class StudentsService {
       model: this.prisma.users,
       query,
       defaultOrderBy: { created_at: 'desc' },
-      include: {
-        students: true,
+      select: {
+        id: true,
+        email: true,
+        full_name: true,
+        phone: true,
+        status: true,
+        created_at: true,
+        students: {
+          select: {
+            current_level: true,
+            target_ielts_score: true,
+          },
+        },
       },
       where: whereCondition,
     });
