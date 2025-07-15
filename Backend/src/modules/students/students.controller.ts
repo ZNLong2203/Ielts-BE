@@ -6,7 +6,10 @@ import {
   Param,
   Patch,
   Post,
+  Query,
 } from '@nestjs/common';
+import { PaginationQueryDto } from 'src/common/dto/pagination-query.dto';
+import { Public } from 'src/decorator/customize';
 import { CreateStudentDto } from './dto/create-student.dto';
 import { UpdateStudentDto } from './dto/update-student.dto';
 import { StudentsService } from './students.service';
@@ -20,9 +23,10 @@ export class StudentsController {
     return this.studentsService.create(createStudentDto);
   }
 
+  @Public()
   @Get()
-  findAll() {
-    return this.studentsService.findAll();
+  findAll(@Query() query: PaginationQueryDto) {
+    return this.studentsService.findAll(query);
   }
 
   @Get(':id')

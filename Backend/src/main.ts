@@ -86,6 +86,7 @@ async function bootstrap() {
 
   const dbService = app.get(DatabaseService);
   await dbService.createAdminUser();
+  await dbService.seedSampleData();
   await app.listen(port);
 }
 void bootstrap();
