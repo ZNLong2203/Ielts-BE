@@ -31,6 +31,7 @@ import {
   RegisterTeacherDto,
   UserLoginDto,
 } from 'src/modules/users/dto/create-user.dto';
+import { UpdatePasswordDto } from 'src/modules/users/dto/update-user.dto';
 import { RegisterStudentDto } from '../../modules/users/dto/create-user.dto';
 import { AuthService } from './auth.service';
 
@@ -144,7 +145,28 @@ export class AuthController {
   })
   @ApiBearerAuth()
   @Get('profile')
-  getProfile(@CurrentUser() user: IUser) {
+  @MessageResponse(MESSAGE.AUTH.GET_PROFILE_SUCCESS)
+  async getProfile(@CurrentUser() user: IUser) {
     return this.authService.getProfile(user);
+  }
+
+  @ApiOperation({
+    summary: 'Change password',
+    description:
+      'Change the password of the currently authenticated user and log them out.',
+  })
+  @ApiBearerAuth()
+  @Post('change-password')
+  @ApiBody({
+    description: 'Change password data',
+    type: UpdatePasswordDto,
+  })
+  @MessageResponse(MESSAGE.AUTH.PASSWORD_RESET_SUCCESS)
+  async changePassword(
+    @CurrentUser() user: IUser,
+    @Body() dto: UpdatePasswordDto,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    return this.authService.changePassword(user, dto, res);
   }
 }

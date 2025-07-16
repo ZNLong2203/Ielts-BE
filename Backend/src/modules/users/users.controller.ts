@@ -1,25 +1,27 @@
 import { Body, Controller, Delete, Get, Put } from '@nestjs/common';
 import {
-  ApiTags,
-  ApiOperation,
   ApiBearerAuth,
   ApiBody,
   ApiExtraModels,
+  ApiOperation,
+  ApiTags,
 } from '@nestjs/swagger';
 import { Action } from 'src/casl/casl.interface';
 import * as ISubject from 'src/casl/subject.interface';
+import { MESSAGE } from 'src/common/message';
 import {
   CheckPolicies,
   Public,
   SkipCheckPermission,
 } from 'src/decorator/customize';
-import { MESSAGE } from 'src/common/message';
 import { UpdateProfileDto } from './dto/update-user.dto';
 
 @ApiExtraModels(UpdateProfileDto)
 @ApiTags('User Profile')
 @Controller('profile')
 export class UsersController {
+  // api test cases for user profile management
+
   // ✅ Case 1: Route công khai, bỏ qua JWT và CASL
   @ApiOperation({
     summary: 'Get public information',

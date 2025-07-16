@@ -239,4 +239,11 @@ export class UsersService {
     }
     return null;
   }
+
+  async updateUser(id: string, data: Partial<users>) {
+    return await this.prisma.users.update({
+      where: { id },
+      data,
+    });
+  }
 }

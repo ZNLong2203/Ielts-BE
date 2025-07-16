@@ -1,8 +1,14 @@
 import { PartialType } from '@nestjs/mapped-types';
-import { CreateUserDto } from './create-user.dto';
 import { ApiProperty } from '@nestjs/swagger';
+import { CreateUserDto } from './create-user.dto';
 
-import { IsNotEmpty, IsOptional, IsString, Matches } from 'class-validator';
+import {
+  IsNotEmpty,
+  IsOptional,
+  IsString,
+  Matches,
+  MinLength,
+} from 'class-validator';
 
 export class UpdateUserDto extends PartialType(CreateUserDto) {}
 
@@ -42,4 +48,26 @@ export class UpdateProfileDto {
   @IsOptional()
   @IsString()
   city?: string;
+}
+
+export class UpdatePasswordDto {
+  @ApiProperty({ description: 'Current password' })
+  @IsString()
+  @IsNotEmpty()
+  current_password: string;
+
+  @ApiProperty({ description: 'New password' })
+  @IsString()
+  @MinLength(8, { message: 'Password must be at least 8 characters long' })
+  @Matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]/, {
+    message:
+      'Password must contain at least one uppercase letter, one lowercase letter, one number, and one special character',
+  })
+  @IsNotEmpty()
+  new_password: string;
+
+  @ApiProperty({ description: 'Confirm new password' })
+  @IsString()
+  @IsNotEmpty()
+  confirm_password: string;
 }

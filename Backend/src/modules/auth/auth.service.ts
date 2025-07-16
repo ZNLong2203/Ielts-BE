@@ -15,6 +15,7 @@ import {
   RegisterStudentDto,
   RegisterTeacherDto,
 } from 'src/modules/users/dto/create-user.dto';
+import { UpdatePasswordDto } from 'src/modules/users/dto/update-user.dto';
 import { UsersService } from 'src/modules/users/users.service';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { RedisService } from 'src/redis/redis.service';
@@ -138,11 +139,46 @@ export class AuthService {
     return userInfo;
   }
 
-  createAccessToken(payload: object | Buffer) {
+  // change password
+  async changePassword(user: IUser, dto: UpdatePasswordDto, res: Response) {
+    const userProfile = await this.usersService.findById(user.id);
+    if (!userProfile) {
+      throw new BadRequestException('User not found');
+    }
+
+    const isValid = this.usersService.isValidPassword(
+      userProfile,
+      dto.current_password,
+    );
+    if (!isValid) {
+      throw new BadRequestException('Current password is incorrect');
+    }
+
+    if (dto.new_password !== dto.confirm_password) {
+      throw new BadRequestException(
+        'New password and confirm password do not match',
+      );
+    }
+
+    const hashedPassword = this.usersService.getHashPassword(dto.new_password);
+    const updatedUser = await this.usersService.updateUser(user.id, {
+      password: hashedPassword,
+    });
+
+    // logout user after password change
+    await this.logout(user, res);
+
+    return { updatedAt: updatedUser.updated_at };
+  }
+
+  // --------------------------------------------------------------------------
+  // Helper methods
+  // --------------------------------------------------------------------------
+  private createAccessToken(payload: object | Buffer) {
     return this.jwtService.sign(payload);
   }
 
-  createRefreshToken(payload: object | Buffer) {
+  private createRefreshToken(payload: object | Buffer) {
     const time =
       this.configService.get<string>('JWT_REFRESH_EXPIRES_IN') || '7d';
     return this.jwtService.sign(payload, {
@@ -151,7 +187,7 @@ export class AuthService {
     });
   }
 
-  async createBothTokens(
+  private async createBothTokens(
     payloadAccessToken: IJwtPayload,
     payloadRefreshToken: IJwtPayload,
     resData: IUser,
@@ -184,13 +220,13 @@ export class AuthService {
     };
   }
 
-  async saveRefreshToken(userId: string, token: string, ttl: number) {
+  private async saveRefreshToken(userId: string, token: string, ttl: number) {
     await this.delRefreshToken(userId);
     await this.redisService.set(`refresh:${userId}`, token, ttl);
     await this.redisService.set(`refresh_token:${token}`, userId, ttl);
   }
 
-  async delRefreshToken(userId: string) {
+  private async delRefreshToken(userId: string) {
     const token = await this.redisService.get(`refresh:${userId}`);
     if (token) {
       await this.redisService.del(`refresh:${userId}`);

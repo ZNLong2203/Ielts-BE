@@ -7,6 +7,10 @@ export const MESSAGE = {
     LOGIN_SUCCESS: 'Login successful',
     LOGOUT_SUCCESS: 'User has been logged out successfully!',
     TOKEN_REFRESH_SUCCESS: 'Token has been refreshed successfully!',
+    PASSWORD_RESET_SUCCESS:
+      'Password has been reset successfully. Please log in again.',
+    GET_PROFILE_SUCCESS: 'User profile retrieved successfully.',
+    FORGOT_PASSWORD_SUCCESS: 'Password reset link has been sent to your email.',
   },
 
   USER: {
