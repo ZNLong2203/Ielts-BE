@@ -2,6 +2,7 @@ import {
   Body,
   Controller,
   Get,
+  Patch,
   Post,
   Query,
   Req,
@@ -27,11 +28,16 @@ import {
 } from 'src/decorator/customize';
 import { IUser } from 'src/interface/users.interface';
 import { LocalAuthGuard } from 'src/modules/auth/guards/local-auth.guard';
+import { UpdateStudentDto } from 'src/modules/students/dto/update-student.dto';
+import { UpdateTeacherDto } from 'src/modules/teachers/dto/update-teacher.dto';
 import {
   RegisterTeacherDto,
   UserLoginDto,
 } from 'src/modules/users/dto/create-user.dto';
-import { UpdatePasswordDto } from 'src/modules/users/dto/update-user.dto';
+import {
+  UpdatePasswordDto,
+  UpdateUserDto,
+} from 'src/modules/users/dto/update-user.dto';
 import { RegisterStudentDto } from '../../modules/users/dto/create-user.dto';
 import { AuthService } from './auth.service';
 
@@ -168,5 +174,62 @@ export class AuthController {
     @Res({ passthrough: true }) res: Response,
   ) {
     return this.authService.changePassword(user, dto, res);
+  }
+
+  @ApiOperation({
+    summary: 'Update user profile by owner',
+    description: 'Update user profile information with no avatar.',
+  })
+  @ApiBearerAuth()
+  @SkipCheckPermission()
+  @ApiBody({
+    type: UpdateUserDto,
+    description: 'User profile data with no avatar upload',
+  })
+  @MessageResponse(MESSAGE.USER.PROFILE_UPDATE)
+  @Patch('profile/me')
+  updateProfileByOwner(
+    @CurrentUser() user: IUser,
+    @Body() updateProfileDto: UpdateUserDto,
+  ) {
+    return this.authService.updateProfile(user.id, updateProfileDto);
+  }
+
+  @ApiOperation({
+    summary: 'Update a detail of a student by owner',
+    description: 'Update student profile information with no avatar.',
+  })
+  @ApiBearerAuth()
+  @SkipCheckPermission()
+  @ApiBody({
+    type: UpdateStudentDto,
+    description: 'User student data with no avatar upload',
+  })
+  @MessageResponse(MESSAGE.USER.PROFILE_UPDATE)
+  @Patch('profile/student/me')
+  updateStudentByOwner(
+    @CurrentUser() user: IUser,
+    @Body() updateProfileDto: UpdateStudentDto,
+  ) {
+    return this.authService.updateStudentProfile(user.id, updateProfileDto);
+  }
+
+  @ApiOperation({
+    summary: 'Update a detail of a teacher by owner',
+    description: 'Update teacher profile information with no avatar.',
+  })
+  @ApiBearerAuth()
+  @SkipCheckPermission()
+  @ApiBody({
+    type: UpdateTeacherDto,
+    description: 'User teacher data with no avatar upload',
+  })
+  @MessageResponse(MESSAGE.USER.PROFILE_UPDATE)
+  @Patch('profile/teacher/me')
+  updateTeacherByOwner(
+    @CurrentUser() user: IUser,
+    @Body() updateProfileDto: UpdateTeacherDto,
+  ) {
+    return this.authService.updateTeacherProfile(user.id, updateProfileDto);
   }
 }

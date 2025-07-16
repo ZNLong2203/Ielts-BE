@@ -7,9 +7,11 @@ import { StringValue } from 'ms';
 import { JwtStrategy } from 'src/modules/auth/strategies/jwt.strategy';
 import { LocalStrategy } from 'src/modules/auth/strategies/local.strategy';
 import { MailModule } from 'src/modules/mail/mail.module';
+import { StudentsModule } from 'src/modules/students/students.module';
+import { TeachersModule } from 'src/modules/teachers/teachers.module';
+import { UsersModule } from 'src/modules/users/users.module';
 import { PrismaModule } from 'src/prisma/prisma.module';
 import { RedisModule } from 'src/redis/redis.module';
-import { UsersModule } from 'src/modules/users/users.module';
 import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
 
@@ -18,6 +20,8 @@ import { AuthService } from './auth.service';
     PrismaModule,
     MailModule,
     UsersModule,
+    StudentsModule,
+    TeachersModule,
     PassportModule,
     RedisModule,
     JwtModule.registerAsync({

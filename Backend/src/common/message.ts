@@ -27,6 +27,16 @@ export const MESSAGE = {
     STUDENT_UPDATE: 'Student information updated successfully',
   },
 
+  TEACHER: {
+    TEACHER_LIST: 'All teachers retrieved successfully',
+    NEW_TEACHERS_LIST: 'New pending teachers retrieved successfully',
+    TEACHER_INFO: 'Teacher information retrieved successfully',
+    TEACHER_UPDATE: 'Teacher information updated successfully',
+    TEACHER_STATUS_UPDATE: 'Teacher status updated successfully',
+    TEACHER_CREATE: 'New teacher created successfully',
+    TEACHER_AVAILABILITY_UPDATE: 'Teacher availability updated successfully',
+  },
+
   BLOG: {
     BLOG_CATEGORY_CREATED: 'Blog category created successfully',
     BLOG_CATEGORY_UPDATED: 'Blog category updated successfully',

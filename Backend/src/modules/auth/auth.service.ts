@@ -11,11 +11,18 @@ import { StringValue } from 'ms';
 import { IJwtPayload } from 'src/interface/jwt-payload.interface';
 import { IUser } from 'src/interface/users.interface';
 import { MailService } from 'src/modules/mail/mail.service';
+import { UpdateStudentDto } from 'src/modules/students/dto/update-student.dto';
+import { StudentsService } from 'src/modules/students/students.service';
+import { UpdateTeacherDto } from 'src/modules/teachers/dto/update-teacher.dto';
+import { TeachersService } from 'src/modules/teachers/teachers.service';
 import {
   RegisterStudentDto,
   RegisterTeacherDto,
 } from 'src/modules/users/dto/create-user.dto';
-import { UpdatePasswordDto } from 'src/modules/users/dto/update-user.dto';
+import {
+  UpdatePasswordDto,
+  UpdateUserDto,
+} from 'src/modules/users/dto/update-user.dto';
 import { UsersService } from 'src/modules/users/users.service';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { RedisService } from 'src/redis/redis.service';
@@ -29,6 +36,8 @@ export class AuthService {
     private jwtService: JwtService,
     private configService: ConfigService,
     private usersService: UsersService,
+    private studentsService: StudentsService,
+    private teachersService: TeachersService,
   ) {}
 
   async registerStudent(dto: RegisterStudentDto) {
@@ -169,6 +178,18 @@ export class AuthService {
     await this.logout(user, res);
 
     return { updatedAt: updatedUser.updated_at };
+  }
+
+  async updateProfile(id: string, updateProfileDto: UpdateUserDto) {
+    return this.usersService.updateProfile(id, updateProfileDto);
+  }
+
+  async updateStudentProfile(id: string, updateProfileDto: UpdateStudentDto) {
+    return this.studentsService.update(id, updateProfileDto);
+  }
+
+  async updateTeacherProfile(id: string, updateProfileDto: UpdateTeacherDto) {
+    return this.teachersService.update(id, updateProfileDto);
   }
 
   // --------------------------------------------------------------------------

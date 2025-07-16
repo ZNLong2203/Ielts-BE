@@ -9,5 +9,6 @@ import { StudentsService } from './students.service';
   imports: [UtilsModule, PrismaModule, UsersModule],
   controllers: [StudentsController],
   providers: [StudentsService],
+  exports: [StudentsService],
 })
 export class StudentsModule {}

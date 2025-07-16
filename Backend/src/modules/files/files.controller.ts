@@ -1,5 +1,3 @@
-import { ApiTags, ApiOperation, ApiConsumes, ApiBody } from '@nestjs/swagger';
-import { FileType } from 'src/common/constants';
 import {
   Controller,
   HttpStatus,
@@ -8,9 +6,11 @@ import {
   UploadedFile,
   UseInterceptors,
 } from '@nestjs/common';
-import { FilesService } from './files.service';
 import { FileInterceptor } from '@nestjs/platform-express';
+import { ApiBody, ApiConsumes, ApiOperation, ApiTags } from '@nestjs/swagger';
+import { FileType } from 'src/common/constants';
 import { MESSAGE } from 'src/common/message';
+import { FilesService } from './files.service';
 
 interface UploadedFileType {
   buffer: Buffer;

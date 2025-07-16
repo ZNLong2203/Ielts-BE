@@ -279,6 +279,11 @@ export class UsersService {
   }
 
   async updateProfile(id: string, updateProfileDto: UpdateUserDto) {
+    // Kiểm tra xem người dùng có tồn tại không
+    const existingUser = await this.findById(id);
+    if (!existingUser) {
+      throw new BadRequestException('User not found');
+    }
     const updateData: Partial<users> =
       this.utilsService.cleanDto(updateProfileDto);
     return await this.updateUser(id, updateData);
@@ -286,6 +291,11 @@ export class UsersService {
 
   async updateStatus(id: string, dto: UpdateStatusDto) {
     const { status } = dto;
+    // Kiểm tra xem người dùng có tồn tại không
+    const existingUser = await this.findById(id);
+    if (!existingUser) {
+      throw new BadRequestException('User not found');
+    }
     const validStatuses = Object.values(USER_STATUS);
     if (!validStatuses.includes(status)) {
       throw new BadRequestException(

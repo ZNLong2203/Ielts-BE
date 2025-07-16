@@ -1,4 +1,4 @@
-import { Body, Controller, Param, Patch } from '@nestjs/common';
+import { Body, Controller, Param, Patch, Put } from '@nestjs/common';
 import { ApiBearerAuth, ApiBody, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { Action } from 'src/casl/casl.interface';
 import * as ISubject from 'src/casl/subject.interface';
@@ -42,7 +42,7 @@ export class UsersController {
     description: 'User status data',
   })
   @MessageResponse(MESSAGE.USER.STATUS_UPDATE)
-  @Patch(':id/status')
+  @Put(':id/status')
   updateStatus(
     @Param('id') id: string,
     @Body() updateStatusDto: UpdateStatusDto,

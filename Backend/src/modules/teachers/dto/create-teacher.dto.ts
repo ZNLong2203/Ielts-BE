@@ -54,15 +54,6 @@ export class CreateTeacherDto {
   @Type(() => Number)
   ielts_band_score: number;
 
-  @ApiPropertyOptional({
-    description: 'URLs to teacher certificates',
-    type: [String],
-  })
-  @IsArray()
-  @IsString({ each: true })
-  @IsOptional()
-  certificate_urls?: string[];
-
   @ApiPropertyOptional({ description: "Teacher's approach to teaching" })
   @IsString()
   @IsOptional()

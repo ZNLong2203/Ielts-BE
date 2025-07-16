@@ -42,7 +42,7 @@ export class StudentsController {
   }
 
   @ApiOperation({
-    summary: 'Update a student',
+    summary: 'Update a detail of a student',
     description: 'Update student information by their unique ID (user id).',
   })
   @ApiBody({ type: UpdateStudentDto })

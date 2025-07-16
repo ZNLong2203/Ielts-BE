@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { Role } from 'src/casl/casl.interface';
 import { PaginationQueryDto } from 'src/common/dto/pagination-query.dto';
@@ -9,7 +9,6 @@ import { UpdateStudentDto } from './dto/update-student.dto';
 
 @Injectable()
 export class StudentsService {
-  private readonly logger = new Logger(StudentsService.name);
   constructor(
     private readonly utilsService: UtilsService,
     private readonly prisma: PrismaService,
