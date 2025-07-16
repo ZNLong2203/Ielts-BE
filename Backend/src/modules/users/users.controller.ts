@@ -2,7 +2,8 @@ import { Body, Controller, Param, Patch } from '@nestjs/common';
 import { ApiBearerAuth, ApiBody, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { Action } from 'src/casl/casl.interface';
 import * as ISubject from 'src/casl/subject.interface';
-import { CheckPolicies } from 'src/decorator/customize';
+import { MESSAGE } from 'src/common/message';
+import { CheckPolicies, MessageResponse } from 'src/decorator/customize';
 import { UsersService } from 'src/modules/users/users.service';
 import { UpdateStatusDto, UpdateUserDto } from './dto/update-user.dto';
 
@@ -21,6 +22,7 @@ export class UsersController {
     type: UpdateUserDto,
     description: 'User profile data with no avatar upload',
   })
+  @MessageResponse(MESSAGE.USER.PROFILE_UPDATE)
   @Patch(':id')
   updateProfile(
     @Param('id') id: string,
@@ -39,6 +41,7 @@ export class UsersController {
     type: UpdateStatusDto,
     description: 'User status data',
   })
+  @MessageResponse(MESSAGE.USER.STATUS_UPDATE)
   @Patch(':id/status')
   updateStatus(
     @Param('id') id: string,

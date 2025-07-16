@@ -14,12 +14,17 @@ export const MESSAGE = {
   },
 
   USER: {
-    PROFILE_UPDATED: 'Profile updated (permission required)',
-    ACCOUNT_DELETED: 'Account deleted (permission required)',
-    PUBLIC_INFO: 'Anyone can access this public info',
-    USER_INFO: 'User info (auth required, no permission check)',
-    PROFILE_INFO: 'User profile (permission required)',
-    STATUS_OK: 'Service status is ok',
+    PROFILE_UPDATE: 'User profile updated successfully',
+    STATUS_UPDATE: 'User status updated successfully',
+    USER_NOT_FOUND: 'User not found',
+    USER_ALREADY_EXISTS: 'User with this email already exists',
+    USER_EMAIL_VERIFICATION_SENT: 'Email verification link sent successfully',
+  },
+
+  STUDENT: {
+    STUDENT_LIST: 'All students retrieved successfully',
+    STUDENT_INFO: 'Student information retrieved successfully',
+    STUDENT_UPDATE: 'Student information updated successfully',
   },
 
   BLOG: {
