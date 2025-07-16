@@ -2,16 +2,22 @@ import {
   Body,
   Controller,
   Get,
+  HttpStatus,
+  ParseFilePipeBuilder,
   Patch,
   Post,
   Query,
   Req,
   Res,
+  UploadedFile,
   UseGuards,
+  UseInterceptors,
 } from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
 import {
   ApiBearerAuth,
   ApiBody,
+  ApiConsumes,
   ApiCookieAuth,
   ApiExtraModels,
   ApiOperation,
@@ -28,6 +34,7 @@ import {
 } from 'src/decorator/customize';
 import { IUser } from 'src/interface/users.interface';
 import { LocalAuthGuard } from 'src/modules/auth/guards/local-auth.guard';
+import { UploadedFileType } from 'src/modules/files/files.controller';
 import { UpdateStudentDto } from 'src/modules/students/dto/update-student.dto';
 import { UpdateTeacherDto } from 'src/modules/teachers/dto/update-teacher.dto';
 import {
@@ -66,15 +73,32 @@ export class AuthController {
     summary: 'Register teacher',
     description: 'Register a new teacher and send verification email.',
   })
+  @ApiConsumes('multipart/form-data')
   @ApiBody({
-    description: 'Teacher registration data',
+    description: 'Teacher registration data with file upload',
     type: RegisterTeacherDto,
   })
   @Public()
   @Post('register-teacher')
   @MessageResponse(MESSAGE.AUTH.REGISTER_SUCCESS)
-  registerTeacher(@Body() dto: RegisterTeacherDto) {
-    return this.authService.registerTeacher(dto);
+  @UseInterceptors(FileInterceptor('file'))
+  registerTeacher(
+    @Body() dto: RegisterTeacherDto,
+    @UploadedFile(
+      new ParseFilePipeBuilder()
+        .addFileTypeValidator({
+          fileType: 'image/jpeg|image/png|image/jpg|application/pdf',
+        })
+        .addMaxSizeValidator({
+          maxSize: 5 * 1024 * 1024, // 5MB
+        })
+        .build({
+          errorHttpStatusCode: HttpStatus.UNPROCESSABLE_ENTITY,
+        }),
+    )
+    file: UploadedFileType,
+  ) {
+    return this.authService.registerTeacher(dto, file);
   }
 
   @ApiOperation({

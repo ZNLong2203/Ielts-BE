@@ -303,15 +303,12 @@ export class RegisterTeacherDto extends PickType(CreateUserDto, [
   ielts_band_score: number;
 
   @ApiProperty({
-    example: [
-      'https://example.com/certificate1.jpg',
-      'https://example.com/certificate2.jpg',
-    ],
-    description: "URLs of the teacher's certificates",
+    type: 'string',
+    format: 'binary',
+    description: 'Certificate file (PDF or image, max 5MB)',
+    required: false,
   })
-  @IsArray()
-  @IsString({ each: true })
-  certificate_urls: string[];
+  file?: any;
 }
 
 export class UserLoginDto {

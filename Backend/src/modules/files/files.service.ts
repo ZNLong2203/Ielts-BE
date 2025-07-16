@@ -1,4 +1,11 @@
-import { BadRequestException, Inject, Injectable } from '@nestjs/common';
+import {
+  BadRequestException,
+  Inject,
+  Injectable,
+  InternalServerErrorException,
+  ServiceUnavailableException,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { v2 as cloudinary, ResourceType, UploadApiResponse } from 'cloudinary';
 import { FileType } from 'src/common/constants/file';
 
@@ -87,9 +94,33 @@ export class FilesService {
     return new Promise((resolve, reject) => {
       cloudinary.uploader
         .upload_stream(config, (error, result) => {
-          if (error) reject(new Error(error.message));
-          else if (result) resolve(result);
-          else reject(new Error('Upload failed'));
+          if (error) {
+            // Tạo exception phù hợp dựa trên mã lỗi
+            if (error.http_code === 400) {
+              reject(new BadRequestException(error.message));
+            } else if (error.http_code === 401) {
+              reject(
+                new UnauthorizedException('Unauthorized Cloudinary access'),
+              );
+            } else if (error.http_code >= 500) {
+              reject(
+                new ServiceUnavailableException('Cloudinary service error'),
+              );
+            } else {
+              // Sử dụng InternalServerErrorException để lưu chi tiết lỗi
+              const exception = new InternalServerErrorException(
+                `Cloudinary upload failed: ${error.message}`,
+              );
+              exception.cause = error; // Lưu lỗi gốc
+              reject(exception);
+            }
+          } else if (result) {
+            resolve(result);
+          } else {
+            reject(
+              new InternalServerErrorException('Upload failed with no result'),
+            );
+          }
         })
         .end(fileBuffer);
     });

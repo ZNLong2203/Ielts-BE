@@ -12,7 +12,7 @@ import { FileType } from 'src/common/constants';
 import { MESSAGE } from 'src/common/message';
 import { FilesService } from './files.service';
 
-interface UploadedFileType {
+export interface UploadedFileType {
   buffer: Buffer;
   originalname: string;
   mimetype: string;

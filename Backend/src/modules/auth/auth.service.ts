@@ -10,6 +10,7 @@ import * as ms from 'ms';
 import { StringValue } from 'ms';
 import { IJwtPayload } from 'src/interface/jwt-payload.interface';
 import { IUser } from 'src/interface/users.interface';
+import { UploadedFileType } from 'src/modules/files/files.controller';
 import { MailService } from 'src/modules/mail/mail.service';
 import { UpdateStudentDto } from 'src/modules/students/dto/update-student.dto';
 import { StudentsService } from 'src/modules/students/students.service';
@@ -50,8 +51,8 @@ export class AuthService {
     };
   }
 
-  async registerTeacher(dto: RegisterTeacherDto) {
-    const { token, user } = await this.usersService.registerTeacher(dto);
+  async registerTeacher(dto: RegisterTeacherDto, file: UploadedFileType) {
+    const { token, user } = await this.usersService.registerTeacher(dto, file);
     // Gửi email xác thực
     await this.mailService.sendVerificationEmail(user.email, token);
 

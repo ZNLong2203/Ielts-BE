@@ -2,7 +2,9 @@ import { BadRequestException, Injectable } from '@nestjs/common';
 import { Prisma, users } from '@prisma/client';
 import * as bcrypt from 'bcryptjs';
 import { Role } from 'src/casl/casl.interface';
-import { USER_STATUS } from 'src/common/constants';
+import { FileType, USER_STATUS } from 'src/common/constants';
+import { UploadedFileType } from 'src/modules/files/files.controller';
+import { FilesService } from 'src/modules/files/files.service';
 import {
   RegisterStudentDto,
   RegisterTeacherDto,
@@ -22,6 +24,7 @@ export class UsersService {
     private prisma: PrismaService,
     private redisService: RedisService,
     private utilsService: UtilsService,
+    private filesService: FilesService,
   ) {}
   getHashPassword(password: string) {
     const salt = bcrypt.genSaltSync(10);
@@ -117,7 +120,7 @@ export class UsersService {
     }
   }
 
-  async registerTeacher(dto: RegisterTeacherDto) {
+  async registerTeacher(dto: RegisterTeacherDto, file: UploadedFileType) {
     try {
       // Kiểm tra email đã tồn tại chưa
       const existing = await this.prisma.users.findUnique({
@@ -139,6 +142,20 @@ export class UsersService {
           where: { email_verification_token: token },
         });
       }
+
+      // Kiểm tra file upload
+      if (!file || !file.buffer || !file.originalname) {
+        throw new BadRequestException(
+          'File is required for teacher registration',
+        );
+      }
+
+      // Lưu file lên Cloudinary
+      const fileData = await this.filesService.uploadFile(
+        file.buffer,
+        file.originalname,
+        FileType.TEACHER_CERTIFICATE,
+      );
 
       const result = await this.prisma.$transaction(async (tx) => {
         // Thực hiện các thao tác database bên trong transaction
@@ -166,7 +183,7 @@ export class UsersService {
             qualification: dto.qualification,
             experience_years: dto.experience_years,
             ielts_band_score: dto.ielts_band_score,
-            certificate_urls: dto.certificate_urls,
+            certificate_urls: [fileData.secure_url],
             specializations: dto.specializations,
           },
         });
@@ -181,8 +198,9 @@ export class UsersService {
       return result;
     } catch (error) {
       if (error instanceof BadRequestException) {
-        throw error; // Ném lại lỗi nếu là BadRequestException
+        throw new BadRequestException(error);
       }
+      console.error('Error during teacher registration:', error);
       throw new BadRequestException('Registration failed');
     }
   }

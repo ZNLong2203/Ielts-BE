@@ -1,10 +1,10 @@
 import { Module } from '@nestjs/common';
-import { FilesService } from './files.service';
-import { FilesController } from './files.controller';
+import { ConfigModule, ConfigService } from '@nestjs/config';
 import { MulterModule } from '@nestjs/platform-express';
 import { memoryStorage } from 'multer';
-import { ConfigModule, ConfigService } from '@nestjs/config';
 import { configureCloudinary } from 'src/configs/cloudinary.config';
+import { FilesController } from './files.controller';
+import { FilesService } from './files.service';
 
 @Module({
   imports: [
@@ -31,5 +31,6 @@ import { configureCloudinary } from 'src/configs/cloudinary.config';
       inject: [ConfigService],
     },
   ],
+  exports: [FilesService],
 })
 export class FilesModule {}
