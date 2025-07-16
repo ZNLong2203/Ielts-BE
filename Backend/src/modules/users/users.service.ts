@@ -2,12 +2,18 @@ import { BadRequestException, Injectable } from '@nestjs/common';
 import { Prisma, users } from '@prisma/client';
 import * as bcrypt from 'bcryptjs';
 import { Role } from 'src/casl/casl.interface';
+import { USER_STATUS } from 'src/common/constants';
 import {
   RegisterStudentDto,
   RegisterTeacherDto,
 } from 'src/modules/users/dto/create-user.dto';
+import {
+  UpdateStatusDto,
+  UpdateUserDto,
+} from 'src/modules/users/dto/update-user.dto';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { RedisService } from 'src/redis/redis.service';
+import { UtilsService } from 'src/utils/utils.service';
 import { v4 as uuidv4 } from 'uuid';
 
 @Injectable()
@@ -15,6 +21,7 @@ export class UsersService {
   constructor(
     private prisma: PrismaService,
     private redisService: RedisService,
+    private utilsService: UtilsService,
   ) {}
   getHashPassword(password: string) {
     const salt = bcrypt.genSaltSync(10);
@@ -51,23 +58,47 @@ export class UsersService {
       const result = await this.prisma.$transaction(async (tx) => {
         // Thực hiện các thao tác database bên trong transaction
         // Tạo user
+        const userData: Prisma.usersCreateInput = {
+          email: dto.email,
+          password: hashedPassword,
+          full_name: dto.full_name,
+          email_verification_token: token,
+          email_verified: false,
+          role: Role.STUDENT,
+        };
+        if (dto.date_of_birth) {
+          userData.date_of_birth = dto.date_of_birth;
+        }
+        if (dto.gender) {
+          userData.gender = dto.gender;
+        }
+        if (dto.country) {
+          userData.country = dto.country;
+        }
+        if (dto.city) {
+          userData.city = dto.city;
+        }
         const user = await tx.users.create({
-          data: {
-            email: dto.email,
-            password: hashedPassword,
-            full_name: dto.full_name,
-            email_verification_token: token,
-            email_verified: false,
-            role: Role.STUDENT,
-          },
+          data: userData,
         });
 
         // Tạo student
-        const student = await tx.students.create({
-          data: {
-            user_id: user.id,
-            learning_goals: [],
+        const studentData: Prisma.studentsCreateInput = {
+          users: {
+            connect: {
+              id: user.id,
+            },
           },
+          learning_goals: [],
+        };
+        if (dto.english_level) {
+          studentData.current_level = dto.english_level;
+        }
+        if (dto.target_band_score) {
+          studentData.target_ielts_score = dto.target_band_score;
+        }
+        const student = await tx.students.create({
+          data: studentData,
         });
 
         return {
@@ -245,5 +276,23 @@ export class UsersService {
       where: { id },
       data,
     });
+  }
+
+  async updateProfile(id: string, updateProfileDto: UpdateUserDto) {
+    const updateData: Partial<users> =
+      this.utilsService.cleanDto(updateProfileDto);
+    return await this.updateUser(id, updateData);
+  }
+
+  async updateStatus(id: string, dto: UpdateStatusDto) {
+    const { status } = dto;
+    const validStatuses = Object.values(USER_STATUS);
+    if (!validStatuses.includes(status)) {
+      throw new BadRequestException(
+        `Invalid status. Must be one of: ${validStatuses.join(', ')}`,
+      );
+    }
+
+    return await this.updateUser(id, { status });
   }
 }

@@ -2,9 +2,9 @@ import { Injectable, Logger } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { Role } from 'src/casl/casl.interface';
 import { PaginationQueryDto } from 'src/common/dto/pagination-query.dto';
+import { UsersService } from 'src/modules/users/users.service';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { UtilsService } from './../../utils/utils.service';
-import { CreateStudentDto } from './dto/create-student.dto';
 import { UpdateStudentDto } from './dto/update-student.dto';
 
 @Injectable()
@@ -13,17 +13,14 @@ export class StudentsService {
   constructor(
     private readonly utilsService: UtilsService,
     private readonly prisma: PrismaService,
+    private readonly usersService: UsersService,
   ) {}
-  create(createStudentDto: CreateStudentDto) {
-    return 'This action adds a new student';
-  }
 
   async findAll(query: PaginationQueryDto, rawQuery: Record<string, any>) {
     const whereCondition: Prisma.usersWhereInput =
       this.utilsService.buildWhereFromQuery(rawQuery);
 
     whereCondition.role = Role.STUDENT;
-    console.log('whereCondition', whereCondition);
 
     return this.utilsService.paginate<
       Prisma.usersWhereInput,
@@ -52,15 +49,25 @@ export class StudentsService {
     });
   }
 
-  findOne(id: number) {
-    return `This action returns a #${id} student`;
+  findOne(id: string) {
+    return this.usersService.findUniqueUserByCondition({
+      id,
+      role: Role.STUDENT,
+    });
   }
 
-  update(id: number, updateStudentDto: UpdateStudentDto) {
-    return `This action updates a #${id} student`;
-  }
+  async update(id: string, updateStudentDto: UpdateStudentDto) {
+    const existingStudent = await this.usersService.findById(id);
+    if (!existingStudent || existingStudent.role !== Role.STUDENT) {
+      throw new Error('Student not found');
+    }
 
-  remove(id: number) {
-    return `This action removes a #${id} student`;
+    const updatedData: Prisma.studentsUpdateInput =
+      this.utilsService.cleanDto(updateStudentDto);
+
+    return this.prisma.students.update({
+      where: { user_id: id },
+      data: updatedData,
+    });
   }
 }

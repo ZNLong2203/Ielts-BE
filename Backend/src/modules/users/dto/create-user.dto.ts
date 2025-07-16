@@ -1,5 +1,5 @@
-import { OmitType } from '@nestjs/mapped-types';
-import { ApiProperty } from '@nestjs/swagger';
+import { PickType } from '@nestjs/mapped-types';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import {
   IsArray,
@@ -14,9 +14,16 @@ import {
   Matches,
   Max,
   MaxDate,
+  MaxLength,
   Min,
   MinLength,
 } from 'class-validator';
+import {
+  USER_GENDER,
+  USER_STATUS,
+  UserGender,
+  UserStatus,
+} from 'src/common/constants';
 
 export enum TeacherSpecialization {
   READING = 'reading',
@@ -57,17 +64,57 @@ export class CreateUserDto {
   @IsNotEmpty({ message: 'Full name is required' })
   full_name: string;
 
-  @ApiProperty({
-    example: 'admin',
-    description: 'Role of the user',
-  })
+  @ApiPropertyOptional({ description: 'Phone number' })
   @IsString()
-  @IsNotEmpty({ message: 'Role is required' })
-  role: string;
+  @IsOptional()
+  @Matches(/^(\+\d{1,3}[- ]?)?\d{10,12}$/, {
+    message: 'Phone must be a valid phone number',
+  })
+  @MaxLength(20)
+  phone?: string;
+
+  @ApiPropertyOptional({ description: 'Date of birth' })
+  @IsOptional()
+  @IsDate()
+  @Type(() => Date)
+  date_of_birth?: Date;
+
+  @ApiPropertyOptional({ enum: USER_GENDER, description: 'Gender' })
+  @IsEnum(USER_GENDER, { message: 'Gender must be male, female, or other' })
+  @IsOptional()
+  gender?: UserGender = USER_GENDER.OTHER;
+
+  @ApiPropertyOptional({ description: 'Country of residence' })
+  @IsString()
+  @IsOptional()
+  @MaxLength(100)
+  country?: string;
+
+  @ApiPropertyOptional({ description: 'City of residence' })
+  @IsString()
+  @IsOptional()
+  @MaxLength(100)
+  city?: string;
+
+  @ApiPropertyOptional({
+    enum: USER_STATUS,
+    description: 'Status of the user account',
+  })
+  @IsEnum(USER_STATUS, {
+    message: 'Status must be active, inactive, or banned',
+  })
+  @IsOptional()
+  status?: UserStatus = USER_STATUS.ACTIVE;
 }
 
-export class RegisterStudentDto extends OmitType(CreateUserDto, [
-  'role',
+export class RegisterStudentDto extends PickType(CreateUserDto, [
+  'email',
+  'password',
+  'full_name',
+  'gender',
+  'country',
+  'city',
+  'date_of_birth',
 ] as const) {
   @ApiProperty({
     example: 'student@gmail.com',
@@ -88,15 +135,14 @@ export class RegisterStudentDto extends OmitType(CreateUserDto, [
   full_name: string;
 
   @ApiProperty({
-    example: '20',
-    description: 'Age of the student',
+    example: '1990-01-01',
+    description: 'Date of birth of the student',
     required: false,
   })
   @IsOptional()
-  @IsNumber()
-  @Min(13)
-  @Max(100)
-  age?: number;
+  @IsDate()
+  @Type(() => Date)
+  date_of_birth?: Date;
 
   @ApiProperty({
     example: 'male',
@@ -146,8 +192,15 @@ export class RegisterStudentDto extends OmitType(CreateUserDto, [
   target_band_score?: number;
 }
 
-export class RegisterTeacherDto extends OmitType(CreateUserDto, [
-  'role',
+export class RegisterTeacherDto extends PickType(CreateUserDto, [
+  'email',
+  'password',
+  'full_name',
+  'phone',
+  'date_of_birth',
+  'gender',
+  'country',
+  'city',
 ] as const) {
   @ApiProperty({
     example: 'student@gmail.com',

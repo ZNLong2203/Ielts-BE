@@ -1,35 +1,36 @@
-import { PartialType } from '@nestjs/mapped-types';
+import { PartialType, PickType } from '@nestjs/mapped-types';
 import { ApiProperty } from '@nestjs/swagger';
-import { CreateUserDto } from './create-user.dto';
+import { USER_STATUS, UserStatus } from 'src/common/constants/user';
 
 import {
+  IsEnum,
   IsNotEmpty,
-  IsOptional,
   IsString,
   Matches,
   MinLength,
 } from 'class-validator';
+import { UserGender } from 'src/common/constants';
+import { CreateUserDto } from 'src/modules/users/dto/create-user.dto';
 
-export class UpdateUserDto extends PartialType(CreateUserDto) {}
-
-export class UpdateProfileDto {
+export class UpdateUserDto extends PartialType(
+  PickType(CreateUserDto, [
+    'full_name',
+    'phone',
+    'date_of_birth',
+    'gender',
+    'country',
+    'city',
+  ] as const),
+) {
   @ApiProperty({
     example: 'John Doe Updated',
     description: 'Updated full name of the user',
   })
-  @IsOptional()
-  @IsString()
-  @IsNotEmpty({ message: 'Full name cannot be empty' })
   full_name?: string;
 
   @ApiProperty({
     example: '+84987654321',
     description: 'Updated phone number of the user',
-  })
-  @IsOptional()
-  @IsString()
-  @Matches(/^(\+\d{1,3}[- ]?)?\d{10,12}$/, {
-    message: 'Phone must be a valid phone number',
   })
   phone?: string;
 
@@ -37,17 +38,53 @@ export class UpdateProfileDto {
     example: 'Vietnam',
     description: 'Updated country of the user',
   })
-  @IsOptional()
-  @IsString()
   country?: string;
 
   @ApiProperty({
     example: 'Ho Chi Minh City',
     description: 'Updated city of the user',
   })
-  @IsOptional()
-  @IsString()
   city?: string;
+
+  @ApiProperty({
+    example: '20',
+    description: 'Age of the student',
+    required: false,
+  })
+  date_of_birth?: Date;
+
+  @ApiProperty({
+    example: 'male',
+    description: 'Gender of the student',
+    required: false,
+  })
+  gender?: UserGender;
+}
+
+export class UpdateEmailDto {
+  @ApiProperty({
+    example: 'student@gmail.com',
+    description: 'Email of the student',
+  })
+  @IsString()
+  @Matches(/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/, {
+    message: 'Email must be a valid email address',
+  })
+  @MinLength(5, { message: 'Email must be at least 5 characters long' })
+  @IsNotEmpty({ message: 'Email is required' })
+  email: string;
+}
+
+export class UpdateStatusDto {
+  @ApiProperty({
+    enum: USER_STATUS,
+    description: 'Status of the user',
+  })
+  @IsEnum(USER_STATUS, {
+    message: `Status must be one of the following: ${Object.values(USER_STATUS).join(', ')}`,
+  })
+  @IsNotEmpty({ message: 'Status is required' })
+  status: UserStatus;
 }
 
 export class UpdatePasswordDto {

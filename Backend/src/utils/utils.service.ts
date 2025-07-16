@@ -186,7 +186,6 @@ export class UtilsService {
    * - ?OR[0][status]=active: matches the first condition status equals "active"
    * - ?NOT[0][email][contains]=spam: matches the first condition email not containing "spam"
    * - ?OR[1][phone][startsWith]=123: matches the second condition phone starting with "123"
-   * Note: The operators used in the query parameters must be defined in the VALID_OPERATORS array.
    */
   buildWhereFromQuery(query: Record<string, unknown>): Record<string, unknown> {
     const where: Record<string, unknown> = {};
@@ -269,5 +268,11 @@ export class UtilsService {
     }
 
     return where;
+  }
+
+  cleanDto<T extends object>(dto: T): Partial<T> {
+    return Object.fromEntries(
+      Object.entries(dto).filter(([_, v]) => v !== undefined && v !== null),
+    ) as Partial<T>;
   }
 }
