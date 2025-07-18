@@ -15,6 +15,14 @@ export class BlogsService {
     private readonly redisService: RedisService,
   ) {}
 
+  private isValidImageUrl(url: string): boolean {
+    const cloudinaryPattern =
+      /^https:\/\/res\.cloudinary\.com\/.*\.(jpg|jpeg|png|gif|webp)$/i;
+    const generalUrlPattern = /^https?:\/\/.*\.(jpg|jpeg|png|gif|webp)$/i;
+
+    return cloudinaryPattern.test(url) || generalUrlPattern.test(url);
+  }
+
   async createBlogCategory(
     createBlogCategoryDto: CreateBlogCategoryDto,
   ): Promise<blog_categories> {
@@ -170,6 +178,10 @@ export class BlogsService {
 
       if (!categoryExists) {
         throw new Error(MESSAGE.BLOG.BLOG_CATEGORY_NOT_FOUND);
+      }
+
+      if (createBlogDto.image && !this.isValidImageUrl(createBlogDto.image)) {
+        throw new Error('Invalid image URL format');
       }
 
       const blog = await this.prismaService.blogs.create({

@@ -19,6 +19,7 @@ import { PrismaModule } from './prisma/prisma.module';
 import { RedisModule } from './redis/redis.module';
 import { UtilsModule } from './utils/utils.module';
 import { FilesModule } from './modules/files/files.module';
+import { BlogCommentsModule } from './modules/blog-comments/blog-comments.module';
 
 @Module({
   imports: [
@@ -37,6 +38,7 @@ import { FilesModule } from './modules/files/files.module';
     StudentsModule,
     TeachersModule,
     FilesModule,
+    BlogCommentsModule,
   ],
   controllers: [AppController, DatabaseController],
   providers: [
