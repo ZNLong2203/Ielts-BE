@@ -37,10 +37,22 @@ export class BlogsService {
 
   async findAllBlogCategories(): Promise<blog_categories[]> {
     try {
+      const cachedAllBlogCategories =
+        await this.redisService.get('allBlogCategories');
+      if (cachedAllBlogCategories) {
+        return JSON.parse(cachedAllBlogCategories) as blog_categories[];
+      }
+
       const allBlogCategories =
         await this.prismaService.blog_categories.findMany({
           orderBy: { ordering: 'asc' },
         });
+
+      await this.redisService.set(
+        'allBlogCategories',
+        JSON.stringify(allBlogCategories),
+        3600,
+      );
 
       return allBlogCategories;
     } catch (error) {
@@ -53,10 +65,31 @@ export class BlogsService {
 
   async findBlogByCategoryId(categoryId: string): Promise<blogs[]> {
     try {
+      const cachedBlogsByCategory = await this.redisService.get(
+        `blogsByCategory:${categoryId}`,
+      );
+      if (cachedBlogsByCategory) {
+        return JSON.parse(cachedBlogsByCategory) as blogs[];
+      }
+
+      const categoryExists =
+        await this.prismaService.blog_categories.findUnique({
+          where: { id: categoryId },
+        });
+      if (!categoryExists) {
+        throw new Error(MESSAGE.BLOG.BLOG_CATEGORY_NOT_FOUND);
+      }
+
       const blogsByCategory = await this.prismaService.blogs.findMany({
         where: { category_id: categoryId },
         orderBy: { created_at: 'desc' },
       });
+
+      await this.redisService.set(
+        `blogsByCategory:${categoryId}`,
+        JSON.stringify(blogsByCategory),
+        3600,
+      );
 
       return blogsByCategory;
     } catch (error) {
@@ -72,6 +105,15 @@ export class BlogsService {
     updateBlogCategoryDto: UpdateBlogCategoryDto,
   ): Promise<blog_categories> {
     try {
+      const cachedBlogCategory = await this.redisService.get(
+        `blogCategory:${id}`,
+      );
+      if (cachedBlogCategory) {
+        await this.redisService.del(`blogCategory:${id}`);
+      }
+
+      await this.redisService.del('allBlogCategories');
+
       const updatedBlogCategory =
         await this.prismaService.blog_categories.update({
           where: { id },
@@ -91,6 +133,15 @@ export class BlogsService {
 
   async removeBlogCategory(id: string): Promise<void> {
     try {
+      const cachedBlogCategory = await this.redisService.get(
+        `blogCategory:${id}`,
+      );
+      if (cachedBlogCategory) {
+        await this.redisService.del(`blogCategory:${id}`);
+      }
+
+      await this.redisService.del('allBlogCategories');
+
       await this.prismaService.blog_categories.delete({
         where: { id },
       });
@@ -127,6 +178,13 @@ export class BlogsService {
           image: createBlogDto.image || '',
         },
       });
+
+      await this.redisService.del('allBlogs');
+      if (createBlogDto.category_id) {
+        await this.redisService.del(
+          `blogsByCategory:${createBlogDto.category_id}`,
+        );
+      }
 
       return blog;
     } catch (error) {
@@ -185,18 +243,49 @@ export class BlogsService {
 
   async updateBlog(id: string, updateBlogDto: UpdateBlogDto): Promise<blogs> {
     try {
-      const cachedBlog = await this.redisService.get(`blog:${id}`);
-      if (cachedBlog) {
-        await this.redisService.del(`blog:${id}`);
-      }
+      const existingBlog = await this.prismaService.blogs.findUnique({
+        where: { id },
+        select: { category_id: true },
+      });
 
       const updatedBlog = await this.prismaService.blogs.update({
         where: { id },
         data: { ...updateBlogDto },
       });
 
+      await this.redisService.set(
+        `blog:${id}`,
+        JSON.stringify(updatedBlog),
+        3600,
+      );
+
+      await this.redisService.del('allBlogs');
+
+      if (
+        existingBlog?.category_id &&
+        updateBlogDto.category_id &&
+        existingBlog.category_id !== updateBlogDto.category_id
+      ) {
+        await this.redisService.del(
+          `blogsByCategory:${existingBlog.category_id}`,
+        );
+      }
+
+      if (updateBlogDto.category_id) {
+        await this.redisService.del(
+          `blogsByCategory:${updateBlogDto.category_id}`,
+        );
+      }
+
       return updatedBlog;
     } catch (error) {
+      try {
+        await this.redisService.del(`blog:${id}`);
+        await this.redisService.del('allBlogs');
+      } catch (cacheError) {
+        console.error('Cache cleanup failed:', cacheError);
+      }
+
       if (error instanceof Error) {
         throw new Error(error.message);
       }
@@ -206,9 +295,21 @@ export class BlogsService {
 
   async removeBlog(id: string): Promise<void> {
     try {
+      const existingBlog = await this.prismaService.blogs.findUnique({
+        where: { id },
+        select: { category_id: true },
+      });
+
       const cachedBlog = await this.redisService.get(`blog:${id}`);
       if (cachedBlog) {
         await this.redisService.del(`blog:${id}`);
+      }
+
+      await this.redisService.del('allBlogs');
+      if (existingBlog?.category_id) {
+        await this.redisService.del(
+          `blogsByCategory:${existingBlog.category_id}`,
+        );
       }
 
       await this.prismaService.blogs.delete({
