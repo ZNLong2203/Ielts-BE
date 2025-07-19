@@ -23,6 +23,7 @@ export class BlogsService {
     return cloudinaryPattern.test(url) || generalUrlPattern.test(url);
   }
 
+  // CATEGORY METHODS
   async createBlogCategory(
     createBlogCategoryDto: CreateBlogCategoryDto,
   ): Promise<blog_categories> {
@@ -63,43 +64,6 @@ export class BlogsService {
       );
 
       return allBlogCategories;
-    } catch (error) {
-      if (error instanceof Error) {
-        throw new Error(error.message);
-      }
-      throw new Error(MESSAGE.ERROR.UNEXPECTED_ERROR);
-    }
-  }
-
-  async findBlogByCategoryId(categoryId: string): Promise<blogs[]> {
-    try {
-      const cachedBlogsByCategory = await this.redisService.get(
-        `blogsByCategory:${categoryId}`,
-      );
-      if (cachedBlogsByCategory) {
-        return JSON.parse(cachedBlogsByCategory) as blogs[];
-      }
-
-      const categoryExists =
-        await this.prismaService.blog_categories.findUnique({
-          where: { id: categoryId },
-        });
-      if (!categoryExists) {
-        throw new Error(MESSAGE.BLOG.BLOG_CATEGORY_NOT_FOUND);
-      }
-
-      const blogsByCategory = await this.prismaService.blogs.findMany({
-        where: { category_id: categoryId },
-        orderBy: { created_at: 'desc' },
-      });
-
-      await this.redisService.set(
-        `blogsByCategory:${categoryId}`,
-        JSON.stringify(blogsByCategory),
-        3600,
-      );
-
-      return blogsByCategory;
     } catch (error) {
       if (error instanceof Error) {
         throw new Error(error.message);
@@ -161,14 +125,117 @@ export class BlogsService {
     }
   }
 
-  async createBlog(createBlogDto: CreateBlogDto): Promise<blogs> {
+  // PUBLIC BLOG METHODS
+  async findAllPublishedBlogs(): Promise<blogs[]> {
     try {
-      const authorExists = await this.prismaService.users.findUnique({
-        where: { id: createBlogDto.author_id },
+      const cachedBlogs = await this.redisService.get('publishedBlogs');
+      if (cachedBlogs) {
+        return JSON.parse(cachedBlogs) as blogs[];
+      }
+
+      const publishedBlogs = await this.prismaService.blogs.findMany({
+        where: { status: 'published' },
+        orderBy: { created_at: 'desc' },
       });
 
-      if (!authorExists) {
-        throw new Error(MESSAGE.ERROR.USER_NOT_FOUND);
+      await this.redisService.set(
+        'publishedBlogs',
+        JSON.stringify(publishedBlogs),
+        3600,
+      );
+      return publishedBlogs;
+    } catch (error) {
+      if (error instanceof Error) {
+        throw new Error(error.message);
+      }
+      throw new Error(MESSAGE.ERROR.UNEXPECTED_ERROR);
+    }
+  }
+
+  async findPublishedBlogsByCategory(categoryId: string): Promise<blogs[]> {
+    try {
+      const cachedBlogs = await this.redisService.get(
+        `publishedBlogsByCategory:${categoryId}`,
+      );
+      if (cachedBlogs) {
+        return JSON.parse(cachedBlogs) as blogs[];
+      }
+
+      const categoryExists =
+        await this.prismaService.blog_categories.findUnique({
+          where: { id: categoryId },
+        });
+      if (!categoryExists) {
+        throw new Error(MESSAGE.BLOG.BLOG_CATEGORY_NOT_FOUND);
+      }
+
+      const publishedBlogs = await this.prismaService.blogs.findMany({
+        where: {
+          category_id: categoryId,
+          status: 'published',
+        },
+        orderBy: { created_at: 'desc' },
+      });
+
+      await this.redisService.set(
+        `publishedBlogsByCategory:${categoryId}`,
+        JSON.stringify(publishedBlogs),
+        3600,
+      );
+
+      return publishedBlogs;
+    } catch (error) {
+      if (error instanceof Error) {
+        throw new Error(error.message);
+      }
+      throw new Error(MESSAGE.ERROR.UNEXPECTED_ERROR);
+    }
+  }
+
+  async findPublishedBlogDetail(id: string): Promise<blogs | null> {
+    try {
+      const cachedBlog = await this.redisService.get(`publishedBlog:${id}`);
+      if (cachedBlog) {
+        return JSON.parse(cachedBlog) as blogs;
+      }
+
+      const blog = await this.prismaService.blogs.findFirst({
+        where: {
+          id,
+          status: 'published',
+        },
+      });
+
+      if (!blog) {
+        return null;
+      }
+
+      await this.redisService.set(
+        `publishedBlog:${id}`,
+        JSON.stringify(blog),
+        3600,
+      );
+      return blog;
+    } catch (error) {
+      if (error instanceof Error) {
+        throw new Error(error.message);
+      }
+      throw new Error(MESSAGE.ERROR.UNEXPECTED_ERROR);
+    }
+  }
+
+  // ========== TEACHER BLOG METHODS ==========
+  async createTeacherBlog(
+    createBlogDto: CreateBlogDto,
+    teacherId: string,
+  ): Promise<blogs> {
+    try {
+      const teacherExists = await this.prismaService.users.findUnique({
+        where: { id: teacherId, role: 'teacher' },
+      });
+
+      if (!teacherExists) {
+        throw new Error(MESSAGE.BLOG.TEACHER_NOT_FOUND);
       }
 
       const categoryExists =
@@ -181,22 +248,21 @@ export class BlogsService {
       }
 
       if (createBlogDto.image && !this.isValidImageUrl(createBlogDto.image)) {
-        throw new Error('Invalid image URL format');
+        throw new Error(MESSAGE.BLOG.INVALID_IMAGE_URL);
       }
 
       const blog = await this.prismaService.blogs.create({
         data: {
           ...createBlogDto,
+          author_id: teacherId,
           image: createBlogDto.image || '',
+          status: 'draft',
         },
       });
 
-      await this.redisService.del('allBlogs');
-      if (createBlogDto.category_id) {
-        await this.redisService.del(
-          `blogsByCategory:${createBlogDto.category_id}`,
-        );
-      }
+      await this.redisService.del(`teacherBlogs:${teacherId}`);
+      await this.redisService.del('allBlogsAdmin');
+      await this.redisService.del('blogsByStatus:draft');
 
       return blog;
     } catch (error) {
@@ -207,9 +273,153 @@ export class BlogsService {
     }
   }
 
-  async findAllBlogs(): Promise<blogs[]> {
+  async findAllTeacherBlogs(teacherId: string): Promise<blogs[]> {
     try {
-      const cachedBlogs = await this.redisService.get('allBlogs');
+      const cachedBlogs = await this.redisService.get(
+        `teacherBlogs:${teacherId}`,
+      );
+      if (cachedBlogs) {
+        return JSON.parse(cachedBlogs) as blogs[];
+      }
+
+      const teacherBlogs = await this.prismaService.blogs.findMany({
+        where: { author_id: teacherId },
+        orderBy: { created_at: 'desc' },
+      });
+
+      await this.redisService.set(
+        `teacherBlogs:${teacherId}`,
+        JSON.stringify(teacherBlogs),
+        3600,
+      );
+
+      return teacherBlogs;
+    } catch (error) {
+      if (error instanceof Error) {
+        throw new Error(error.message);
+      }
+      throw new Error(MESSAGE.ERROR.UNEXPECTED_ERROR);
+    }
+  }
+
+  async findTeacherBlogDetail(
+    blogId: string,
+    teacherId: string,
+  ): Promise<blogs | null> {
+    try {
+      const blog = await this.prismaService.blogs.findFirst({
+        where: {
+          id: blogId,
+          author_id: teacherId,
+        },
+      });
+
+      return blog;
+    } catch (error) {
+      if (error instanceof Error) {
+        throw new Error(error.message);
+      }
+      throw new Error(MESSAGE.ERROR.UNEXPECTED_ERROR);
+    }
+  }
+
+  async updateTeacherBlog(
+    blogId: string,
+    updateBlogDto: UpdateBlogDto,
+    teacherId: string,
+  ): Promise<blogs> {
+    try {
+      const existingBlog = await this.prismaService.blogs.findFirst({
+        where: {
+          id: blogId,
+          author_id: teacherId,
+        },
+      });
+
+      if (!existingBlog) {
+        throw new Error(MESSAGE.BLOG.BLOG_UNAUTHORIZED);
+      }
+
+      if (existingBlog.status === 'published') {
+        throw new Error(MESSAGE.BLOG.BLOG_CANNOT_EDIT_PUBLISHED);
+      }
+
+      if (updateBlogDto.image && !this.isValidImageUrl(updateBlogDto.image)) {
+        throw new Error(MESSAGE.BLOG.INVALID_IMAGE_URL);
+      }
+
+      const updatedBlog = await this.prismaService.blogs.update({
+        where: { id: blogId },
+        data: { ...updateBlogDto },
+      });
+
+      await this.redisService.del(`teacherBlogs:${teacherId}`);
+      await this.redisService.del(`blog:${blogId}`);
+      await this.redisService.del('allBlogsAdmin');
+      await this.redisService.del(`blogsByStatus:${existingBlog.status}`);
+      if (
+        updateBlogDto.category_id &&
+        existingBlog.category_id !== updateBlogDto.category_id
+      ) {
+        await this.redisService.del(
+          `publishedBlogsByCategory:${existingBlog.category_id}`,
+        );
+        await this.redisService.del(
+          `publishedBlogsByCategory:${updateBlogDto.category_id}`,
+        );
+      }
+
+      return updatedBlog;
+    } catch (error) {
+      if (error instanceof Error) {
+        throw new Error(error.message);
+      }
+      throw new Error(MESSAGE.ERROR.UNEXPECTED_ERROR);
+    }
+  }
+
+  async deleteTeacherBlog(blogId: string, teacherId: string): Promise<void> {
+    try {
+      const existingBlog = await this.prismaService.blogs.findFirst({
+        where: {
+          id: blogId,
+          author_id: teacherId,
+        },
+      });
+
+      if (!existingBlog) {
+        throw new Error(MESSAGE.BLOG.BLOG_UNAUTHORIZED);
+      }
+
+      await this.prismaService.blogs.delete({
+        where: { id: blogId },
+      });
+
+      await this.redisService.del(`teacherBlogs:${teacherId}`);
+      await this.redisService.del(`blog:${blogId}`);
+      await this.redisService.del('allBlogsAdmin');
+      await this.redisService.del(`blogsByStatus:${existingBlog.status}`);
+      if (existingBlog.status === 'published') {
+        await this.redisService.del('publishedBlogs');
+        await this.redisService.del(`publishedBlog:${blogId}`);
+        if (existingBlog.category_id) {
+          await this.redisService.del(
+            `publishedBlogsByCategory:${existingBlog.category_id}`,
+          );
+        }
+      }
+    } catch (error) {
+      if (error instanceof Error) {
+        throw new Error(error.message);
+      }
+      throw new Error(MESSAGE.ERROR.UNEXPECTED_ERROR);
+    }
+  }
+
+  // ADMIN BLOG METHODS
+  async findAllBlogsForAdmin(): Promise<blogs[]> {
+    try {
+      const cachedBlogs = await this.redisService.get('allBlogsAdmin');
       if (cachedBlogs) {
         return JSON.parse(cachedBlogs) as blogs[];
       }
@@ -217,8 +427,12 @@ export class BlogsService {
       const allBlogs = await this.prismaService.blogs.findMany({
         orderBy: { created_at: 'desc' },
       });
-      await this.redisService.set('allBlogs', JSON.stringify(allBlogs), 3600);
 
+      await this.redisService.set(
+        'allBlogsAdmin',
+        JSON.stringify(allBlogs),
+        3600,
+      );
       return allBlogs;
     } catch (error) {
       if (error instanceof Error) {
@@ -228,21 +442,39 @@ export class BlogsService {
     }
   }
 
-  async findOneBlog(id: string): Promise<blogs | null> {
+  async findBlogsByStatus(status: string): Promise<blogs[]> {
     try {
-      const cachedBlogs = await this.redisService.get(`blog:${id}`);
+      const cachedBlogs = await this.redisService.get(
+        `blogsByStatus:${status}`,
+      );
       if (cachedBlogs) {
-        return JSON.parse(cachedBlogs) as blogs;
+        return JSON.parse(cachedBlogs) as blogs[];
       }
 
+      const blogs = await this.prismaService.blogs.findMany({
+        where: { status },
+        orderBy: { created_at: 'desc' },
+      });
+
+      await this.redisService.set(
+        `blogsByStatus:${status}`,
+        JSON.stringify(blogs),
+        3600,
+      );
+      return blogs;
+    } catch (error) {
+      if (error instanceof Error) {
+        throw new Error(error.message);
+      }
+      throw new Error(MESSAGE.ERROR.UNEXPECTED_ERROR);
+    }
+  }
+
+  async findBlogDetailForAdmin(id: string): Promise<blogs | null> {
+    try {
       const blog = await this.prismaService.blogs.findUnique({
         where: { id },
       });
-      if (!blog) {
-        return null;
-      }
-
-      await this.redisService.set(`blog:${id}`, JSON.stringify(blog), 3600);
 
       return blog;
     } catch (error) {
@@ -253,51 +485,26 @@ export class BlogsService {
     }
   }
 
-  async updateBlog(id: string, updateBlogDto: UpdateBlogDto): Promise<blogs> {
+  async updateBlogStatus(id: string, status: string): Promise<blogs> {
     try {
-      const existingBlog = await this.prismaService.blogs.findUnique({
-        where: { id },
-        select: { category_id: true },
-      });
-
       const updatedBlog = await this.prismaService.blogs.update({
         where: { id },
-        data: { ...updateBlogDto },
+        data: {
+          status,
+          published_at: status === 'published' ? new Date() : null,
+        },
       });
 
-      await this.redisService.set(
-        `blog:${id}`,
-        JSON.stringify(updatedBlog),
-        3600,
-      );
-
-      await this.redisService.del('allBlogs');
-
-      if (
-        existingBlog?.category_id &&
-        updateBlogDto.category_id &&
-        existingBlog.category_id !== updateBlogDto.category_id
-      ) {
-        await this.redisService.del(
-          `blogsByCategory:${existingBlog.category_id}`,
-        );
-      }
-
-      if (updateBlogDto.category_id) {
-        await this.redisService.del(
-          `blogsByCategory:${updateBlogDto.category_id}`,
-        );
-      }
+      await this.redisService.del('allBlogsAdmin');
+      await this.redisService.del('publishedBlogs');
+      await this.redisService.del(`blogsByStatus:draft`);
+      await this.redisService.del(`blogsByStatus:published`);
+      await this.redisService.del(`blogsByStatus:archived`);
+      await this.redisService.del(`blog:${id}`);
+      await this.redisService.del(`publishedBlog:${id}`);
 
       return updatedBlog;
     } catch (error) {
-      try {
-        await this.redisService.del(`blog:${id}`);
-        await this.redisService.del('allBlogs');
-      } catch (cacheError) {
-        console.error('Cache cleanup failed:', cacheError);
-      }
-
       if (error instanceof Error) {
         throw new Error(error.message);
       }
@@ -305,28 +512,94 @@ export class BlogsService {
     }
   }
 
-  async removeBlog(id: string): Promise<void> {
+  async updateBlogByAdmin(
+    id: string,
+    updateBlogDto: UpdateBlogDto,
+  ): Promise<blogs> {
     try {
       const existingBlog = await this.prismaService.blogs.findUnique({
         where: { id },
-        select: { category_id: true },
+        select: { category_id: true, status: true, author_id: true },
       });
 
-      const cachedBlog = await this.redisService.get(`blog:${id}`);
-      if (cachedBlog) {
-        await this.redisService.del(`blog:${id}`);
+      if (!existingBlog) {
+        throw new Error(MESSAGE.BLOG.BLOG_NOT_FOUND);
       }
 
-      await this.redisService.del('allBlogs');
-      if (existingBlog?.category_id) {
+      if (updateBlogDto.image && !this.isValidImageUrl(updateBlogDto.image)) {
+        throw new Error(MESSAGE.BLOG.INVALID_IMAGE_URL);
+      }
+
+      const updatedBlog = await this.prismaService.blogs.update({
+        where: { id },
+        data: { ...updateBlogDto },
+      });
+
+      await this.redisService.del('allBlogsAdmin');
+      await this.redisService.del(`blog:${id}`);
+      await this.redisService.del(`blogsByStatus:${existingBlog.status}`);
+      if (existingBlog.author_id) {
+        await this.redisService.del(`teacherBlogs:${existingBlog.author_id}`);
+      }
+
+      if (existingBlog.status === 'published') {
+        await this.redisService.del('publishedBlogs');
+        await this.redisService.del(`publishedBlog:${id}`);
+      }
+
+      if (
+        updateBlogDto.category_id &&
+        existingBlog.category_id !== updateBlogDto.category_id
+      ) {
         await this.redisService.del(
-          `blogsByCategory:${existingBlog.category_id}`,
+          `publishedBlogsByCategory:${existingBlog.category_id}`,
         );
+        await this.redisService.del(
+          `publishedBlogsByCategory:${updateBlogDto.category_id}`,
+        );
+      }
+
+      return updatedBlog;
+    } catch (error) {
+      if (error instanceof Error) {
+        throw new Error(error.message);
+      }
+      throw new Error(MESSAGE.ERROR.UNEXPECTED_ERROR);
+    }
+  }
+
+  async deleteBlogByAdmin(id: string): Promise<void> {
+    try {
+      const existingBlog = await this.prismaService.blogs.findUnique({
+        where: { id },
+        select: { category_id: true, status: true, author_id: true },
+      });
+
+      if (!existingBlog) {
+        throw new Error(MESSAGE.BLOG.BLOG_NOT_FOUND);
       }
 
       await this.prismaService.blogs.delete({
         where: { id },
       });
+
+      await this.redisService.del('allBlogsAdmin');
+      await this.redisService.del(`blog:${id}`);
+      await this.redisService.del(`blogsByStatus:${existingBlog.status}`);
+
+      if (existingBlog.author_id) {
+        await this.redisService.del(`teacherBlogs:${existingBlog.author_id}`);
+      }
+
+      if (existingBlog.status === 'published') {
+        await this.redisService.del('publishedBlogs');
+        await this.redisService.del(`publishedBlog:${id}`);
+        if (existingBlog.category_id) {
+          await this.redisService.del(
+            `publishedBlogsByCategory:${existingBlog.category_id}`,
+          );
+        }
+      }
     } catch (error) {
       if (error instanceof Error) {
         throw new Error(error.message);
