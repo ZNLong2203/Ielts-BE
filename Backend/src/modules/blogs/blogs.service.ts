@@ -231,7 +231,7 @@ export class BlogsService {
   ): Promise<blogs> {
     try {
       const teacherExists = await this.prismaService.users.findUnique({
-        where: { id: teacherId, role: 'teacher' },
+        where: { id: teacherId, role: 'TEACHER' },
       });
 
       if (!teacherExists) {

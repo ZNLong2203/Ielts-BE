@@ -6,6 +6,7 @@ import {
   Patch,
   Param,
   Delete,
+  UseGuards,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -25,9 +26,17 @@ import {
   BlogCategoryResponseDto,
   ApiResponseDto,
 } from './dto/blog-response.dto';
-import { MessageResponse, Public, CurrentUser } from 'src/decorator/customize';
-import { MESSAGE } from 'src/common/message';
-import { IUser } from 'src/interface/users.interface';
+import {
+  MessageResponse,
+  Public,
+  CurrentUser,
+  CheckPolicies,
+} from '../../decorator/customize';
+import { MESSAGE } from '../../common/message';
+import { IUser } from '../../interface/users.interface';
+import { PermissionGuard } from '../../casl/guards/permission.guard';
+import { Action } from '../../casl/casl.interface';
+import { Blog, BlogCategory } from '../../casl/subject.interface';
 // import { PaginationQueryDto } from 'src/common/dto/pagination-query.dto';
 
 @ApiTags('Blogs')
@@ -117,6 +126,8 @@ export class BlogsController {
 
   // TEACHER APIs
   @ApiBearerAuth()
+  @UseGuards(PermissionGuard)
+  @CheckPolicies((ability) => ability.can(Action.Create, Blog))
   @Post('/teacher')
   @ApiOperation({
     summary: 'Create a new blog (Teacher)',
@@ -138,6 +149,8 @@ export class BlogsController {
   }
 
   @ApiBearerAuth()
+  @UseGuards(PermissionGuard)
+  @CheckPolicies((ability) => ability.can(Action.Read, Blog))
   @Get('/teacher')
   @ApiOperation({
     summary: 'Get all teacher blogs',
@@ -155,6 +168,8 @@ export class BlogsController {
   }
 
   @ApiBearerAuth()
+  @UseGuards(PermissionGuard)
+  @CheckPolicies((ability) => ability.can(Action.Read, Blog))
   @Get('/teacher/detail/:id')
   @ApiOperation({
     summary: 'Get teacher blog details',
@@ -176,6 +191,8 @@ export class BlogsController {
   }
 
   @ApiBearerAuth()
+  @UseGuards(PermissionGuard)
+  @CheckPolicies((ability) => ability.can(Action.Update, Blog))
   @Patch('/teacher/:id')
   @ApiOperation({
     summary: 'Update teacher blog',
@@ -199,6 +216,8 @@ export class BlogsController {
   }
 
   @ApiBearerAuth()
+  @UseGuards(PermissionGuard)
+  @CheckPolicies((ability) => ability.can(Action.Delete, Blog))
   @Delete('/teacher/:id')
   @ApiOperation({
     summary: 'Delete teacher blog',
@@ -214,6 +233,8 @@ export class BlogsController {
   // ADMIN APIs
   // Category Management APIs
   @ApiBearerAuth()
+  @UseGuards(PermissionGuard)
+  @CheckPolicies((ability) => ability.can(Action.Create, BlogCategory))
   @Post('/admin/category')
   @ApiOperation({
     summary: 'Create blog category (Admin)',
@@ -228,6 +249,8 @@ export class BlogsController {
   }
 
   @ApiBearerAuth()
+  @UseGuards(PermissionGuard)
+  @CheckPolicies((ability) => ability.can(Action.Update, BlogCategory))
   @Patch('/admin/category/:id')
   @ApiOperation({
     summary: 'Update blog category (Admin)',
@@ -244,6 +267,8 @@ export class BlogsController {
   }
 
   @ApiBearerAuth()
+  @UseGuards(PermissionGuard)
+  @CheckPolicies((ability) => ability.can(Action.Delete, BlogCategory))
   @Delete('/admin/category/:id')
   @ApiOperation({
     summary: 'Delete blog category (Admin)',
@@ -258,6 +283,8 @@ export class BlogsController {
 
   // Blog Management APIs
   @ApiBearerAuth()
+  @UseGuards(PermissionGuard)
+  @CheckPolicies((ability) => ability.can(Action.Manage, Blog))
   @Get('/admin')
   @ApiOperation({
     summary: 'Get all blogs (Admin)',
@@ -270,6 +297,8 @@ export class BlogsController {
   }
 
   @ApiBearerAuth()
+  @UseGuards(PermissionGuard)
+  @CheckPolicies((ability) => ability.can(Action.Manage, Blog))
   @Get('/admin/draft')
   @ApiOperation({
     summary: 'Get draft blogs (Admin)',
@@ -285,6 +314,8 @@ export class BlogsController {
   }
 
   @ApiBearerAuth()
+  @UseGuards(PermissionGuard)
+  @CheckPolicies((ability) => ability.can(Action.Manage, Blog))
   @Get('/admin/published')
   @ApiOperation({
     summary: 'Get published blogs (Admin)',
@@ -300,6 +331,8 @@ export class BlogsController {
   }
 
   @ApiBearerAuth()
+  @UseGuards(PermissionGuard)
+  @CheckPolicies((ability) => ability.can(Action.Manage, Blog))
   @Get('/admin/archived')
   @ApiOperation({
     summary: 'Get archived blogs (Admin)',
@@ -315,6 +348,8 @@ export class BlogsController {
   }
 
   @ApiBearerAuth()
+  @UseGuards(PermissionGuard)
+  @CheckPolicies((ability) => ability.can(Action.Manage, Blog))
   @Get('/admin/detail/:id')
   @ApiOperation({
     summary: 'Get blog details (Admin)',
@@ -332,6 +367,8 @@ export class BlogsController {
   }
 
   @ApiBearerAuth()
+  @UseGuards(PermissionGuard)
+  @CheckPolicies((ability) => ability.can(Action.Manage, Blog))
   @Patch('/admin/:id/publish')
   @ApiOperation({
     summary: 'Publish blog (Admin)',
@@ -345,6 +382,8 @@ export class BlogsController {
   }
 
   @ApiBearerAuth()
+  @UseGuards(PermissionGuard)
+  @CheckPolicies((ability) => ability.can(Action.Manage, Blog))
   @Patch('/admin/:id/archive')
   @ApiOperation({
     summary: 'Archive blog (Admin)',
@@ -358,6 +397,8 @@ export class BlogsController {
   }
 
   @ApiBearerAuth()
+  @UseGuards(PermissionGuard)
+  @CheckPolicies((ability) => ability.can(Action.Manage, Blog))
   @Patch('/admin/:id/draft')
   @ApiOperation({
     summary: 'Set blog to draft (Admin)',
@@ -371,6 +412,8 @@ export class BlogsController {
   }
 
   @ApiBearerAuth()
+  @UseGuards(PermissionGuard)
+  @CheckPolicies((ability) => ability.can(Action.Manage, Blog))
   @Patch('/admin/:id')
   @ApiOperation({
     summary: 'Update blog (Admin)',
@@ -387,6 +430,8 @@ export class BlogsController {
   }
 
   @ApiBearerAuth()
+  @UseGuards(PermissionGuard)
+  @CheckPolicies((ability) => ability.can(Action.Manage, Blog))
   @Delete('/admin/:id')
   @ApiOperation({
     summary: 'Delete blog (Admin)',

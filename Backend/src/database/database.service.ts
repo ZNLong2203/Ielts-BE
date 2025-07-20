@@ -248,7 +248,7 @@ export class DatabaseService {
         this.logger.log(`Created teacher: ${teacher.email}`);
       } catch (error) {
         this.logger.error(
-          `Failed to create teacher ${teacher.email}: ${error.message}`,
+          `Failed to create teacher ${teacher.email}: ${error instanceof Error ? error.message : String(error)}`,
         );
       }
     }
@@ -472,7 +472,7 @@ export class DatabaseService {
         this.logger.log(`Created student: ${student.email}`);
       } catch (error) {
         this.logger.error(
-          `Failed to create student ${student.email}: ${error.message}`,
+          `Failed to create student ${student.email}: ${error instanceof Error ? error.message : String(error)}`,
         );
       }
     }

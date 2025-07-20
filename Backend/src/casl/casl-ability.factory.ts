@@ -22,14 +22,16 @@ export type AppAbility = MongoAbility<[Action, Subjects]>;
 export class CaslAbilityFactory {
   constructor(private prisma: PrismaService) {}
 
-  async createForUser(user: ISubject.User): Promise<AppAbility> {
-    const { can, cannot, build } = new AbilityBuilder<AppAbility>(
+  createForUser(user: ISubject.User): AppAbility {
+    const { can, build } = new AbilityBuilder<AppAbility>(
       createMongoAbility as unknown as AbilityClass<AppAbility>,
     );
 
     if (!user) {
-      // Khách không đăng nhập chỉ có thể xem các khóa học công khai
+      // Khách không đăng nhập chỉ có thể xem các nội dung công khai
       can(Action.Read, ISubject.Course, { isPublic: true } as MongoQuery);
+      can(Action.Read, ISubject.Blog, { status: 'published' } as MongoQuery);
+      can(Action.Read, ISubject.BlogCategory, { isActive: true } as MongoQuery);
       return build();
     }
 
@@ -40,18 +42,42 @@ export class CaslAbilityFactory {
         break;
 
       case Role.TEACHER:
+        // Profile permissions
         can(Action.Read, ISubject.Profile, { userId: user.id } as MongoQuery);
         can(Action.Update, ISubject.Profile, { userId: user.id } as MongoQuery);
+
+        // Blog permissions for Teacher
+        can(Action.Create, ISubject.Blog);
+        can(Action.Read, ISubject.Blog, { authorId: user.id } as MongoQuery); // Own blogs
+        can(Action.Read, ISubject.Blog, { status: 'published' } as MongoQuery); // Published blogs
+        can(Action.Update, ISubject.Blog, { authorId: user.id } as MongoQuery); // Own blogs
+        can(Action.Delete, ISubject.Blog, { authorId: user.id } as MongoQuery); // Own blogs
+
+        // Blog Category permissions for Teacher (read only)
+        can(Action.Read, ISubject.BlogCategory, {
+          isActive: true,
+        } as MongoQuery);
         break;
 
       case Role.STUDENT:
+        // Profile permissions
         can(Action.Read, ISubject.Profile, { userId: user.id } as MongoQuery);
         can(Action.Update, ISubject.Profile, { userId: user.id } as MongoQuery);
+
+        // Blog permissions for Student (read only published)
+        can(Action.Read, ISubject.Blog, { status: 'published' } as MongoQuery);
+        can(Action.Read, ISubject.BlogCategory, {
+          isActive: true,
+        } as MongoQuery);
         break;
 
       default:
-        // Người dùng không có vai trò cụ thể chỉ có thể xem các khóa học công khai
+        // Người dùng không có vai trò cụ thể chỉ có thể xem nội dung công khai
         can(Action.Read, ISubject.Course, { isPublic: true } as MongoQuery);
+        can(Action.Read, ISubject.Blog, { status: 'published' } as MongoQuery);
+        can(Action.Read, ISubject.BlogCategory, {
+          isActive: true,
+        } as MongoQuery);
         break;
     }
 
