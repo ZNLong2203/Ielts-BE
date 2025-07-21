@@ -25,8 +25,11 @@ import {
   ApiTags,
 } from '@nestjs/swagger';
 import { Request, Response } from 'express';
+import { Student, Teacher } from 'src/casl/entities';
+import { Action } from 'src/casl/enums/action.enum';
 import { MESSAGE } from 'src/common/message';
 import {
+  CheckPolicies,
   CurrentUser,
   MessageResponse,
   Public,
@@ -175,6 +178,7 @@ export class AuthController {
   })
   @ApiBearerAuth()
   @Get('profile')
+  @SkipCheckPermission()
   @MessageResponse(MESSAGE.AUTH.GET_PROFILE_SUCCESS)
   async getProfile(@CurrentUser() user: IUser) {
     return this.authService.getProfile(user);
@@ -191,6 +195,7 @@ export class AuthController {
     description: 'Change password data',
     type: UpdatePasswordDto,
   })
+  @SkipCheckPermission()
   @MessageResponse(MESSAGE.AUTH.PASSWORD_RESET_SUCCESS)
   async changePassword(
     @CurrentUser() user: IUser,
@@ -210,6 +215,7 @@ export class AuthController {
     type: UpdateUserDto,
     description: 'User profile data with no avatar upload',
   })
+  @SkipCheckPermission()
   @MessageResponse(MESSAGE.USER.PROFILE_UPDATE)
   @Patch('profile/me')
   updateProfileByOwner(
@@ -229,6 +235,7 @@ export class AuthController {
     type: UpdateStudentDto,
     description: 'User student data with no avatar upload',
   })
+  @CheckPolicies((ability) => ability.can(Action.Update, Student))
   @MessageResponse(MESSAGE.USER.PROFILE_UPDATE)
   @Patch('profile/student/me')
   updateStudentByOwner(
@@ -248,6 +255,7 @@ export class AuthController {
     type: UpdateTeacherDto,
     description: 'User teacher data with no avatar upload',
   })
+  @CheckPolicies((ability) => ability.can(Action.Update, Teacher))
   @MessageResponse(MESSAGE.USER.PROFILE_UPDATE)
   @Patch('profile/teacher/me')
   updateTeacherByOwner(

@@ -2,111 +2,56 @@ import {
   AbilityBuilder,
   AbilityClass,
   ExtractSubjectType,
-  InferSubjects,
-  MongoAbility,
   MongoQuery,
   createMongoAbility,
 } from '@casl/ability';
-import { Injectable } from '@nestjs/common';
-import * as ISubject from 'src/casl/subject.interface';
-import { PrismaService } from '../prisma/prisma.service';
-import { Action, Role } from './casl.interface';
-
-type Subjects =
-  | InferSubjects<ISubject.SubjectClasses | ISubject.SubjectInstances>
-  | typeof ISubject.All;
-
-export type AppAbility = MongoAbility<[Action, Subjects]>;
+import { Injectable, Logger } from '@nestjs/common';
+import {
+  All,
+  Blog,
+  BlogCategory,
+  BlogComment,
+  Course,
+  Student,
+  Teacher,
+  User,
+} from 'src/casl/entities';
+import { Action } from 'src/casl/enums/action.enum';
+import { USER_ROLE } from 'src/common/constants';
+import { IUser } from 'src/interface/users.interface';
+import { PrismaService } from 'src/prisma/prisma.service';
+import { AppAbility, Subjects } from 'src/types/ability.types';
 
 @Injectable()
 export class CaslAbilityFactory {
+  private readonly logger = new Logger(CaslAbilityFactory.name);
+
   constructor(private prisma: PrismaService) {}
 
-  createForUser(user: ISubject.User): AppAbility {
-    const { can, build } = new AbilityBuilder<AppAbility>(
+  createForUser(user: IUser): AppAbility {
+    const { can, cannot, build } = new AbilityBuilder<AppAbility>(
       createMongoAbility as unknown as AbilityClass<AppAbility>,
     );
 
     if (!user) {
-      // Khách không đăng nhập chỉ có thể xem các nội dung công khai
-      can(Action.Read, ISubject.Course, { isPublic: true } as MongoQuery);
-      can(Action.Read, ISubject.Blog, { status: 'published' } as MongoQuery);
-      can(Action.Read, ISubject.BlogCategory, { isActive: true } as MongoQuery);
-      can(Action.Read, ISubject.BlogComment, {
-        isApproved: true,
-      } as MongoQuery);
-      return build();
+      return this.defineGuestAbilities(can, cannot, build);
     }
 
     switch (user.role) {
-      case Role.ADMIN:
-        // Admin có thể làm mọi thứ
-        can(Action.Manage, ISubject.All);
+      case USER_ROLE.ADMIN:
+        this.defineAdminAbilities(can);
         break;
 
-      case Role.TEACHER:
-        // Profile permissions
-        can(Action.Read, ISubject.Profile, { userId: user.id } as MongoQuery);
-        can(Action.Update, ISubject.Profile, { userId: user.id } as MongoQuery);
-
-        // Blog permissions for Teacher
-        can(Action.Create, ISubject.Blog);
-        can(Action.Read, ISubject.Blog, { authorId: user.id } as MongoQuery); // Own blogs
-        can(Action.Read, ISubject.Blog, { status: 'published' } as MongoQuery); // Published blogs
-        can(Action.Update, ISubject.Blog, { authorId: user.id } as MongoQuery); // Own blogs
-        can(Action.Delete, ISubject.Blog, { authorId: user.id } as MongoQuery); // Own blogs
-
-        // Blog Category permissions for Teacher (read only)
-        can(Action.Read, ISubject.BlogCategory, {
-          isActive: true,
-        } as MongoQuery);
-
-        // Blog Comment permissions for Teacher
-        can(Action.Create, ISubject.BlogComment);
-        can(Action.Read, ISubject.BlogComment);
-        can(Action.Update, ISubject.BlogComment, {
-          userId: user.id,
-        } as MongoQuery); // Own comments
-        can(Action.Delete, ISubject.BlogComment, {
-          userId: user.id,
-        } as MongoQuery); // Own comments
-        can(Action.Manage, ISubject.BlogComment); // Teachers can moderate all comments
+      case USER_ROLE.TEACHER:
+        this.defineTeacherAbilities(user, can, cannot);
         break;
 
-      case Role.STUDENT:
-        // Profile permissions
-        can(Action.Read, ISubject.Profile, { userId: user.id } as MongoQuery);
-        can(Action.Update, ISubject.Profile, { userId: user.id } as MongoQuery);
-
-        // Blog permissions for Student (read only published)
-        can(Action.Read, ISubject.Blog, { status: 'published' } as MongoQuery);
-        can(Action.Read, ISubject.BlogCategory, {
-          isActive: true,
-        } as MongoQuery);
-
-        // Blog Comment permissions for Student
-        can(Action.Create, ISubject.BlogComment);
-        can(Action.Read, ISubject.BlogComment, {
-          isApproved: true,
-        } as MongoQuery); // Only approved comments
-        can(Action.Update, ISubject.BlogComment, {
-          userId: user.id,
-        } as MongoQuery); // Own comments
-        can(Action.Delete, ISubject.BlogComment, {
-          userId: user.id,
-        } as MongoQuery); // Own comments
+      case USER_ROLE.STUDENT:
+        this.defineStudentAbilities(user, can, cannot);
         break;
 
       default:
-        // Người dùng không có vai trò cụ thể chỉ có thể xem nội dung công khai
-        can(Action.Read, ISubject.Course, { isPublic: true } as MongoQuery);
-        can(Action.Read, ISubject.Blog, { status: 'published' } as MongoQuery);
-        can(Action.Read, ISubject.BlogCategory, {
-          isActive: true,
-        } as MongoQuery);
-        can(Action.Read, ISubject.BlogComment, {
-          isApproved: true,
-        } as MongoQuery);
+        this.defineCommonAbilities(user, can);
         break;
     }
 
@@ -116,5 +61,118 @@ export class CaslAbilityFactory {
           ? item
           : (item.constructor as ExtractSubjectType<Subjects>),
     });
+  }
+
+  /**
+   * Define admin abilities - can do everything
+   */
+  private defineAdminAbilities(can: AbilityBuilder<AppAbility>['can']): void {
+    // Admin có thể làm mọi thứ
+    can(Action.Manage, All);
+  }
+
+  /**
+   * Define teacher abilities
+   */
+  private defineTeacherAbilities(
+    user: IUser,
+    can: AbilityBuilder<AppAbility>['can'],
+    cannot: AbilityBuilder<AppAbility>['cannot'],
+  ): void {
+    // Profile permissions
+    can(Action.Read, User, { id: user.id } as MongoQuery);
+    can(Action.Update, User, { id: user.id } as MongoQuery);
+    can(Action.Update, Teacher, { userId: user.id } as MongoQuery);
+
+    // Blog permissions for Teacher
+    can(Action.Create, Blog);
+    can(Action.Read, Blog, { authorId: user.id } as MongoQuery); // Own blogs
+    can(Action.Read, Blog, { status: 'published' } as MongoQuery); // Published blogs
+    can(Action.Update, Blog, { authorId: user.id } as MongoQuery); // Own blogs
+    can(Action.Delete, Blog, { authorId: user.id } as MongoQuery); // Own blogs
+
+    // Blog Category permissions for Teacher (read only)
+    can(Action.Read, BlogCategory, {
+      isActive: true,
+    } as MongoQuery);
+
+    // Blog Comment permissions for Teacher
+    can(Action.Create, BlogComment);
+    can(Action.Read, BlogComment);
+    can(Action.Update, BlogComment, {
+      userId: user.id,
+    } as MongoQuery); // Own comments
+    can(Action.Delete, BlogComment, {
+      userId: user.id,
+    } as MongoQuery); // Own comments
+    can(Action.Manage, BlogComment); // Teachers can moderate all comments
+  }
+
+  /**
+   * Define student abilities
+   */
+  private defineStudentAbilities(
+    user: IUser,
+    can: AbilityBuilder<AppAbility>['can'],
+    cannot: AbilityBuilder<AppAbility>['cannot'],
+  ): void {
+    // Profile permissions
+    can(Action.Read, User, { id: user.id } as MongoQuery);
+    can(Action.Update, User, { id: user.id } as MongoQuery);
+    can(Action.Update, Student, { userId: user.id } as MongoQuery);
+
+    // Blog permissions for Student (read only published)
+    can(Action.Read, Blog, { status: 'published' } as MongoQuery);
+    can(Action.Read, BlogCategory, {
+      isActive: true,
+    } as MongoQuery);
+
+    // Blog Comment permissions for Student
+    can(Action.Create, BlogComment);
+    can(Action.Read, BlogComment, {
+      isApproved: true,
+    } as MongoQuery); // Only approved comments
+    can(Action.Update, BlogComment, {
+      userId: user.id,
+    } as MongoQuery); // Own comments
+    can(Action.Delete, BlogComment, {
+      userId: user.id,
+    } as MongoQuery); // Own comments
+  }
+
+  /**
+   * Define guest abilities (unauthenticated users)
+   */
+  private defineGuestAbilities(
+    can: AbilityBuilder<AppAbility>['can'],
+    cannot: AbilityBuilder<AppAbility>['cannot'],
+    build: AbilityBuilder<AppAbility>['build'],
+  ): AppAbility {
+    // Guests can only read public content
+    can(Action.Read, Course, { isPublic: true } as MongoQuery);
+    can(Action.Read, Blog, { status: 'published' } as MongoQuery);
+    can(Action.Read, BlogCategory, { isActive: true } as MongoQuery);
+    can(Action.Read, BlogComment, {
+      isApproved: true,
+    } as MongoQuery);
+    return build();
+  }
+
+  /**
+   * Define common abilities for all authenticated users
+   */
+  private defineCommonAbilities(
+    user: IUser,
+    can: AbilityBuilder<AppAbility>['can'],
+  ): void {
+    // Người dùng không có vai trò cụ thể chỉ có thể xem nội dung công khai
+    can(Action.Read, Course, { isPublic: true } as MongoQuery);
+    can(Action.Read, Blog, { status: 'published' } as MongoQuery);
+    can(Action.Read, BlogCategory, {
+      isActive: true,
+    } as MongoQuery);
+    can(Action.Read, BlogComment, {
+      isApproved: true,
+    } as MongoQuery);
   }
 }

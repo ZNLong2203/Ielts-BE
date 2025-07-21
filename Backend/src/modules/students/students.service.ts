@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
-import { Role } from 'src/casl/casl.interface';
+import { USER_ROLE } from 'src/common/constants';
 import { PaginationQueryDto } from 'src/common/dto/pagination-query.dto';
 import { UsersService } from 'src/modules/users/users.service';
 import { PrismaService } from 'src/prisma/prisma.service';
@@ -19,7 +19,7 @@ export class StudentsService {
     const whereCondition: Prisma.usersWhereInput =
       this.utilsService.buildWhereFromQuery(rawQuery);
 
-    whereCondition.role = Role.STUDENT;
+    whereCondition.role = USER_ROLE.STUDENT;
 
     return this.utilsService.paginate<
       Prisma.usersWhereInput,
@@ -51,13 +51,13 @@ export class StudentsService {
   findOne(id: string) {
     return this.usersService.findUniqueUserByCondition({
       id,
-      role: Role.STUDENT,
+      role: USER_ROLE.STUDENT,
     });
   }
 
   async update(id: string, updateStudentDto: UpdateStudentDto) {
     const existingStudent = await this.usersService.findById(id);
-    if (!existingStudent || existingStudent.role !== Role.STUDENT) {
+    if (!existingStudent || existingStudent.role !== USER_ROLE.STUDENT) {
       throw new Error('Student not found');
     }
 

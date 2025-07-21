@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { Decimal } from '@prisma/client/runtime/library';
-import { Role } from 'src/casl/casl.interface';
+import { USER_ROLE } from 'src/common/constants';
 import { UsersService } from 'src/modules/users/users.service';
 import { PrismaService } from 'src/prisma/prisma.service';
 
@@ -218,7 +218,7 @@ export class DatabaseService {
               gender: teacher.gender,
               country: teacher.country,
               city: teacher.city,
-              role: Role.TEACHER,
+              role: USER_ROLE.TEACHER,
               status: 'active',
               email_verified: true,
             },
@@ -449,7 +449,7 @@ export class DatabaseService {
               gender: student.gender,
               country: student.country,
               city: student.city,
-              role: Role.STUDENT,
+              role: USER_ROLE.STUDENT,
               status: 'active',
               email_verified: true,
             },

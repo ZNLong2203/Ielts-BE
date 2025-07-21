@@ -4,7 +4,7 @@ import {
   SetMetadata,
 } from '@nestjs/common';
 import { Request } from 'express';
-import { AppAbility } from 'src/casl/casl-ability.factory';
+import { PolicyHandlerCallback } from 'src/types/ability.types';
 
 // Ex: @Public() decorator is used to mark a route as public.
 export const IS_PUBLIC_KEY = 'isPublic';
@@ -31,8 +31,7 @@ export const CurrentUser = createParamDecorator(
 
 // Decorator cho policies (AND logic - phải có tất cả các policies)
 export const POLICIES_KEY = 'policies';
-export type PolicyHandler = (ability: AppAbility, request: Request) => boolean;
-export const CheckPolicies = (...handlers: PolicyHandler[]) =>
+export const CheckPolicies = (...handlers: PolicyHandlerCallback[]) =>
   SetMetadata(POLICIES_KEY, handlers);
 
 // Get ability from request

@@ -1,42 +1,42 @@
 import {
-  Controller,
-  Get,
-  Post,
   Body,
-  Patch,
-  Param,
+  Controller,
   Delete,
+  Get,
+  Param,
+  Patch,
+  Post,
   UseGuards,
 } from '@nestjs/common';
 import {
-  ApiTags,
-  ApiOperation,
-  ApiResponse,
-  ApiParam,
-  ApiBody,
   ApiBearerAuth,
+  ApiBody,
+  ApiOperation,
+  ApiParam,
+  ApiResponse,
+  ApiTags,
 } from '@nestjs/swagger';
-import { BlogsService } from './blogs.service';
-import { CreateBlogDto } from './dto/create-blog.dto';
-import { UpdateBlogDto } from './dto/update-blog.dto';
-import { CreateBlogCategoryDto } from './dto/create-blog-category.dto';
-import { UpdateBlogCategoryDto } from './dto/update-blog-category.dto';
+import { Blog, BlogCategory } from 'src/casl/entities';
+import { Action } from 'src/casl/enums/action.enum';
+import { PermissionGuard } from '../../casl/guards/permission.guard';
+import { MESSAGE } from '../../common/message';
 import {
-  BlogResponseDto,
-  BlogCategoryResponseDto,
-  ApiResponseDto,
-} from './dto/blog-response.dto';
-import {
+  CheckPolicies,
+  CurrentUser,
   MessageResponse,
   Public,
-  CurrentUser,
-  CheckPolicies,
 } from '../../decorator/customize';
-import { MESSAGE } from '../../common/message';
 import { IUser } from '../../interface/users.interface';
-import { PermissionGuard } from '../../casl/guards/permission.guard';
-import { Action } from '../../casl/casl.interface';
-import { Blog, BlogCategory } from '../../casl/subject.interface';
+import { BlogsService } from './blogs.service';
+import {
+  ApiResponseDto,
+  BlogCategoryResponseDto,
+  BlogResponseDto,
+} from './dto/blog-response.dto';
+import { CreateBlogCategoryDto } from './dto/create-blog-category.dto';
+import { CreateBlogDto } from './dto/create-blog.dto';
+import { UpdateBlogCategoryDto } from './dto/update-blog-category.dto';
+import { UpdateBlogDto } from './dto/update-blog.dto';
 // import { PaginationQueryDto } from 'src/common/dto/pagination-query.dto';
 
 @ApiTags('Blogs')

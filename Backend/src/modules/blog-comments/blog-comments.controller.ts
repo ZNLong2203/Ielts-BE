@@ -1,36 +1,36 @@
 import {
-  Controller,
-  Get,
-  Post,
   Body,
-  Param,
+  Controller,
   Delete,
+  Get,
+  Param,
+  Post,
   UseGuards,
 } from '@nestjs/common';
 import {
-  ApiTags,
-  ApiOperation,
-  ApiResponse,
-  ApiParam,
   ApiBearerAuth,
+  ApiOperation,
+  ApiParam,
+  ApiResponse,
+  ApiTags,
 } from '@nestjs/swagger';
-import { BlogCommentsService } from './blog-comments.service';
-import { CreateBlogCommentDto } from './dto/create-blog-comment.dto';
-import {
-  BlogCommentResponseDto,
-  BlogCommentListResponseDto,
-  BlogCommentApiResponseDto,
-} from './dto/blog-comment-response.dto';
+import { BlogComment } from 'src/casl/entities';
+import { Action } from 'src/casl/enums/action.enum';
+import { PermissionGuard } from 'src/casl/guards/permission.guard';
+import { MESSAGE } from 'src/common/message';
 import {
   CheckPolicies,
   CurrentUser,
   MessageResponse,
 } from 'src/decorator/customize';
 import { IUser } from 'src/interface/users.interface';
-import { MESSAGE } from 'src/common/message';
-import { PermissionGuard } from 'src/casl/guards/permission.guard';
-import { Action } from 'src/casl/casl.interface';
-import { BlogComment } from 'src/casl/subject.interface';
+import { BlogCommentsService } from './blog-comments.service';
+import {
+  BlogCommentApiResponseDto,
+  BlogCommentListResponseDto,
+  BlogCommentResponseDto,
+} from './dto/blog-comment-response.dto';
+import { CreateBlogCommentDto } from './dto/create-blog-comment.dto';
 
 @ApiTags('Blog Comments')
 @Controller('blog-comments')

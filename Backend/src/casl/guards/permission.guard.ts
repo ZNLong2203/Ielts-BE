@@ -1,29 +1,40 @@
+// src/casl/guards/permission.guard.ts
 import {
   CanActivate,
   ExecutionContext,
   ForbiddenException,
   Injectable,
+  Logger,
+  NotFoundException,
 } from '@nestjs/common';
-import { Reflector } from '@nestjs/core';
+import { ModuleRef, Reflector } from '@nestjs/core';
 import { Request } from 'express';
-import { User } from 'src/casl/subject.interface';
+import { CaslAbilityFactory } from 'src/casl/casl-ability.factory';
 import {
   IS_PUBLIC_KEY,
   IS_PUBLIC_PERMISSION,
   POLICIES_KEY,
-  PolicyHandler,
-} from '../../decorator/customize';
-import { CaslAbilityFactory } from '../casl-ability.factory';
+} from 'src/decorator/customize';
+import { PolicyHandlerCallback, ServiceContext } from 'src/types/ability.types';
+import { StudentsService } from '../../modules/students/students.service';
+import { TeachersService } from '../../modules/teachers/teachers.service';
+import { UsersService } from '../../modules/users/users.service';
 
 @Injectable()
 export class PermissionGuard implements CanActivate {
+  private readonly logger = new Logger(PermissionGuard.name);
+
   constructor(
-    private reflector: Reflector,
-    private caslAbilityFactory: CaslAbilityFactory,
+    private readonly reflector: Reflector,
+    private readonly caslAbilityFactory: CaslAbilityFactory,
+    private readonly moduleRef: ModuleRef,
   ) {}
 
+  /**
+   * Validates if the current request can be activated based on user permissions
+   */
   async canActivate(context: ExecutionContext): Promise<boolean> {
-    // Kiểm tra nếu endpoint được đánh dấu là public
+    // Check if the endpoint is marked as public
     const isPublic = this.reflector.getAllAndOverride<boolean>(IS_PUBLIC_KEY, [
       context.getHandler(),
       context.getClass(),
@@ -33,7 +44,7 @@ export class PermissionGuard implements CanActivate {
       return true;
     }
 
-    // Kiểm tra nếu endpoint được đánh dấu là bỏ qua kiểm tra quyền
+    // Check if permission check should be skipped
     const skipPermission = this.reflector.getAllAndOverride<boolean>(
       IS_PUBLIC_PERMISSION,
       [context.getHandler(), context.getClass()],
@@ -43,45 +54,120 @@ export class PermissionGuard implements CanActivate {
       return true;
     }
 
-    // Kiểm tra policies
-    const policyHandlers = this.reflector.getAllAndOverride<PolicyHandler[]>(
-      POLICIES_KEY,
-      [context.getHandler(), context.getClass()],
-    );
+    // Get policy handlers defined for this route
+    const policyHandlers = this.reflector.getAllAndOverride<
+      PolicyHandlerCallback[]
+    >(POLICIES_KEY, [context.getHandler(), context.getClass()]);
 
-    // Nếu không có permissions hoặc policies nào được định nghĩa
+    // If no policies defined, restrict access by default
     if (!policyHandlers || policyHandlers.length === 0) {
-      // return true;
+      this.logger.warn(
+        `No permission policies defined for route: ${context.getHandler().name}`,
+      );
       throw new ForbiddenException(
         'No permission policies defined for this route',
       );
     }
 
-    // Lấy thông tin user từ request
+    // Get request and user
     const request = context.switchToHttp().getRequest<Request>();
-    const user: User = request.user;
+    const user = request.user;
 
     if (!user) {
-      throw new ForbiddenException('You need to login to access this resource');
+      throw new ForbiddenException('Authentication required');
     }
 
-    // Tạo ability dựa trên user
-    const ability = await this.caslAbilityFactory.createForUser(user);
+    try {
+      // Create ability for user
+      const ability = this.caslAbilityFactory.createForUser(user);
 
-    // Kiểm tra policies nếu có
-    const hasPolicies = policyHandlers.every((handler) =>
-      handler(ability, request),
-    );
+      // Inject services into request context
+      request.serviceContext = this.getServiceContext();
 
-    if (!hasPolicies) {
-      throw new ForbiddenException(
-        `You do not have permission based on the policies`,
+      // Attach ability to request
+      request.ability = ability;
+
+      // Execute all policy handlers
+      for (const handler of policyHandlers) {
+        try {
+          const result = await Promise.resolve(handler(ability, request));
+          if (!result) {
+            this.logger.warn(
+              `Permission denied for user ${user.id} on ${request.method} ${request.path}`,
+            );
+            throw new ForbiddenException(
+              'You do not have permission for this operation',
+            );
+          }
+        } catch (error) {
+          const e = error as Error;
+          // Pass through NotFoundException
+          if (e instanceof NotFoundException) {
+            throw e;
+          }
+
+          // Transform other errors to ForbiddenException
+          this.logger.error(`Policy error: ${e.message}`);
+          throw new ForbiddenException(e.message || 'Permission denied');
+        }
+      }
+
+      return true;
+    } catch (error) {
+      const e = error as Error;
+      // Log error details
+      this.logger.error(
+        `Permission error for user ${user?.id} on ${request.method} ${request.path}: ${e.message}`,
+        e.stack,
       );
+
+      // Rethrow the error
+      throw e;
     }
+  }
 
-    // Gắn ability vào request để có thể sử dụng trong controller/service
-    request.ability = ability;
+  /**
+   * Gets available services for policy handlers with proper typing
+   * @returns ServiceContext object with typed service instances
+   */
+  private getServiceContext(): ServiceContext {
+    try {
+      // Type-safe service retrieval
+      const serviceContext: ServiceContext = {};
 
-    return true;
+      // Try to get each service and add to context if available
+      try {
+        serviceContext.studentsService = this.moduleRef.get<StudentsService>(
+          'StudentsService',
+          { strict: false },
+        );
+      } catch (e) {
+        this.logger.debug('StudentsService not available');
+      }
+
+      try {
+        serviceContext.teachersService = this.moduleRef.get<TeachersService>(
+          'TeachersService',
+          { strict: false },
+        );
+      } catch (e) {
+        this.logger.debug('TeachersService not available');
+      }
+
+      try {
+        serviceContext.usersService = this.moduleRef.get<UsersService>(
+          'UsersService',
+          { strict: false },
+        );
+      } catch (e) {
+        this.logger.debug('UsersService not available');
+      }
+
+      return serviceContext;
+    } catch (error) {
+      const e = error as Error;
+      this.logger.error(`Failed to get services: ${e.message}`);
+      return {};
+    }
   }
 }

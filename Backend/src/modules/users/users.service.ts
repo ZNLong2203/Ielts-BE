@@ -1,8 +1,7 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { Prisma, users } from '@prisma/client';
 import * as bcrypt from 'bcryptjs';
-import { Role } from 'src/casl/casl.interface';
-import { FileType, USER_STATUS } from 'src/common/constants';
+import { FileType, USER_ROLE, USER_STATUS } from 'src/common/constants';
 import { UploadedFileType } from 'src/modules/files/files.controller';
 import { FilesService } from 'src/modules/files/files.service';
 import {
@@ -67,7 +66,7 @@ export class UsersService {
           full_name: dto.full_name,
           email_verification_token: token,
           email_verified: false,
-          role: Role.STUDENT,
+          role: USER_ROLE.STUDENT,
         };
         if (dto.date_of_birth) {
           userData.date_of_birth = dto.date_of_birth;
@@ -172,7 +171,7 @@ export class UsersService {
             city: dto.city,
             email_verification_token: token,
             email_verified: false,
-            role: Role.TEACHER,
+            role: USER_ROLE.TEACHER,
           },
         });
 
@@ -233,7 +232,7 @@ export class UsersService {
         students: {
           where: {
             users: {
-              role: Role.STUDENT,
+              role: USER_ROLE.STUDENT,
             },
           },
         },
@@ -241,7 +240,7 @@ export class UsersService {
         teachers: {
           where: {
             users: {
-              role: Role.TEACHER,
+              role: USER_ROLE.TEACHER,
             },
           },
         },
@@ -253,13 +252,13 @@ export class UsersService {
     }
 
     switch (user.role) {
-      case Role.STUDENT: {
+      case USER_ROLE.STUDENT: {
         // Nếu là STUDENT, loại bỏ teachers
         const { teachers, ...studentUser } = user;
         return studentUser;
       }
 
-      case Role.TEACHER: {
+      case USER_ROLE.TEACHER: {
         // Nếu là TEACHER, loại bỏ students
         const { students, ...teacherUser } = user;
         return teacherUser;

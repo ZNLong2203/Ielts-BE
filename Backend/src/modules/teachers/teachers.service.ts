@@ -6,8 +6,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
-import { Role } from 'src/casl/casl.interface';
-import { TEACHER_STATUS } from 'src/common/constants';
+import { TEACHER_STATUS, USER_ROLE } from 'src/common/constants';
 import { PaginationQueryDto } from 'src/common/dto/pagination-query.dto';
 import { UsersService } from 'src/modules/users/users.service';
 import { PrismaService } from 'src/prisma/prisma.service';
@@ -36,7 +35,7 @@ export class TeachersService {
     const whereCondition: Prisma.usersWhereInput =
       this.utilsService.buildWhereFromQuery(rawQuery);
 
-    whereCondition.role = Role.TEACHER;
+    whereCondition.role = USER_ROLE.TEACHER;
 
     return this.utilsService.paginate<
       Prisma.usersWhereInput,
@@ -73,7 +72,7 @@ export class TeachersService {
     const whereCondition: Prisma.usersWhereInput =
       this.utilsService.buildWhereFromQuery(rawQuery);
 
-    whereCondition.role = Role.TEACHER;
+    whereCondition.role = USER_ROLE.TEACHER;
 
     // check status in table teachers is PENDING
     whereCondition.teachers = {
@@ -110,13 +109,13 @@ export class TeachersService {
   findOne(id: string) {
     return this.usersService.findUniqueUserByCondition({
       id,
-      role: Role.TEACHER,
+      role: USER_ROLE.TEACHER,
     });
   }
 
   async update(id: string, updateTeacherDto: UpdateTeacherDto) {
     const existingStudent = await this.usersService.findById(id);
-    if (!existingStudent || existingStudent.role !== Role.STUDENT) {
+    if (!existingStudent || existingStudent.role !== USER_ROLE.STUDENT) {
       throw new Error('Student not found');
     }
 
@@ -134,7 +133,7 @@ export class TeachersService {
     updateTeacherStatusDto: UpdateTeacherStatusDto,
   ) {
     const existingTeacher = await this.usersService.findById(id);
-    if (!existingTeacher || existingTeacher.role !== Role.TEACHER) {
+    if (!existingTeacher || existingTeacher.role !== USER_ROLE.TEACHER) {
       throw new Error('Teacher not found');
     }
 
@@ -151,7 +150,7 @@ export class TeachersService {
     availabilityDto: UpdateAvailabilityDto,
   ) {
     const existingTeacher = await this.usersService.findById(id);
-    if (!existingTeacher || existingTeacher.role !== Role.TEACHER) {
+    if (!existingTeacher || existingTeacher.role !== USER_ROLE.TEACHER) {
       throw new NotFoundException('Teacher not found');
     }
 
