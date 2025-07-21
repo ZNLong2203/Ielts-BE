@@ -32,6 +32,9 @@ export class CaslAbilityFactory {
       can(Action.Read, ISubject.Course, { isPublic: true } as MongoQuery);
       can(Action.Read, ISubject.Blog, { status: 'published' } as MongoQuery);
       can(Action.Read, ISubject.BlogCategory, { isActive: true } as MongoQuery);
+      can(Action.Read, ISubject.BlogComment, {
+        isApproved: true,
+      } as MongoQuery);
       return build();
     }
 
@@ -57,6 +60,17 @@ export class CaslAbilityFactory {
         can(Action.Read, ISubject.BlogCategory, {
           isActive: true,
         } as MongoQuery);
+
+        // Blog Comment permissions for Teacher
+        can(Action.Create, ISubject.BlogComment);
+        can(Action.Read, ISubject.BlogComment);
+        can(Action.Update, ISubject.BlogComment, {
+          userId: user.id,
+        } as MongoQuery); // Own comments
+        can(Action.Delete, ISubject.BlogComment, {
+          userId: user.id,
+        } as MongoQuery); // Own comments
+        can(Action.Manage, ISubject.BlogComment); // Teachers can moderate all comments
         break;
 
       case Role.STUDENT:
@@ -69,6 +83,18 @@ export class CaslAbilityFactory {
         can(Action.Read, ISubject.BlogCategory, {
           isActive: true,
         } as MongoQuery);
+
+        // Blog Comment permissions for Student
+        can(Action.Create, ISubject.BlogComment);
+        can(Action.Read, ISubject.BlogComment, {
+          isApproved: true,
+        } as MongoQuery); // Only approved comments
+        can(Action.Update, ISubject.BlogComment, {
+          userId: user.id,
+        } as MongoQuery); // Own comments
+        can(Action.Delete, ISubject.BlogComment, {
+          userId: user.id,
+        } as MongoQuery); // Own comments
         break;
 
       default:
@@ -77,6 +103,9 @@ export class CaslAbilityFactory {
         can(Action.Read, ISubject.Blog, { status: 'published' } as MongoQuery);
         can(Action.Read, ISubject.BlogCategory, {
           isActive: true,
+        } as MongoQuery);
+        can(Action.Read, ISubject.BlogComment, {
+          isApproved: true,
         } as MongoQuery);
         break;
     }

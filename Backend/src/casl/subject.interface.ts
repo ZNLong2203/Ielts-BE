@@ -7,6 +7,9 @@ export class User {
   id: string;
   email: string;
   role: string;
+  fullName?: string;
+  avatar?: string;
+  status: string;
 }
 
 export class Profile {
@@ -26,7 +29,9 @@ export class Course {
   title: string;
   description: string;
   teacherId: string;
-  isPublic: boolean;
+  categoryId?: string;
+  isPublished?: boolean;
+  isFree?: boolean;
 }
 
 export class Blog {
@@ -36,10 +41,13 @@ export class Blog {
   id: string;
   title: string;
   content: string;
+  image?: string;
+  tags: string[];
   authorId: string;
   categoryId: string;
   status: string;
-  isPublished: boolean;
+  isFeatured?: boolean;
+  likeCount?: number;
 }
 
 export class BlogCategory {
@@ -48,8 +56,55 @@ export class BlogCategory {
   }
   id: string;
   name: string;
+  slug: string;
   description: string;
+  ordering: number;
   isActive: boolean;
+}
+
+export class BlogComment {
+  constructor(init?: Partial<BlogComment>) {
+    Object.assign(this, init);
+  }
+  id: string;
+  blogId: string;
+  userId: string;
+  parentCommentId?: string;
+  content: string;
+  isApproved?: boolean;
+  likeCount?: number;
+}
+
+export class Student {
+  constructor(init?: Partial<Student>) {
+    Object.assign(this, init);
+  }
+  id: string;
+  userId: string;
+  currentLevel: string;
+  targetIeltsScore?: number;
+}
+
+export class Teacher {
+  constructor(init?: Partial<Teacher>) {
+    Object.assign(this, init);
+  }
+  id: string;
+  userId: string;
+  experienceYears?: number;
+  ieltsScore?: number;
+  status: string;
+}
+
+export class CourseCategory {
+  constructor(init?: Partial<CourseCategory>) {
+    Object.assign(this, init);
+  }
+  id: string;
+  name: string;
+  description?: string;
+  isActive: boolean;
+  ordering: number;
 }
 
 export type SubjectClasses =
@@ -57,7 +112,20 @@ export type SubjectClasses =
   | typeof User
   | typeof Profile
   | typeof Course
+  | typeof CourseCategory
   | typeof Blog
-  | typeof BlogCategory;
+  | typeof BlogCategory
+  | typeof BlogComment
+  | typeof Student
+  | typeof Teacher;
 
-export type SubjectInstances = User | Profile | Course | Blog | BlogCategory;
+export type SubjectInstances =
+  | User
+  | Profile
+  | Course
+  | CourseCategory
+  | Blog
+  | BlogCategory
+  | BlogComment
+  | Student
+  | Teacher;

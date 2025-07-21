@@ -28,12 +28,24 @@ export class BlogsService {
     createBlogCategoryDto: CreateBlogCategoryDto,
   ): Promise<blog_categories> {
     try {
+      const lastCategory = await this.prismaService.blog_categories.findFirst({
+        orderBy: { ordering: 'desc' },
+        select: { ordering: true },
+      });
+
+      const nextOrdering = lastCategory?.ordering
+        ? lastCategory.ordering + 1
+        : 1;
+
       const blogCategory = await this.prismaService.blog_categories.create({
         data: {
           ...createBlogCategoryDto,
           slug: createBlogCategoryDto.name.toLowerCase().replace(/\s+/g, '-'),
+          ordering: nextOrdering,
         },
       });
+
+      await this.redisService.del('allBlogCategories');
 
       return blogCategory;
     } catch (error) {

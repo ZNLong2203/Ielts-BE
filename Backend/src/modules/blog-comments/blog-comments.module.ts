@@ -4,9 +4,15 @@ import { BlogCommentsController } from './blog-comments.controller';
 import { PrismaModule } from 'src/prisma/prisma.module';
 import { RedisModule } from 'src/redis/redis.module';
 import { BlogsModule } from '../blogs/blogs.module';
+import { CaslModule } from 'src/casl/casl.module';
 
 @Module({
-  imports: [PrismaModule, RedisModule, forwardRef(() => BlogsModule)],
+  imports: [
+    PrismaModule,
+    RedisModule,
+    CaslModule,
+    forwardRef(() => BlogsModule),
+  ],
   controllers: [BlogCommentsController],
   providers: [BlogCommentsService],
   exports: [BlogCommentsService],

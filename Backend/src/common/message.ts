@@ -57,8 +57,20 @@ export const MESSAGE = {
     BLOG_CANNOT_EDIT_PUBLISHED: 'Cannot edit published blog',
     TEACHER_NOT_FOUND: 'Teacher not found',
     INVALID_IMAGE_URL: 'Invalid image URL format',
+  },
+
+  BLOG_COMMENT: {
     COMMENT_ADDED: 'Comment added successfully',
     COMMENT_DELETED: 'Comment deleted successfully',
+    COMMENT_NOT_FOUND: 'Comment not found',
+    COMMENT_UPDATED: 'Comment updated successfully',
+    COMMENT_UNAUTHORIZED: 'Not authorized to modify this comment',
+    COMMENT_LIST: 'Comments retrieved successfully',
+    REPLY_LIST: 'Replies retrieved successfully',
+    REPLY_ADDED: 'Reply added successfully',
+    REPLY_DELETED: 'Reply deleted successfully',
+    REPLY_NOT_FOUND: 'Reply not found',
+    REPLY_UPDATED: 'Reply updated successfully',
   },
 
   FILES: {
@@ -92,5 +104,6 @@ export const MESSAGE = {
     REDIS_ERROR: 'Redis operation failed',
     FILE_UPLOAD_ERROR: 'File upload failed',
     FILE_NOT_FOUND: 'File not found',
+    FILE_DELETE_ERROR: 'File deletion failed',
   },
 };
