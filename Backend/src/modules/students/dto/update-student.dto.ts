@@ -2,14 +2,12 @@ import { ApiPropertyOptional, PartialType } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import {
   IsArray,
-  IsEnum,
   IsNumber,
   IsOptional,
   IsString,
   Max,
   Min,
 } from 'class-validator';
-import { STUDENT_LEVEL, StudentLevel } from 'src/common/constants';
 import { CreateStudentDto } from './create-student.dto';
 
 // Extend PartialType(CreateStudentDto) but remove password field for updates
@@ -32,12 +30,18 @@ export class UpdateStudentDto extends PartialType(CreateStudentDto) {
   target_ielts_score?: number;
 
   @ApiPropertyOptional({
-    enum: STUDENT_LEVEL,
-    description: 'Current English proficiency level',
+    description: 'Current IELTS score level',
+    minimum: 0,
+    maximum: 9,
+    example: 5.5,
+    type: 'number',
   })
-  @IsEnum(STUDENT_LEVEL)
+  @IsNumber({ maxDecimalPlaces: 1 })
+  @Min(0)
+  @Max(9)
   @IsOptional()
-  current_level?: StudentLevel;
+  @Type(() => Number)
+  current_level?: number;
 
   @ApiPropertyOptional({
     description: 'Learning goals',

@@ -10,12 +10,7 @@ import {
   Max,
   Min,
 } from 'class-validator';
-import {
-  STUDENT_LANGUAGE,
-  STUDENT_LEVEL,
-  StudentLanguage,
-  StudentLevel,
-} from 'src/common/constants';
+import { STUDENT_LANGUAGE, StudentLanguage } from 'src/common/constants';
 
 export class CreateStudentDto {
   @ApiPropertyOptional({ description: 'Biography' })
@@ -36,14 +31,18 @@ export class CreateStudentDto {
   target_ielts_score: number;
 
   @ApiProperty({
-    enum: STUDENT_LEVEL,
-    description: 'Current English proficiency level',
+    description: 'Current IELTS score level',
+    minimum: 0,
+    maximum: 9,
+    example: 5.5,
+    type: 'number',
   })
-  @IsEnum(STUDENT_LEVEL, {
-    message: 'Level must be beginner, intermediate, or advanced',
-  })
+  @IsNumber({ maxDecimalPlaces: 1 })
+  @Min(0)
+  @Max(9)
+  @Type(() => Number)
   @IsNotEmpty()
-  current_level: StudentLevel;
+  current_level: number;
 
   @ApiPropertyOptional({
     description: 'Learning goals',
