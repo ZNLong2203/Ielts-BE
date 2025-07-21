@@ -27,7 +27,7 @@ CREATE TABLE students (
     user_id UUID UNIQUE REFERENCES users(id) ON DELETE CASCADE,
     bio TEXT,
     target_ielts_score DECIMAL(2,1), -- target IELTS band score
-    current_level VARCHAR(20), -- beginner, intermediate, advanced
+    current_level DECIMAL(2,1), -- current IELTS band score
     learning_goals TEXT[],
     timezone VARCHAR(50),
     language_preference VARCHAR(10) DEFAULT 'vi',
