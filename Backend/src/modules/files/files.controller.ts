@@ -11,6 +11,7 @@ import { ApiBody, ApiConsumes, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { FileType } from 'src/common/constants';
 import { MESSAGE } from 'src/common/message';
 import { FilesService } from './files.service';
+import { SkipCheckPermission } from 'src/decorator/customize';
 
 export interface UploadedFileType {
   buffer: Buffer;
@@ -25,6 +26,7 @@ export class FilesController {
   constructor(private readonly filesService: FilesService) {}
 
   @Post('upload/avatar')
+  @SkipCheckPermission()
   @ApiOperation({ summary: 'Upload user avatar' })
   @ApiConsumes('multipart/form-data')
   @ApiBody({
@@ -72,6 +74,7 @@ export class FilesController {
   }
 
   @Post('upload/certificate')
+  @SkipCheckPermission()
   @ApiOperation({ summary: 'Upload teacher certificate (image or PDF)' })
   @ApiConsumes('multipart/form-data')
   @ApiBody({
@@ -119,6 +122,7 @@ export class FilesController {
   }
 
   @Post('upload/blog-image')
+  @SkipCheckPermission()
   @ApiOperation({ summary: 'Upload blog image' })
   @ApiConsumes('multipart/form-data')
   @ApiBody({
@@ -166,6 +170,7 @@ export class FilesController {
   }
 
   @Post('upload/exercise-image')
+  @SkipCheckPermission()
   @ApiOperation({ summary: 'Upload exercise image' })
   @ApiConsumes('multipart/form-data')
   @ApiBody({
@@ -213,6 +218,7 @@ export class FilesController {
   }
 
   @Post('upload/course-thumbnail')
+  @SkipCheckPermission()
   @ApiOperation({ summary: 'Upload course thumbnail' })
   @ApiConsumes('multipart/form-data')
   @ApiBody({
@@ -260,6 +266,7 @@ export class FilesController {
   }
 
   @Post('upload/lesson-material')
+  @SkipCheckPermission()
   @ApiOperation({ summary: 'Upload lesson material (PDF, doc, etc.)' })
   @ApiConsumes('multipart/form-data')
   @ApiBody({
@@ -308,6 +315,7 @@ export class FilesController {
   }
 
   @Post('upload/audio')
+  @SkipCheckPermission()
   @ApiOperation({ summary: 'Upload audio file for lessons/exercises' })
   @ApiConsumes('multipart/form-data')
   @ApiBody({
