@@ -557,7 +557,7 @@ model students {
   user_id             String?   @unique @db.Uuid
   bio                 String?
   target_ielts_score  Decimal?  @db.Decimal(2, 1)
-  current_level       String?   @db.VarChar(20)
+  current_level       Decimal?  @db.Decimal(2, 1)
   learning_goals      String[]
   timezone            String?   @db.VarChar(50)
   language_preference String?   @default("vi") @db.VarChar(10)

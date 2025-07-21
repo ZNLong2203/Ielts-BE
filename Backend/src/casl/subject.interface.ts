@@ -81,7 +81,7 @@ export class Student {
   }
   id: string;
   userId: string;
-  currentLevel: string;
+  currentLevel?: number;
   targetIeltsScore?: number;
 }
 
