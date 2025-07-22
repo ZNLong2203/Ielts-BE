@@ -20,6 +20,7 @@ import { RedisModule } from './redis/redis.module';
 import { UtilsModule } from './utils/utils.module';
 import { FilesModule } from './modules/files/files.module';
 import { BlogCommentsModule } from './modules/blog-comments/blog-comments.module';
+import { CoursesModule } from './modules/courses/courses.module';
 
 @Module({
   imports: [
@@ -39,6 +40,7 @@ import { BlogCommentsModule } from './modules/blog-comments/blog-comments.module
     TeachersModule,
     FilesModule,
     BlogCommentsModule,
+    CoursesModule,
   ],
   controllers: [AppController, DatabaseController],
   providers: [
