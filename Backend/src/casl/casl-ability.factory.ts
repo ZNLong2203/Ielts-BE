@@ -106,6 +106,14 @@ export class CaslAbilityFactory {
       userId: user.id,
     } as MongoQuery); // Own comments
     can(Action.Manage, BlogComment); // Teachers can moderate all comments
+
+    // Course permissions for Teacher
+    can(Action.Create, Course);
+    can(Action.Read, Course, { isPublic: true } as MongoQuery); // Public courses
+    can(Action.Read, Course, { teacherId: user.id } as MongoQuery); // Own courses
+    can(Action.Update, Course, { teacherId: user.id } as MongoQuery); // Own courses
+    can(Action.Delete, Course, { teacherId: user.id } as MongoQuery); // Own courses
+    can(Action.Publish, Course, { teacherId: user.id } as MongoQuery); // Own courses
   }
 
   /**
@@ -138,6 +146,14 @@ export class CaslAbilityFactory {
     can(Action.Delete, BlogComment, {
       userId: user.id,
     } as MongoQuery); // Own comments
+
+    // Course permissions for Student
+    can(Action.Read, Course, { isEnrolled: true } as MongoQuery); // Enrolled courses
+    can(Action.Read, Course, { isCompleted: true } as MongoQuery); // Completed courses
+    can(Action.Read, Course, { isFeatured: true } as MongoQuery); // Featured courses
+    can(Action.Read, Course, { isPopular: true } as MongoQuery); // Popular courses
+    can(Action.Read, Course, { isNewest: true } as MongoQuery); // Newest courses
+    can(Action.Read, Course, { isPublished: true } as MongoQuery); // Published courses
   }
 
   /**

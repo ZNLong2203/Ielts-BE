@@ -73,6 +73,26 @@ export const MESSAGE = {
     REPLY_UPDATED: 'Reply updated successfully',
   },
 
+  COURSE: {
+    CATEGORY_LIST: 'Course categories retrieved successfully',
+    CATEGORY_CREATED: 'Course category created successfully',
+    CATEGORY_UPDATED: 'Course category updated successfully',
+    CATEGORY_DELETED: 'Course category deleted successfully',
+    CATEGORY_FETCHED: 'Course category fetched successfully',
+    CATEGORY_COURSE_COUNT: 'Course count by category retrieved successfully',
+    COURSE_CREATED: 'Course created successfully',
+    COURSE_UPDATED: 'Course updated successfully',
+    COURSE_DELETED: 'Course deleted successfully',
+    COURSE_FETCHED: 'Course fetched successfully',
+    COURSE_LIST: 'Courses retrieved successfully',
+    COURSE_FEATURED: 'Featured courses retrieved successfully',
+    COURSE_FEATURED_UPDATED: 'Course feature status updated successfully',
+    COURES_POPULAR: 'Popular courses retrieved successfully',
+    COURSE_NEWEST: 'Newest courses retrieved successfully',
+    COURSE_PUBLISHED: 'Course publication status updated successfully',
+    THUMBNAIL_UPLOAD_SUCCESS: 'Course thumbnail uploaded successfully',
+  },
+
   FILES: {
     FILE_USER_AVATAR_UPLOADED: 'User avatar uploaded successfully',
     FILE_CERTIFICATE_UPLOADED: 'Certificate uploaded successfully',

@@ -15,6 +15,7 @@ import {
 import { Action } from 'src/casl/enums/action.enum';
 import { BlogCommentsService } from 'src/modules/blog-comments/blog-comments.service';
 import { BlogsService } from 'src/modules/blogs/blogs.service';
+import { CoursesService } from 'src/modules/courses/courses.service';
 import { StudentsService } from 'src/modules/students/students.service';
 import { TeachersService } from 'src/modules/teachers/teachers.service';
 import { UsersService } from 'src/modules/users/users.service';
@@ -61,6 +62,7 @@ export interface ServiceContext {
   usersService?: UsersService;
   blogCommentsService?: BlogCommentsService;
   blogsService?: BlogsService;
+  coursesService?: CoursesService;
   [key: string]: any;
 }
 
@@ -70,4 +72,5 @@ export interface ServiceTypeMap {
   usersService: UsersService;
   blogCommentsService: BlogCommentsService;
   blogsService: BlogsService;
+  coursesService: CoursesService;
 }
