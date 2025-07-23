@@ -147,7 +147,7 @@ export class TeachersService {
     });
   }
 
-  async updateCertification(id: string, file: Express.Multer.File) {
+  async updateCertificate(id: string, file: Express.Multer.File) {
     const existingTeacher = await this.usersService.findById(id);
     if (!existingTeacher || existingTeacher.role !== USER_ROLE.TEACHER) {
       throw new NotFoundException('Teacher not found');

@@ -147,6 +147,6 @@ export class TeachersController {
     )
     file: Express.Multer.File,
   ) {
-    return this.teachersService.updateCertification(id, file);
+    return this.teachersService.updateCertificate(id, file);
   }
 }
