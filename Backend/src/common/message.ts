@@ -15,6 +15,7 @@ export const MESSAGE = {
 
   USER: {
     PROFILE_UPDATE: 'User profile updated successfully',
+    AVATAR_UPDATE: 'User avatar updated successfully',
     STATUS_UPDATE: 'User status updated successfully',
     USER_NOT_FOUND: 'User not found',
     USER_ALREADY_EXISTS: 'User with this email already exists',

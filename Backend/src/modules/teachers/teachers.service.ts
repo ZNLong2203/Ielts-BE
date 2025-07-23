@@ -6,8 +6,9 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
-import { TEACHER_STATUS, USER_ROLE } from 'src/common/constants';
+import { FileType, TEACHER_STATUS, USER_ROLE } from 'src/common/constants';
 import { PaginationQueryDto } from 'src/common/dto/pagination-query.dto';
+import { FilesService } from 'src/modules/files/files.service';
 import { UsersService } from 'src/modules/users/users.service';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { UtilsService } from 'src/utils/utils.service';
@@ -26,6 +27,7 @@ export class TeachersService {
     private readonly utilsService: UtilsService,
     private readonly prisma: PrismaService,
     private readonly usersService: UsersService,
+    private readonly filesService: FilesService,
   ) {}
   create(createTeacherDto: CreateTeacherDto) {
     return 'This action adds a new teacher';
@@ -141,6 +143,28 @@ export class TeachersService {
       where: { user_id: id },
       data: {
         status: updateTeacherStatusDto.status,
+      },
+    });
+  }
+
+  async updateCertification(id: string, file: Express.Multer.File) {
+    const existingTeacher = await this.usersService.findById(id);
+    if (!existingTeacher || existingTeacher.role !== USER_ROLE.TEACHER) {
+      throw new NotFoundException('Teacher not found');
+    }
+
+    const fileData = await this.filesService.uploadFile(
+      file.buffer,
+      file.originalname,
+      FileType.TEACHER_CERTIFICATE,
+    );
+
+    return this.prisma.teachers.update({
+      where: { user_id: id },
+      data: {
+        certificate_urls: {
+          push: fileData.secure_url,
+        },
       },
     });
   }

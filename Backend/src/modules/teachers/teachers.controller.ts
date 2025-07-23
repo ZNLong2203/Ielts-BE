@@ -2,17 +2,27 @@ import {
   Body,
   Controller,
   Get,
+  HttpStatus,
   Param,
+  ParseFilePipeBuilder,
   Patch,
   Put,
   Query,
   Req,
+  UploadedFile,
+  UseInterceptors,
 } from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
 import { ApiBody, ApiOperation } from '@nestjs/swagger';
 import { Request } from 'express';
+import { canUpdateTeacherProfile } from 'src/casl/policies/teacher.policies';
 import { PaginationQueryDto } from 'src/common/dto/pagination-query.dto';
 import { MESSAGE } from 'src/common/message';
-import { MessageResponse, Public } from 'src/decorator/customize';
+import {
+  CheckPolicies,
+  MessageResponse,
+  Public,
+} from 'src/decorator/customize';
 import {
   UpdateAvailabilityDto,
   UpdateTeacherDto,
@@ -97,5 +107,46 @@ export class TeachersController {
     @Body() availabilityDto: UpdateAvailabilityDto,
   ) {
     return this.teachersService.scheduleAvailability(id, availabilityDto);
+  }
+
+  @ApiOperation({
+    summary: 'Update teacher certification',
+    description: 'Update the certification details of a teacher.',
+  })
+  @ApiBody({
+    type: 'multipart/form-data',
+    description: 'Teacher certification file (image or PDF)',
+    schema: {
+      type: 'object',
+      properties: {
+        file: {
+          type: 'string',
+          format: 'binary',
+        },
+      },
+    },
+  })
+  @Public()
+  @MessageResponse(MESSAGE.TEACHER.TEACHER_CREATE)
+  @Patch(':id/certificate')
+  @UseInterceptors(FileInterceptor('file'))
+  @CheckPolicies(canUpdateTeacherProfile)
+  async uploadCertificate(
+    @Param('id') id: string,
+    @UploadedFile(
+      new ParseFilePipeBuilder()
+        .addFileTypeValidator({
+          fileType: 'image/jpeg|image/png|image/jpg|application/pdf',
+        })
+        .addMaxSizeValidator({
+          maxSize: 5 * 1024 * 1024, // 5MB
+        })
+        .build({
+          errorHttpStatusCode: HttpStatus.UNPROCESSABLE_ENTITY,
+        }),
+    )
+    file: Express.Multer.File,
+  ) {
+    return this.teachersService.updateCertification(id, file);
   }
 }

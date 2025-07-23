@@ -3,8 +3,10 @@ import {
   Controller,
   Delete,
   Get,
+  HttpStatus,
   Param,
   ParseBoolPipe,
+  ParseFilePipeBuilder,
   Patch,
   Post,
   Query,
@@ -22,7 +24,7 @@ import {
   ApiTags,
 } from '@nestjs/swagger';
 import { Request } from 'express';
-import { Course, User } from 'src/casl/entities';
+import { User } from 'src/casl/entities';
 import {
   canCreateCourse,
   canFeatureCourse,
@@ -49,7 +51,6 @@ import {
   UpdateCourseDto,
 } from 'src/modules/courses/dto/update-course.dto';
 import { CoursesService } from './courses.service';
-import { Action } from 'rxjs/internal/scheduler/Action';
 
 @ApiTags('Courses')
 @Controller('courses')
@@ -257,7 +258,19 @@ export class CoursesController {
   @MessageResponse(MESSAGE.COURSE.THUMBNAIL_UPLOAD_SUCCESS)
   async uploadThumbnail(
     @Param('id') id: string,
-    @UploadedFile() file: Express.Multer.File,
+    @UploadedFile(
+      new ParseFilePipeBuilder()
+        .addFileTypeValidator({
+          fileType: 'image/jpeg|image/png|image/jpg|image/webp',
+        })
+        .addMaxSizeValidator({
+          maxSize: 3 * 1024 * 1024, // 3MB
+        })
+        .build({
+          errorHttpStatusCode: HttpStatus.UNPROCESSABLE_ENTITY,
+        }),
+    )
+    file: Express.Multer.File,
   ) {
     return this.coursesService.uploadThumbnail(id, file);
   }

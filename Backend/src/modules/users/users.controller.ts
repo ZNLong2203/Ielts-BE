@@ -1,4 +1,15 @@
-import { Body, Controller, Param, Patch, Put } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  HttpStatus,
+  Param,
+  ParseFilePipeBuilder,
+  Patch,
+  Put,
+  UploadedFile,
+  UseInterceptors,
+} from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
 import { ApiBearerAuth, ApiBody, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { User } from 'src/casl/entities';
 import { Action } from 'src/casl/enums/action.enum';
@@ -49,5 +60,46 @@ export class UsersController {
     @Body() updateStatusDto: UpdateStatusDto,
   ) {
     return this.usersService.updateStatus(id, updateStatusDto);
+  }
+
+  @ApiOperation({
+    summary: 'Update user avatar',
+    description: 'Update user avatar image.',
+  })
+  @ApiBearerAuth()
+  @CheckPolicies((ability) => ability.can(Action.Update, User))
+  @ApiBody({
+    type: 'multipart/form-data',
+    description: 'User avatar image file',
+    schema: {
+      type: 'object',
+      properties: {
+        file: {
+          type: 'string',
+          format: 'binary',
+        },
+      },
+    },
+  })
+  @UseInterceptors(FileInterceptor('file'))
+  @MessageResponse(MESSAGE.USER.AVATAR_UPDATE)
+  @Patch(':id/avatar')
+  async updateAvatar(
+    @Param('id') id: string,
+    @UploadedFile(
+      new ParseFilePipeBuilder()
+        .addFileTypeValidator({
+          fileType: 'image/jpeg|image/png|image/jpg',
+        })
+        .addMaxSizeValidator({
+          maxSize: 2 * 1024 * 1024, // 2MB
+        })
+        .build({
+          errorHttpStatusCode: HttpStatus.UNPROCESSABLE_ENTITY,
+        }),
+    )
+    file: Express.Multer.File,
+  ) {
+    return this.usersService.updateAvatar(id, file);
   }
 }

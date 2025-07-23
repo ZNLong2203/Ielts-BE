@@ -322,4 +322,27 @@ export class UsersService {
 
     return await this.updateUser(id, { status });
   }
+
+  async updateAvatar(id: string, file: Express.Multer.File) {
+    // Kiểm tra xem người dùng có tồn tại không
+    const existingUser = await this.findById(id);
+    if (!existingUser) {
+      throw new BadRequestException('User not found');
+    }
+
+    // Kiểm tra file upload
+    if (!file || !file.buffer || !file.originalname) {
+      throw new BadRequestException('File is required for avatar upload');
+    }
+
+    // Lưu file lên Cloudinary
+    const fileData = await this.filesService.uploadFile(
+      file.buffer,
+      file.originalname,
+      FileType.USER_AVATAR,
+    );
+
+    // Cập nhật avatar URL trong cơ sở dữ liệu
+    return await this.updateUser(id, { avatar: fileData.secure_url });
+  }
 }
