@@ -1,10 +1,11 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import Redis from 'ioredis';
 
 @Injectable()
 export class RedisService {
   private readonly redis: Redis;
+  private readonly logger = new Logger(RedisService.name);
 
   constructor(private readonly configService: ConfigService) {
     this.redis = new Redis({
@@ -14,11 +15,11 @@ export class RedisService {
     });
 
     this.redis.on('connect', () => {
-      console.log('✅ Connected to Redis via RedisService');
+      this.logger.log('✅ Connected to Redis via RedisService');
     });
 
     this.redis.on('error', (err) => {
-      console.error('❌ Redis connection error:', err);
+      this.logger.error('❌ Redis connection error:', err);
     });
   }
 
@@ -26,11 +27,21 @@ export class RedisService {
     await this.redis.set(key, value, 'EX', ttlSeconds);
   }
 
-  async get(key: string): Promise<string | null> {
-    return this.redis.get(key);
+  async get(key: string) {
+    try {
+      return await this.redis.get(key);
+    } catch (error) {
+      this.logger.error(`Error getting key ${key} from Redis:`, error);
+      throw error;
+    }
   }
 
   async del(key: string) {
-    await this.redis.del(key);
+    try {
+      return await this.redis.del(key);
+    } catch (error) {
+      this.logger.error(`Error deleting key ${key} from Redis:`, error);
+      throw error;
+    }
   }
 }
