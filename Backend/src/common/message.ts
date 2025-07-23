@@ -36,6 +36,7 @@ export const MESSAGE = {
     TEACHER_STATUS_UPDATE: 'Teacher status updated successfully',
     TEACHER_CREATE: 'New teacher created successfully',
     TEACHER_AVAILABILITY_UPDATE: 'Teacher availability updated successfully',
+    TEACHER_CERTIFICATION_UPDATE: 'Teacher certification updated successfully',
   },
 
   BLOG: {

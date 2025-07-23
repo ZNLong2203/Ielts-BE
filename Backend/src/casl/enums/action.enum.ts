@@ -14,6 +14,9 @@ export enum Action {
   SubmitReview = 'submit_review',
   ProcessPayment = 'process_payment',
 
+  // Specificc for teacher
+  UpdateCertification = 'update_certification',
+
   // Specific for course
   Feature = 'feature',
   Publish = 'publish',

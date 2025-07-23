@@ -69,3 +69,32 @@ export const canUpdateTeacherStatus: PolicyHandlerCallback = async (
   // Check if user can update status (typically only admins)
   return ability.can(Action.UpdateStatus, teacherSubject);
 };
+
+export const canUpdateTeacherCertification: PolicyHandlerCallback = async (
+  ability: AppAbility,
+  request: Request,
+): Promise<boolean> => {
+  const teacherId = request.params.id;
+
+  // If no specific ID, check generic permission
+  if (!teacherId) {
+    return ability.can(Action.UpdateCertification, Teacher);
+  }
+
+  // Get teacher from database
+  const teachersService = getService(request, 'teachersService');
+  const teacher = await teachersService.findOne(teacherId);
+
+  if (!teacher) {
+    throw new NotFoundException('Teacher not found');
+  }
+
+  // Create teacher subject for permission check
+  const teacherSubject = new Teacher({
+    id: teacher.id,
+    userId: teacher.id,
+  });
+
+  // Check if user can update certification (typically only admins)
+  return ability.can(Action.UpdateCertification, teacherSubject);
+};
