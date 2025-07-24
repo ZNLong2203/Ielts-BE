@@ -20,24 +20,15 @@ export class HttpExceptionFilter implements ExceptionFilter {
     const url = request.url;
     const now = Date.now();
     let message = exception.message;
-    let responseMessage: any = null;
+    let responseMessage: object | string = {};
     if (exception.getResponse) {
       responseMessage = exception.getResponse();
     }
     if (responseMessage && responseMessage['message']) {
-      message = responseMessage['message'];
+      message = responseMessage['message'] as string;
     }
 
-    let coloredStatusCode: string = status.toString();
-    // if (status >= 400 && status < 500) {
-    //     coloredStatusCode = chalk.yellow(status);
-    // } else if (status >= 500) {
-    //     coloredStatusCode = chalk.red(status);
-    // } else {
-    //     coloredStatusCode = chalk.green(status);
-    // }
-
-    const logMessage = `Outgoing response: ${method} ${url} - ${coloredStatusCode} - ${Date.now() - now}ms - [ Message: ${message} ]`;
+    const logMessage = `Outgoing response: ${method} ${url} - ${status.toString()} - ${Date.now() - now}ms - [ Message: ${message} ]`;
     if (status >= 400 && status < 500) {
       this.logger.warn(logMessage);
     } else if (status >= 500) {
