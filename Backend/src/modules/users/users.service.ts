@@ -203,7 +203,7 @@ export class UsersService {
           data: {
             user_id: user.id,
             qualification: dto.qualification,
-            experience_years: dto.experience_years,
+            experience_years: Number(experience_years),
             ielts_band_score: dto.ielts_band_score,
             certificate_urls: [fileData.secure_url],
             specializations: dto.specializations,
