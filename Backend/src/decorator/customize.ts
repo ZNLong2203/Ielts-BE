@@ -24,7 +24,7 @@ export const SkipCheckPermission = () =>
 // ExecutionContext giống không gian thực thi, khi truy cập vào có thể lấy request, response, user, ...
 export const CurrentUser = createParamDecorator(
   (data: unknown, ctx: ExecutionContext) => {
-    const request = ctx.switchToHttp().getRequest();
+    const request = ctx.switchToHttp().getRequest<Request>();
     return request.user;
   },
 );

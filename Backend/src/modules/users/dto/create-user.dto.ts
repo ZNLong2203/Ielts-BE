@@ -9,7 +9,6 @@ import {
   IsNotEmpty,
   IsNumber,
   IsOptional,
-  IsPositive,
   IsString,
   Matches,
   Max,
@@ -278,10 +277,8 @@ export class RegisterTeacherDto extends PickType(CreateUserDto, [
     description: 'Years of experience of the teacher',
   })
   @IsNotEmpty()
-  @IsNumber()
-  @IsPositive()
-  @Max(50) // Reasonable upper bound
-  experience_years: number;
+  @IsString()
+  experience_years: string;
 
   @ApiProperty({
     example: ['reading', 'writing'],
@@ -297,10 +294,8 @@ export class RegisterTeacherDto extends PickType(CreateUserDto, [
     description: 'IELTS band score of the teacher',
   })
   @IsNotEmpty()
-  @IsNumber()
-  @Min(0)
-  @Max(9)
-  ielts_band_score: number;
+  @IsString()
+  ielts_band_score: string;
 
   @ApiProperty({
     type: 'string',

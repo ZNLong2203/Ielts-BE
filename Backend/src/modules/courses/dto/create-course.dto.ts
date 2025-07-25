@@ -17,7 +17,7 @@ import {
   COURSE_DIFFICULTY_LEVEL,
   COURSE_SKILL_FOCUS,
   CourseSkillFocus,
-} from 'src/common/constants/course';
+} from 'src/common/constants';
 
 export class CreateCourseCategoryDto {
   @ApiProperty({ description: 'Category name', example: 'IELTS Reading' })

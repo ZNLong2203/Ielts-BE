@@ -127,6 +127,29 @@ export class UsersService {
       });
       if (existing) throw new BadRequestException('Email already exists');
 
+      const { ielts_band_score, experience_years } = dto;
+
+      // validate ielts_band_score can transform to number, and is between 0 and 9
+      if (ielts_band_score && isNaN(Number(ielts_band_score))) {
+        throw new BadRequestException('Invalid IELTS band score');
+      }
+      if (
+        ielts_band_score &&
+        (Number(ielts_band_score) < 0 || Number(ielts_band_score) > 9)
+      ) {
+        throw new BadRequestException(
+          'IELTS band score must be between 0 and 9',
+        );
+      }
+
+      // validate experience_years can transform to number, and is positive
+      if (experience_years && isNaN(Number(experience_years))) {
+        throw new BadRequestException('Invalid experience years');
+      }
+      if (experience_years && Number(experience_years) < 0) {
+        throw new BadRequestException('Experience years must be positive');
+      }
+
       // Hash password
       const hashedPassword = this.getHashPassword(dto.password);
 
