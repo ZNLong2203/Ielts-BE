@@ -1,36 +1,48 @@
 import { Module } from '@nestjs/common';
-import { ConfigModule, ConfigService } from '@nestjs/config';
+import { ConfigModule } from '@nestjs/config';
 import { MulterModule } from '@nestjs/platform-express';
 import { memoryStorage } from 'multer';
-import { configureCloudinary } from 'src/configs/cloudinary.config';
+import { MinioConfigService } from 'src/configs/minio.config';
 import { FilesController } from './files.controller';
 import { FilesService } from './files.service';
+import { MinioService } from './minio.service';
 
 @Module({
   imports: [
     ConfigModule,
     MulterModule.register({
       storage: memoryStorage(),
+      limits: {
+        fileSize: 200 * 1024 * 1024,
+      },
       fileFilter: (req, file, cb) => {
-        if (
-          !file.originalname.match(/\.(jpg|jpeg|png|svg|txt|pdf|doc|docx)$/i)
-        ) {
-          return cb(new Error('Invalid file type'), false);
+        const allowedTypes = [
+          'image/jpeg',
+          'image/png',
+          'image/gif',
+          'image/webp',
+          'video/mp4',
+          'video/avi',
+          'video/mov',
+          'video/webm',
+          'audio/mp3',
+          'audio/wav',
+          'audio/ogg',
+          'audio/m4a',
+          'application/pdf',
+          'text/plain',
+        ];
+
+        if (allowedTypes.includes(file.mimetype)) {
+          cb(null, true);
+        } else {
+          cb(new Error(`Invalid file type: ${file.mimetype}`), false);
         }
-        cb(null, true);
       },
     }),
   ],
   controllers: [FilesController],
-  providers: [
-    FilesService,
-    {
-      provide: 'CLOUDINARY',
-      useFactory: (configService: ConfigService) =>
-        configureCloudinary(configService),
-      inject: [ConfigService],
-    },
-  ],
-  exports: [FilesService],
+  providers: [FilesService, MinioService, MinioConfigService],
+  exports: [FilesService, MinioService],
 })
 export class FilesModule {}

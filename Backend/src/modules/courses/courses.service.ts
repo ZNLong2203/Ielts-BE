@@ -17,6 +17,7 @@ import {
   UpdateCourseCategoryDto,
   UpdateCourseDto,
 } from './dto/update-course.dto';
+import { UploadedFileType } from 'src/interface/file-type.interface';
 
 @Injectable()
 export class CoursesService {
@@ -368,7 +369,7 @@ export class CoursesService {
     });
   }
 
-  async uploadThumbnail(id: string, file: Express.Multer.File) {
+  async uploadThumbnail(id: string, file: UploadedFileType) {
     const course = await this.findById(id, true);
 
     // Upload to storage
@@ -382,7 +383,7 @@ export class CoursesService {
     return this.prisma.courses.update({
       where: { id },
       data: {
-        thumbnail: fileData.secure_url,
+        thumbnail: fileData.url,
         updated_at: new Date(),
       },
     });

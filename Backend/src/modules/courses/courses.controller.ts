@@ -51,6 +51,7 @@ import {
   UpdateCourseDto,
 } from 'src/modules/courses/dto/update-course.dto';
 import { CoursesService } from './courses.service';
+import { UploadedFileType } from 'src/interface/file-type.interface';
 
 @ApiTags('Courses')
 @Controller('courses')
@@ -270,7 +271,7 @@ export class CoursesController {
           errorHttpStatusCode: HttpStatus.UNPROCESSABLE_ENTITY,
         }),
     )
-    file: Express.Multer.File,
+    file: UploadedFileType,
   ) {
     return this.coursesService.uploadThumbnail(id, file);
   }

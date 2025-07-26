@@ -2,7 +2,7 @@ import { BadRequestException, Injectable } from '@nestjs/common';
 import { Prisma, users } from '@prisma/client';
 import * as bcrypt from 'bcryptjs';
 import { FileType, USER_ROLE, USER_STATUS } from 'src/common/constants';
-import { UploadedFileType } from 'src/modules/files/files.controller';
+import { UploadedFileType } from 'src/interface/file-type.interface';
 import { FilesService } from 'src/modules/files/files.service';
 import {
   RegisterStudentDto,
@@ -205,7 +205,7 @@ export class UsersService {
             qualification: dto.qualification,
             experience_years: Number(experience_years),
             ielts_band_score: Number(ielts_band_score),
-            certificate_urls: [fileData.secure_url],
+            certificate_urls: [fileData.url],
             specializations: dto.specializations,
           },
         });
@@ -346,7 +346,7 @@ export class UsersService {
     return await this.updateUser(id, { status });
   }
 
-  async updateAvatar(id: string, file: Express.Multer.File) {
+  async updateAvatar(id: string, file: UploadedFileType) {
     // Kiểm tra xem người dùng có tồn tại không
     const existingUser = await this.findById(id);
     if (!existingUser) {
@@ -366,6 +366,6 @@ export class UsersService {
     );
 
     // Cập nhật avatar URL trong cơ sở dữ liệu
-    return await this.updateUser(id, { avatar: fileData.secure_url });
+    return await this.updateUser(id, { avatar: fileData.url });
   }
 }

@@ -18,6 +18,7 @@ import {
   UpdateTeacherDto,
   UpdateTeacherStatusDto,
 } from './dto/update-teacher.dto';
+import { UploadedFileType } from 'src/interface/file-type.interface';
 
 @Injectable()
 export class TeachersService {
@@ -147,7 +148,7 @@ export class TeachersService {
     });
   }
 
-  async updateCertificate(id: string, file: Express.Multer.File) {
+  async updateCertificate(id: string, file: UploadedFileType) {
     const existingTeacher = await this.usersService.findById(id);
     if (!existingTeacher || existingTeacher.role !== USER_ROLE.TEACHER) {
       throw new NotFoundException('Teacher not found');
@@ -163,7 +164,7 @@ export class TeachersService {
       where: { user_id: id },
       data: {
         certificate_urls: {
-          push: fileData.secure_url,
+          push: fileData.url,
         },
       },
     });

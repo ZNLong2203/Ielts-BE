@@ -12,13 +12,7 @@ import { FileType } from 'src/common/constants';
 import { MESSAGE } from 'src/common/message';
 import { FilesService } from './files.service';
 import { SkipCheckPermission } from 'src/decorator/customize';
-
-export interface UploadedFileType {
-  buffer: Buffer;
-  originalname: string;
-  mimetype: string;
-  size: number;
-}
+import { UploadedFileType } from 'src/interface/file-type.interface';
 
 @ApiTags('files')
 @Controller('files')
@@ -62,13 +56,15 @@ export class FilesController {
       file.buffer,
       file.originalname,
       FileType.USER_AVATAR,
+      file.mimetype,
     );
 
     return {
       message: MESSAGE.FILES.FILE_USER_AVATAR_UPLOADED,
       data: {
-        url: fileData.secure_url,
-        publicId: fileData.public_id,
+        url: fileData.url,
+        fileName: fileData.fileName,
+        etag: fileData.etag,
       },
     };
   }
@@ -110,13 +106,15 @@ export class FilesController {
       file.buffer,
       file.originalname,
       FileType.TEACHER_CERTIFICATE,
+      file.mimetype,
     );
 
     return {
       message: MESSAGE.FILES.FILE_CERTIFICATE_UPLOADED,
       data: {
-        url: fileData.secure_url,
-        publicId: fileData.public_id,
+        url: fileData.url,
+        fileName: fileData.fileName,
+        etag: fileData.etag,
       },
     };
   }
@@ -158,13 +156,15 @@ export class FilesController {
       file.buffer,
       file.originalname,
       FileType.BLOG_IMAGE,
+      file.mimetype,
     );
 
     return {
       message: MESSAGE.FILES.FILE_BLOG_IMAGE_UPLOADED,
       data: {
-        url: fileData.secure_url,
-        publicId: fileData.public_id,
+        url: fileData.url,
+        fileName: fileData.fileName,
+        etag: fileData.etag,
       },
     };
   }
@@ -206,13 +206,15 @@ export class FilesController {
       file.buffer,
       file.originalname,
       FileType.EXERCISE_IMAGE,
+      file.mimetype,
     );
 
     return {
       message: MESSAGE.FILES.FILE_EXERCISE_IMAGE_UPLOADED,
       data: {
-        url: fileData.secure_url,
-        publicId: fileData.public_id,
+        url: fileData.url,
+        fileName: fileData.fileName,
+        etag: fileData.etag,
       },
     };
   }
@@ -254,13 +256,15 @@ export class FilesController {
       file.buffer,
       file.originalname,
       FileType.COURSE_THUMBNAIL,
+      file.mimetype,
     );
 
     return {
       message: MESSAGE.FILES.FILE_COURSE_THUMBNAIL_UPLOADED,
       data: {
-        url: fileData.secure_url,
-        publicId: fileData.public_id,
+        url: fileData.url,
+        fileName: fileData.fileName,
+        etag: fileData.etag,
       },
     };
   }
@@ -303,13 +307,15 @@ export class FilesController {
       file.buffer,
       file.originalname,
       FileType.LESSON_MATERIAL,
+      file.mimetype,
     );
 
     return {
       message: MESSAGE.FILES.FILE_LESSON_MATERIAL_UPLOADED,
       data: {
-        url: fileData.secure_url,
-        publicId: fileData.public_id,
+        url: fileData.url,
+        fileName: fileData.fileName,
+        etag: fileData.etag,
       },
     };
   }
@@ -351,13 +357,15 @@ export class FilesController {
       file.buffer,
       file.originalname,
       FileType.AUDIO,
+      file.mimetype,
     );
 
     return {
       message: MESSAGE.FILES.FILE_AUDIO_UPLOADED,
       data: {
-        url: fileData.secure_url,
-        publicId: fileData.public_id,
+        url: fileData.url,
+        fileName: fileData.fileName,
+        etag: fileData.etag,
       },
     };
   }

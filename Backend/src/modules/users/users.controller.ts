@@ -17,6 +17,7 @@ import { MESSAGE } from 'src/common/message';
 import { CheckPolicies, MessageResponse } from 'src/decorator/customize';
 import { UsersService } from 'src/modules/users/users.service';
 import { UpdateStatusDto, UpdateUserDto } from './dto/update-user.dto';
+import { UploadedFileType } from 'src/interface/file-type.interface';
 
 @ApiTags('User Profile')
 @Controller('profile')
@@ -98,7 +99,7 @@ export class UsersController {
           errorHttpStatusCode: HttpStatus.UNPROCESSABLE_ENTITY,
         }),
     )
-    file: Express.Multer.File,
+    file: UploadedFileType,
   ) {
     return this.usersService.updateAvatar(id, file);
   }

@@ -29,6 +29,7 @@ import {
   UpdateTeacherStatusDto,
 } from 'src/modules/teachers/dto/update-teacher.dto';
 import { TeachersService } from './teachers.service';
+import { UploadedFileType } from 'src/interface/file-type.interface';
 
 @Controller('teachers')
 export class TeachersController {
@@ -145,7 +146,7 @@ export class TeachersController {
           errorHttpStatusCode: HttpStatus.UNPROCESSABLE_ENTITY,
         }),
     )
-    file: Express.Multer.File,
+    file: UploadedFileType,
   ) {
     return this.teachersService.updateCertificate(id, file);
   }
