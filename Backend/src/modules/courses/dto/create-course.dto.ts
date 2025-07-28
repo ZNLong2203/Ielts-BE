@@ -8,7 +8,6 @@ import {
   IsObject,
   IsOptional,
   IsString,
-  IsUrl,
   IsUUID,
   MaxLength,
   Min,
@@ -79,12 +78,6 @@ export class CreateCourseDto {
   @IsUUID()
   @IsOptional()
   category_id?: string;
-
-  @ApiPropertyOptional({ description: 'Thumbnail URL' })
-  @IsUrl()
-  @IsOptional()
-  @MaxLength(500)
-  thumbnail?: string;
 
   @ApiPropertyOptional({
     description: 'Skill focus',

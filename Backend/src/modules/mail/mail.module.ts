@@ -3,6 +3,7 @@ import { HandlebarsAdapter } from '@nestjs-modules/mailer/dist/adapters/handleba
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { join } from 'path';
+import { UsersModule } from 'src/modules/users/users.module';
 import { MailController } from './mail.controller';
 import { MailService } from './mail.service';
 
@@ -35,6 +36,7 @@ import { MailService } from './mail.service';
         preview: configService.get<string>('EMAIL_PREVIEW') === 'true',
       }),
     }),
+    UsersModule,
   ],
   controllers: [MailController],
   providers: [MailService],

@@ -35,9 +35,9 @@ import {
   Public,
   SkipCheckPermission,
 } from 'src/decorator/customize';
+import { UploadedFileType } from 'src/interface/file-type.interface';
 import { IUser } from 'src/interface/users.interface';
 import { LocalAuthGuard } from 'src/modules/auth/guards/local-auth.guard';
-import { UploadedFileType } from 'src/interface/file-type.interface';
 import { UpdateStudentDto } from 'src/modules/students/dto/update-student.dto';
 import { UpdateTeacherDto } from 'src/modules/teachers/dto/update-teacher.dto';
 import {

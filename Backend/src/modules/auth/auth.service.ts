@@ -8,9 +8,9 @@ import { JwtService } from '@nestjs/jwt';
 import { Request, Response } from 'express';
 import * as ms from 'ms';
 import { StringValue } from 'ms';
+import { UploadedFileType } from 'src/interface/file-type.interface';
 import { IJwtPayload } from 'src/interface/jwt-payload.interface';
 import { IUser } from 'src/interface/users.interface';
-import { UploadedFileType } from 'src/interface/file-type.interface';
 import { MailService } from 'src/modules/mail/mail.service';
 import { UpdateStudentDto } from 'src/modules/students/dto/update-student.dto';
 import { StudentsService } from 'src/modules/students/students.service';
@@ -44,7 +44,7 @@ export class AuthService {
   async registerStudent(dto: RegisterStudentDto) {
     const { token, user } = await this.usersService.registerStudent(dto);
     // Gửi email xác thực
-    await this.mailService.sendVerificationEmail(user.email, token);
+    await this.mailService.sendVerificationEmail(user.id, user.email, token);
 
     return {
       createdAt: user.created_at,
@@ -54,7 +54,7 @@ export class AuthService {
   async registerTeacher(dto: RegisterTeacherDto, file: UploadedFileType) {
     const { token, user } = await this.usersService.registerTeacher(dto, file);
     // Gửi email xác thực
-    await this.mailService.sendVerificationEmail(user.email, token);
+    await this.mailService.sendVerificationEmail(user.id, user.email, token);
 
     return {
       createdAt: user.created_at,

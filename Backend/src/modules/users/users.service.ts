@@ -38,7 +38,7 @@ export class UsersService {
     try {
       // Kiểm tra email đã tồn tại chưa
       const existing = await this.prisma.users.findUnique({
-        where: { email: dto.email },
+        where: { email: dto.email, status: USER_STATUS.ACTIVE },
       });
       if (existing) throw new BadRequestException('Email already exists');
 
@@ -123,7 +123,7 @@ export class UsersService {
     try {
       // Kiểm tra email đã tồn tại chưa
       const existing = await this.prisma.users.findUnique({
-        where: { email: dto.email },
+        where: { email: dto.email, status: USER_STATUS.ACTIVE },
       });
       if (existing) throw new BadRequestException('Email already exists');
 

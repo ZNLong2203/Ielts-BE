@@ -147,7 +147,6 @@ export class CoursesService {
         category_id: dto.category_id,
         title: dto.title,
         description: dto.description,
-        thumbnail: dto.thumbnail,
         skill_focus: dto.skill_focus,
         difficulty_level: dto.difficulty_level,
         estimated_duration: dto.estimated_duration,
