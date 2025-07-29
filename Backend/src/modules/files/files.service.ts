@@ -52,7 +52,19 @@ export class FilesService {
           }
           break;
         case FileType.BLOG_IMAGE:
+          result = await this.minioService.uploadBlogImage(
+            fileBuffer,
+            originalName,
+            mimeType,
+          );
+          break;
         case FileType.EXERCISE_IMAGE:
+          result = await this.minioService.uploadExerciseImage(
+            fileBuffer,
+            originalName,
+            mimeType,
+          );
+          break;
         case FileType.COURSE_THUMBNAIL:
           result = await this.minioService.uploadCourseImage(
             fileBuffer,

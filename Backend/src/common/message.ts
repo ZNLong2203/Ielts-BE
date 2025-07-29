@@ -103,6 +103,7 @@ export const MESSAGE = {
     FILE_COURSE_THUMBNAIL_UPLOADED: 'Course thumbnail uploaded successfully',
     FILE_LESSON_MATERIAL_UPLOADED: 'Lesson material uploaded successfully',
     FILE_AUDIO_UPLOADED: 'Audio file uploaded successfully',
+    FILE_NOT_FOUND: 'File not found',
   },
 
   GENERAL: {

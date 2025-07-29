@@ -6,4 +6,6 @@ export enum FileType {
   COURSE_THUMBNAIL = 'course_thumbnail',
   LESSON_MATERIAL = 'lesson_material',
   AUDIO = 'audio',
+  AVATAR = 'avatar',
+  CERTIFICATE = 'certificate',
 }

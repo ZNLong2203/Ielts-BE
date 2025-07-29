@@ -131,6 +131,34 @@ export class MinioService {
     );
   }
 
+  async uploadBlogImage(
+    buffer: Buffer,
+    originalName: string,
+    mimetype: string,
+  ): Promise<UploadResult> {
+    return this.uploadFromBuffer(
+      buffer,
+      originalName,
+      mimetype,
+      'images',
+      'blogs',
+    );
+  }
+
+  async uploadExerciseImage(
+    buffer: Buffer,
+    originalName: string,
+    mimetype: string,
+  ): Promise<UploadResult> {
+    return this.uploadFromBuffer(
+      buffer,
+      originalName,
+      mimetype,
+      'images',
+      'exercises',
+    );
+  }
+
   async uploadCourseImage(
     buffer: Buffer,
     originalName: string,

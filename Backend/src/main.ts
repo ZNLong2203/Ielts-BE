@@ -27,6 +27,9 @@ async function bootstrap() {
     new ValidationPipe({
       // whitelist: true (remove all properties that do not have any decorators that define in DTO)
       transform: true, // convert payload to DTO
+      transformOptions: {
+        enableImplicitConversion: true, // Cho phép Nest tự ép string -> boolean/number
+      },
       whitelist: true,
     }),
   );

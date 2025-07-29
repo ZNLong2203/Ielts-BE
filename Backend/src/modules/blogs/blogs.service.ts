@@ -3,15 +3,22 @@ import { CreateBlogDto } from './dto/create-blog.dto';
 import { UpdateBlogDto } from './dto/update-blog.dto';
 import { RedisService } from 'src/redis/redis.service';
 import { PrismaService } from 'src/prisma/prisma.service';
-import { blogs, blog_categories } from '@prisma/client';
+import { blogs, blog_categories, Prisma } from '@prisma/client';
 import { CreateBlogCategoryDto } from './dto/create-blog-category.dto';
 import { UpdateBlogCategoryDto } from './dto/update-blog-category.dto';
 import { MESSAGE } from 'src/common/message';
+import { FilesService } from '../files/files.service';
+import { UploadedFileType } from 'src/interface/file-type.interface';
+import { FileType } from 'src/common/constants';
+import { PaginationQueryDto } from 'src/common/dto/pagination-query.dto';
+import { UtilsService } from 'src/utils/utils.service';
 
 @Injectable()
 export class BlogsService {
   constructor(
     private readonly prismaService: PrismaService,
+    private readonly filesService: FilesService,
+    private readonly utilsService: UtilsService,
     private readonly redisService: RedisService,
   ) {}
 
@@ -138,24 +145,62 @@ export class BlogsService {
   }
 
   // PUBLIC BLOG METHODS
-  async findAllPublishedBlogs(): Promise<blogs[]> {
+  async findAllPublishedBlogs(
+    query?: PaginationQueryDto,
+    rawQuery?: Record<string, any>,
+  ) {
     try {
-      const cachedBlogs = await this.redisService.get('publishedBlogs');
-      if (cachedBlogs) {
-        return JSON.parse(cachedBlogs) as blogs[];
+      if (!query) {
+        const cachedBlogs = await this.redisService.get('publishedBlogs');
+        if (cachedBlogs) {
+          return JSON.parse(cachedBlogs) as blogs[];
+        }
+
+        const publishedBlogs = await this.prismaService.blogs.findMany({
+          where: { status: 'published' },
+          orderBy: { created_at: 'desc' },
+        });
+
+        await this.redisService.set(
+          'publishedBlogs',
+          JSON.stringify(publishedBlogs),
+          3600,
+        );
+        return publishedBlogs;
       }
 
-      const publishedBlogs = await this.prismaService.blogs.findMany({
-        where: { status: 'published' },
-        orderBy: { created_at: 'desc' },
-      });
+      const whereCondition: Prisma.blogsWhereInput = {
+        status: 'published',
+        deleted: false,
+        ...this.utilsService.buildWhereFromQuery(rawQuery || {}),
+      };
 
-      await this.redisService.set(
-        'publishedBlogs',
-        JSON.stringify(publishedBlogs),
-        3600,
-      );
-      return publishedBlogs;
+      return this.utilsService.paginate<
+        Prisma.blogsWhereInput,
+        Prisma.blogsInclude,
+        Prisma.blogsSelect,
+        Prisma.blogsOrderByWithRelationInput
+      >({
+        model: this.prismaService.blogs,
+        query,
+        defaultOrderBy: { created_at: 'desc' },
+        select: {
+          id: true,
+          author_id: true,
+          category_id: true,
+          title: true,
+          content: true,
+          image: true,
+          tags: true,
+          status: true,
+          is_featured: true,
+          like_count: true,
+          published_at: true,
+          created_at: true,
+          updated_at: true,
+        },
+        where: whereCondition,
+      });
     } catch (error) {
       if (error instanceof Error) {
         throw new Error(error.message);
@@ -164,13 +209,43 @@ export class BlogsService {
     }
   }
 
-  async findPublishedBlogsByCategory(categoryId: string): Promise<blogs[]> {
+  async findPublishedBlogsByCategory(
+    categoryId: string,
+    query?: PaginationQueryDto,
+    rawQuery?: Record<string, any>,
+  ) {
     try {
-      const cachedBlogs = await this.redisService.get(
-        `publishedBlogsByCategory:${categoryId}`,
-      );
-      if (cachedBlogs) {
-        return JSON.parse(cachedBlogs) as blogs[];
+      if (!query) {
+        const cachedBlogs = await this.redisService.get(
+          `publishedBlogsByCategory:${categoryId}`,
+        );
+        if (cachedBlogs) {
+          return JSON.parse(cachedBlogs) as blogs[];
+        }
+
+        const categoryExists =
+          await this.prismaService.blog_categories.findUnique({
+            where: { id: categoryId },
+          });
+        if (!categoryExists) {
+          throw new Error(MESSAGE.BLOG.BLOG_CATEGORY_NOT_FOUND);
+        }
+
+        const publishedBlogs = await this.prismaService.blogs.findMany({
+          where: {
+            category_id: categoryId,
+            status: 'published',
+          },
+          orderBy: { created_at: 'desc' },
+        });
+
+        await this.redisService.set(
+          `publishedBlogsByCategory:${categoryId}`,
+          JSON.stringify(publishedBlogs),
+          3600,
+        );
+
+        return publishedBlogs;
       }
 
       const categoryExists =
@@ -181,21 +256,39 @@ export class BlogsService {
         throw new Error(MESSAGE.BLOG.BLOG_CATEGORY_NOT_FOUND);
       }
 
-      const publishedBlogs = await this.prismaService.blogs.findMany({
-        where: {
-          category_id: categoryId,
-          status: 'published',
+      const whereCondition: Prisma.blogsWhereInput = {
+        category_id: categoryId,
+        status: 'published',
+        deleted: false,
+        ...this.utilsService.buildWhereFromQuery(rawQuery || {}),
+      };
+
+      return this.utilsService.paginate<
+        Prisma.blogsWhereInput,
+        Prisma.blogsInclude,
+        Prisma.blogsSelect,
+        Prisma.blogsOrderByWithRelationInput
+      >({
+        model: this.prismaService.blogs,
+        query,
+        defaultOrderBy: { created_at: 'desc' },
+        select: {
+          id: true,
+          author_id: true,
+          category_id: true,
+          title: true,
+          content: true,
+          image: true,
+          tags: true,
+          status: true,
+          is_featured: true,
+          like_count: true,
+          published_at: true,
+          created_at: true,
+          updated_at: true,
         },
-        orderBy: { created_at: 'desc' },
+        where: whereCondition,
       });
-
-      await this.redisService.set(
-        `publishedBlogsByCategory:${categoryId}`,
-        JSON.stringify(publishedBlogs),
-        3600,
-      );
-
-      return publishedBlogs;
     } catch (error) {
       if (error instanceof Error) {
         throw new Error(error.message);
@@ -240,6 +333,7 @@ export class BlogsService {
   async createTeacherBlog(
     createBlogDto: CreateBlogDto,
     teacherId: string,
+    file: UploadedFileType | null = null,
   ): Promise<blogs> {
     try {
       const teacherExists = await this.prismaService.users.findUnique({
@@ -259,15 +353,21 @@ export class BlogsService {
         throw new Error(MESSAGE.BLOG.BLOG_CATEGORY_NOT_FOUND);
       }
 
-      if (createBlogDto.image && !this.isValidImageUrl(createBlogDto.image)) {
-        throw new Error(MESSAGE.BLOG.INVALID_IMAGE_URL);
+      if (file == null) {
+        throw new Error(MESSAGE.FILES.FILE_NOT_FOUND);
       }
+
+      const fileData = await this.filesService.uploadFile(
+        file.buffer,
+        file.originalname,
+        FileType.BLOG_IMAGE,
+      );
 
       const blog = await this.prismaService.blogs.create({
         data: {
           ...createBlogDto,
           author_id: teacherId,
-          image: createBlogDto.image || '',
+          image: fileData.url || '',
           status: 'draft',
         },
       });
@@ -285,22 +385,54 @@ export class BlogsService {
     }
   }
 
-  async findAllTeacherBlogs(teacherId: string): Promise<blogs[]> {
+  async findAllTeacherBlogs(
+    teacherId: string,
+    query: PaginationQueryDto,
+    rawQuery: Record<string, any>,
+  ) {
     try {
       const cachedBlogs = await this.redisService.get(
-        `teacherBlogs:${teacherId}`,
+        `teacherBlogs:${teacherId}:${JSON.stringify(query)}`,
       );
       if (cachedBlogs) {
         return JSON.parse(cachedBlogs) as blogs[];
       }
 
-      const teacherBlogs = await this.prismaService.blogs.findMany({
-        where: { author_id: teacherId },
-        orderBy: { created_at: 'desc' },
+      const whereCondition: Prisma.blogsWhereInput = {
+        author_id: teacherId,
+        deleted: false,
+        ...this.utilsService.buildWhereFromQuery(rawQuery),
+      };
+
+      const teacherBlogs = await this.utilsService.paginate<
+        Prisma.blogsWhereInput,
+        Prisma.blogsInclude,
+        Prisma.blogsSelect,
+        Prisma.blogsOrderByWithRelationInput
+      >({
+        model: this.prismaService.blogs,
+        query,
+        defaultOrderBy: { created_at: 'desc' },
+        select: {
+          id: true,
+          author_id: true,
+          category_id: true,
+          title: true,
+          content: true,
+          image: true,
+          tags: true,
+          status: true,
+          is_featured: true,
+          like_count: true,
+          published_at: true,
+          created_at: true,
+          updated_at: true,
+        },
+        where: whereCondition,
       });
 
       await this.redisService.set(
-        `teacherBlogs:${teacherId}`,
+        `teacherBlogs:${teacherId}:${JSON.stringify(query)}`,
         JSON.stringify(teacherBlogs),
         3600,
       );
@@ -339,6 +471,7 @@ export class BlogsService {
     blogId: string,
     updateBlogDto: UpdateBlogDto,
     teacherId: string,
+    file: UploadedFileType,
   ): Promise<blogs> {
     try {
       const existingBlog = await this.prismaService.blogs.findFirst({
@@ -356,8 +489,14 @@ export class BlogsService {
         throw new Error(MESSAGE.BLOG.BLOG_CANNOT_EDIT_PUBLISHED);
       }
 
-      if (updateBlogDto.image && !this.isValidImageUrl(updateBlogDto.image)) {
-        throw new Error(MESSAGE.BLOG.INVALID_IMAGE_URL);
+      if (file) {
+        const imageUrl = await this.filesService.uploadFile(
+          file.buffer,
+          file.originalname,
+          FileType.BLOG_IMAGE,
+        );
+
+        updateBlogDto.image = imageUrl.url;
       }
 
       const updatedBlog = await this.prismaService.blogs.update({
@@ -429,23 +568,60 @@ export class BlogsService {
   }
 
   // ADMIN BLOG METHODS
-  async findAllBlogsForAdmin(): Promise<blogs[]> {
+  async findAllBlogsForAdmin(
+    query?: PaginationQueryDto,
+    rawQuery?: Record<string, any>,
+  ) {
     try {
-      const cachedBlogs = await this.redisService.get('allBlogsAdmin');
-      if (cachedBlogs) {
-        return JSON.parse(cachedBlogs) as blogs[];
+      if (!query) {
+        const cachedBlogs = await this.redisService.get('allBlogsAdmin');
+        if (cachedBlogs) {
+          return JSON.parse(cachedBlogs) as blogs[];
+        }
+
+        const allBlogs = await this.prismaService.blogs.findMany({
+          orderBy: { created_at: 'desc' },
+        });
+
+        await this.redisService.set(
+          'allBlogsAdmin',
+          JSON.stringify(allBlogs),
+          3600,
+        );
+        return allBlogs;
       }
 
-      const allBlogs = await this.prismaService.blogs.findMany({
-        orderBy: { created_at: 'desc' },
-      });
+      const whereCondition: Prisma.blogsWhereInput = {
+        deleted: false,
+        ...this.utilsService.buildWhereFromQuery(rawQuery || {}),
+      };
 
-      await this.redisService.set(
-        'allBlogsAdmin',
-        JSON.stringify(allBlogs),
-        3600,
-      );
-      return allBlogs;
+      return this.utilsService.paginate<
+        Prisma.blogsWhereInput,
+        Prisma.blogsInclude,
+        Prisma.blogsSelect,
+        Prisma.blogsOrderByWithRelationInput
+      >({
+        model: this.prismaService.blogs,
+        query,
+        defaultOrderBy: { created_at: 'desc' },
+        select: {
+          id: true,
+          author_id: true,
+          category_id: true,
+          title: true,
+          content: true,
+          image: true,
+          tags: true,
+          status: true,
+          is_featured: true,
+          like_count: true,
+          published_at: true,
+          created_at: true,
+          updated_at: true,
+        },
+        where: whereCondition,
+      });
     } catch (error) {
       if (error instanceof Error) {
         throw new Error(error.message);
@@ -454,26 +630,65 @@ export class BlogsService {
     }
   }
 
-  async findBlogsByStatus(status: string): Promise<blogs[]> {
+  async findBlogsByStatus(
+    status: string,
+    query?: PaginationQueryDto,
+    rawQuery?: Record<string, any>,
+  ) {
     try {
-      const cachedBlogs = await this.redisService.get(
-        `blogsByStatus:${status}`,
-      );
-      if (cachedBlogs) {
-        return JSON.parse(cachedBlogs) as blogs[];
+      if (!query) {
+        const cachedBlogs = await this.redisService.get(
+          `blogsByStatus:${status}`,
+        );
+        if (cachedBlogs) {
+          return JSON.parse(cachedBlogs) as blogs[];
+        }
+
+        const blogs = await this.prismaService.blogs.findMany({
+          where: { status },
+          orderBy: { created_at: 'desc' },
+        });
+
+        await this.redisService.set(
+          `blogsByStatus:${status}`,
+          JSON.stringify(blogs),
+          3600,
+        );
+        return blogs;
       }
 
-      const blogs = await this.prismaService.blogs.findMany({
-        where: { status },
-        orderBy: { created_at: 'desc' },
-      });
+      const whereCondition: Prisma.blogsWhereInput = {
+        status,
+        deleted: false,
+        ...this.utilsService.buildWhereFromQuery(rawQuery || {}),
+      };
 
-      await this.redisService.set(
-        `blogsByStatus:${status}`,
-        JSON.stringify(blogs),
-        3600,
-      );
-      return blogs;
+      return this.utilsService.paginate<
+        Prisma.blogsWhereInput,
+        Prisma.blogsInclude,
+        Prisma.blogsSelect,
+        Prisma.blogsOrderByWithRelationInput
+      >({
+        model: this.prismaService.blogs,
+        query,
+        defaultOrderBy: { created_at: 'desc' },
+        select: {
+          id: true,
+          author_id: true,
+          category_id: true,
+          title: true,
+          content: true,
+          image: true,
+          tags: true,
+          status: true,
+          is_featured: true,
+          like_count: true,
+          published_at: true,
+          created_at: true,
+          updated_at: true,
+        },
+        where: whereCondition,
+      });
     } catch (error) {
       if (error instanceof Error) {
         throw new Error(error.message);

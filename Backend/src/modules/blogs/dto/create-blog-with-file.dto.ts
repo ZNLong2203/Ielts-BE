@@ -1,14 +1,8 @@
-import {
-  IsString,
-  IsNotEmpty,
-  IsOptional,
-  IsBoolean,
-  IsArray,
-} from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { IsString, IsNotEmpty, IsOptional, IsArray } from 'class-validator';
 import { Transform } from 'class-transformer';
 
-export class CreateBlogDto {
+export class CreateBlogWithFileDto {
   @ApiProperty({
     description: 'Blog category ID',
     example: '123e4567-e89b-12d3-a456-426614174000',
@@ -20,7 +14,7 @@ export class CreateBlogDto {
 
   @ApiProperty({
     description: 'Blog title',
-    example: 'IELTS Writing Task 2 Strategies',
+    example: 'How to improve IELTS Writing Skills',
     minLength: 1,
     maxLength: 255,
   })
@@ -30,25 +24,16 @@ export class CreateBlogDto {
 
   @ApiProperty({
     description: 'Blog content in HTML or markdown format',
-    example: 'Here are effective strategies for IELTS Writing Task 2...',
+    example:
+      'This is a comprehensive guide to improving your IELTS writing skills...',
   })
   @IsString()
   @IsNotEmpty()
   content: string;
 
   @ApiPropertyOptional({
-    description: 'Blog featured image URL',
-    example:
-      'https://res.cloudinary.com/demo/image/upload/v1234567890/sample.jpg',
-    format: 'url',
-  })
-  @IsString()
-  @IsOptional()
-  image?: string;
-
-  @ApiPropertyOptional({
     description: 'Blog tags for categorization',
-    example: ['IELTS', 'Writing', 'Strategies'],
+    example: ['IELTS', 'Writing', 'Tips'],
     type: [String],
   })
   @IsArray()
@@ -61,12 +46,10 @@ export class CreateBlogDto {
   })
   tags?: string[];
 
-  @ApiPropertyOptional({
-    description: 'Whether this blog should be featured',
-    example: false,
-    default: false,
+  @ApiProperty({
+    description: 'Blog thumbnail image file (JPEG, PNG, JPG, WEBP - max 3MB)',
+    type: 'string',
+    format: 'binary',
   })
-  @IsBoolean()
-  @IsOptional()
-  is_featured?: boolean;
+  file: any;
 }

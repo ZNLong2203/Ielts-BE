@@ -3,16 +3,25 @@ import {
   Controller,
   Delete,
   Get,
+  HttpStatus,
   Param,
+  ParseFilePipeBuilder,
   Patch,
   Post,
+  Query,
+  Req,
+  UploadedFile,
   UseGuards,
+  UseInterceptors,
 } from '@nestjs/common';
+import { Request } from 'express';
 import {
   ApiBearerAuth,
   ApiBody,
+  ApiConsumes,
   ApiOperation,
   ApiParam,
+  ApiQuery,
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
@@ -25,6 +34,7 @@ import {
   CurrentUser,
   MessageResponse,
   Public,
+  SkipCheckPermission,
 } from '../../decorator/customize';
 import { IUser } from '../../interface/users.interface';
 import { BlogsService } from './blogs.service';
@@ -35,9 +45,13 @@ import {
 } from './dto/blog-response.dto';
 import { CreateBlogCategoryDto } from './dto/create-blog-category.dto';
 import { CreateBlogDto } from './dto/create-blog.dto';
+import { CreateBlogWithFileDto } from './dto/create-blog-with-file.dto';
 import { UpdateBlogCategoryDto } from './dto/update-blog-category.dto';
 import { UpdateBlogDto } from './dto/update-blog.dto';
-// import { PaginationQueryDto } from 'src/common/dto/pagination-query.dto';
+import { UpdateBlogWithFileDto } from './dto/update-blog-with-file.dto';
+import { UploadedFileType } from 'src/interface/file-type.interface';
+import { FileInterceptor } from '@nestjs/platform-express';
+import { PaginationQueryDto } from 'src/common/dto/pagination-query.dto';
 
 @ApiTags('Blogs')
 @Controller('blogs')
@@ -46,6 +60,7 @@ export class BlogsController {
 
   // PUBLIC APIs
   @Public()
+  @SkipCheckPermission()
   @Get('/category')
   @ApiOperation({
     summary: 'Get all blog categories',
@@ -62,11 +77,12 @@ export class BlogsController {
   }
 
   @Public()
+  @SkipCheckPermission()
   @Get('/category/:id')
   @ApiOperation({
     summary: 'Get published blogs by category',
     description:
-      'Retrieve all published blogs belonging to a specific category',
+      'Retrieve all published blogs belonging to a specific category with pagination',
   })
   @ApiParam({
     name: 'id',
@@ -75,21 +91,94 @@ export class BlogsController {
     format: 'uuid',
     example: '123e4567-e89b-12d3-a456-426614174000',
   })
+  @ApiQuery({
+    name: 'page',
+    required: false,
+    type: Number,
+    description: 'Page number (starts from 1)',
+    example: 1,
+  })
+  @ApiQuery({
+    name: 'pageSize',
+    required: false,
+    type: Number,
+    description: 'Number of items per page',
+    example: 10,
+  })
+  @ApiQuery({
+    name: 'sortBy',
+    required: false,
+    type: String,
+    description: 'Field to sort by',
+    example: 'created_at',
+  })
+  @ApiQuery({
+    name: 'sortOrder',
+    required: false,
+    type: String,
+    description: 'Sort order (asc or desc)',
+    example: 'desc',
+  })
   @ApiResponse({
     status: 200,
     description: 'Blogs retrieved successfully',
     type: ApiResponseDto<BlogResponseDto[]>,
   })
   @MessageResponse(MESSAGE.BLOG.BLOG_FETCHED)
-  async findBlogByCategoryId(@Param('id') categoryId: string) {
-    return this.blogsService.findPublishedBlogsByCategory(categoryId);
+  async findBlogByCategoryId(
+    @Param('id') categoryId: string,
+    @Query() query: PaginationQueryDto,
+    @Req() req: Request,
+  ) {
+    return this.blogsService.findPublishedBlogsByCategory(
+      categoryId,
+      query,
+      req.query,
+    );
   }
 
   @Public()
+  @SkipCheckPermission()
   @Get()
   @ApiOperation({
     summary: 'Get all published blogs',
-    description: 'Retrieve all published blogs for public viewing',
+    description:
+      'Retrieve all published blogs for public viewing with pagination',
+  })
+  @ApiQuery({
+    name: 'page',
+    required: false,
+    type: Number,
+    description: 'Page number (starts from 1)',
+    example: 1,
+  })
+  @ApiQuery({
+    name: 'pageSize',
+    required: false,
+    type: Number,
+    description: 'Number of items per page',
+    example: 10,
+  })
+  @ApiQuery({
+    name: 'sortBy',
+    required: false,
+    type: String,
+    description: 'Field to sort by',
+    example: 'created_at',
+  })
+  @ApiQuery({
+    name: 'sortOrder',
+    required: false,
+    type: String,
+    description: 'Sort order (asc or desc)',
+    example: 'desc',
+  })
+  @ApiQuery({
+    name: 'search',
+    required: false,
+    type: String,
+    description: 'Search term for blog title or content',
+    example: 'IELTS',
   })
   @ApiResponse({
     status: 200,
@@ -97,11 +186,15 @@ export class BlogsController {
     type: ApiResponseDto<BlogResponseDto[]>,
   })
   @MessageResponse(MESSAGE.BLOG.BLOGS_FETCHED)
-  async findAllPublishedBlogs() {
-    return this.blogsService.findAllPublishedBlogs();
+  async findAllPublishedBlogs(
+    @Query() query: PaginationQueryDto,
+    @Req() req: Request,
+  ) {
+    return this.blogsService.findAllPublishedBlogs(query, req.query);
   }
 
   @Public()
+  @SkipCheckPermission()
   @Get('/detail/:id')
   @ApiOperation({
     summary: 'Get published blog details',
@@ -134,28 +227,85 @@ export class BlogsController {
     description:
       'Create a new blog as a teacher. Blog will be created with draft status.',
   })
-  @ApiBody({ type: CreateBlogDto })
+  @ApiBody({ type: CreateBlogWithFileDto })
   @ApiResponse({
     status: 201,
     description: 'Blog created successfully',
     type: ApiResponseDto<BlogResponseDto>,
   })
+  @UseInterceptors(FileInterceptor('file'))
+  @ApiConsumes('multipart/form-data')
   @MessageResponse(MESSAGE.BLOG.BLOG_CREATED)
   async createTeacherBlog(
     @Body() createBlogDto: CreateBlogDto,
     @CurrentUser() user: IUser,
+    @UploadedFile(
+      new ParseFilePipeBuilder()
+        .addFileTypeValidator({
+          fileType: 'image/jpeg|image/png|image/jpg|image/webp',
+        })
+        .addMaxSizeValidator({
+          maxSize: 3 * 1024 * 1024, // 3MB
+        })
+        .build({
+          errorHttpStatusCode: HttpStatus.UNPROCESSABLE_ENTITY,
+        }),
+    )
+    file: UploadedFileType,
   ) {
-    return this.blogsService.createTeacherBlog(createBlogDto, user.id);
+    return this.blogsService.createTeacherBlog(createBlogDto, user.id, file);
   }
 
   @ApiBearerAuth()
   @UseGuards(PermissionGuard)
   @CheckPolicies((ability) => ability.can(Action.Read, Blog))
-  @Get('/teacher')
+  @Get('/teacher/:id')
   @ApiOperation({
     summary: 'Get all teacher blogs',
     description:
-      'Retrieve all blogs created by the current teacher (all statuses)',
+      'Retrieve all blogs created by the specified teacher (all statuses) with pagination',
+  })
+  @ApiParam({
+    name: 'id',
+    description: 'Teacher ID',
+    type: 'string',
+    format: 'uuid',
+    example: '123e4567-e89b-12d3-a456-426614174000',
+  })
+  @ApiQuery({
+    name: 'page',
+    required: false,
+    type: Number,
+    description: 'Page number (starts from 1)',
+    example: 1,
+  })
+  @ApiQuery({
+    name: 'pageSize',
+    required: false,
+    type: Number,
+    description: 'Number of items per page',
+    example: 10,
+  })
+  @ApiQuery({
+    name: 'sortBy',
+    required: false,
+    type: String,
+    description: 'Field to sort by',
+    example: 'created_at',
+  })
+  @ApiQuery({
+    name: 'sortOrder',
+    required: false,
+    type: String,
+    description: 'Sort order (asc or desc)',
+    example: 'desc',
+  })
+  @ApiQuery({
+    name: 'status',
+    required: false,
+    type: String,
+    description: 'Filter by blog status (draft, published, archived)',
+    example: 'published',
   })
   @ApiResponse({
     status: 200,
@@ -163,8 +313,12 @@ export class BlogsController {
     type: ApiResponseDto<BlogResponseDto[]>,
   })
   @MessageResponse(MESSAGE.BLOG.BLOGS_FETCHED)
-  async findAllTeacherBlogs(@CurrentUser() user: IUser) {
-    return this.blogsService.findAllTeacherBlogs(user.id);
+  async findAllTeacherBlogs(
+    @Param('id') teacherId: string,
+    @Query() query: PaginationQueryDto,
+    @Req() req: Request,
+  ) {
+    return this.blogsService.findAllTeacherBlogs(teacherId, query, req.query);
   }
 
   @ApiBearerAuth()
@@ -176,7 +330,13 @@ export class BlogsController {
     description:
       'Retrieve detailed information of a specific blog owned by the teacher',
   })
-  @ApiParam({ name: 'id', description: 'Blog ID', type: 'string' })
+  @ApiParam({
+    name: 'id',
+    description: 'Blog ID',
+    type: 'string',
+    format: 'uuid',
+    example: '123e4567-e89b-12d3-a456-426614174000',
+  })
   @ApiResponse({
     status: 200,
     description: 'Blog details retrieved successfully',
@@ -199,20 +359,46 @@ export class BlogsController {
     description:
       'Update a blog owned by the teacher. Can only edit draft or archived blogs.',
   })
-  @ApiParam({ name: 'id', description: 'Blog ID', type: 'string' })
-  @ApiBody({ type: UpdateBlogDto })
+  @ApiParam({
+    name: 'id',
+    description: 'Blog ID',
+    type: 'string',
+    format: 'uuid',
+    example: '123e4567-e89b-12d3-a456-426614174000',
+  })
+  @ApiBody({ type: UpdateBlogWithFileDto })
   @ApiResponse({
     status: 200,
     description: 'Blog updated successfully',
     type: ApiResponseDto<BlogResponseDto>,
   })
+  @UseInterceptors(FileInterceptor('file'))
+  @ApiConsumes('multipart/form-data')
   @MessageResponse(MESSAGE.BLOG.BLOG_UPDATED)
   async updateTeacherBlog(
     @Param('id') id: string,
     @Body() updateBlogDto: UpdateBlogDto,
     @CurrentUser() user: IUser,
+    @UploadedFile(
+      new ParseFilePipeBuilder()
+        .addFileTypeValidator({
+          fileType: 'image/jpeg|image/png|image/jpg|image/webp',
+        })
+        .addMaxSizeValidator({
+          maxSize: 3 * 1024 * 1024, // 3MB
+        })
+        .build({
+          errorHttpStatusCode: HttpStatus.UNPROCESSABLE_ENTITY,
+        }),
+    )
+    file: UploadedFileType,
   ) {
-    return this.blogsService.updateTeacherBlog(id, updateBlogDto, user.id);
+    return this.blogsService.updateTeacherBlog(
+      id,
+      updateBlogDto,
+      user.id,
+      file,
+    );
   }
 
   @ApiBearerAuth()
@@ -238,9 +424,14 @@ export class BlogsController {
   @Post('/admin/category')
   @ApiOperation({
     summary: 'Create blog category (Admin)',
-    description: 'Create a new blog category',
+    description: 'Create a new blog category for organizing blogs',
   })
-  @ApiResponse({ status: 201, description: 'Category created successfully' })
+  @ApiBody({ type: CreateBlogCategoryDto })
+  @ApiResponse({
+    status: 201,
+    description: 'Category created successfully',
+    type: ApiResponseDto<BlogCategoryResponseDto>,
+  })
   @MessageResponse(MESSAGE.BLOG.BLOG_CATEGORY_CREATED)
   async createBlogCategory(
     @Body() createBlogCategoryDto: CreateBlogCategoryDto,
@@ -256,8 +447,19 @@ export class BlogsController {
     summary: 'Update blog category (Admin)',
     description: 'Update an existing blog category',
   })
-  @ApiParam({ name: 'id', description: 'Category ID', type: 'string' })
-  @ApiResponse({ status: 200, description: 'Category updated successfully' })
+  @ApiParam({
+    name: 'id',
+    description: 'Category ID',
+    type: 'string',
+    format: 'uuid',
+    example: '123e4567-e89b-12d3-a456-426614174000',
+  })
+  @ApiBody({ type: UpdateBlogCategoryDto })
+  @ApiResponse({
+    status: 200,
+    description: 'Category updated successfully',
+    type: ApiResponseDto<BlogCategoryResponseDto>,
+  })
   @MessageResponse(MESSAGE.BLOG.BLOG_CATEGORY_UPDATED)
   async updateBlogCategory(
     @Param('id') id: string,
@@ -274,8 +476,17 @@ export class BlogsController {
     summary: 'Delete blog category (Admin)',
     description: 'Delete a blog category',
   })
-  @ApiParam({ name: 'id', description: 'Category ID', type: 'string' })
-  @ApiResponse({ status: 200, description: 'Category deleted successfully' })
+  @ApiParam({
+    name: 'id',
+    description: 'Category ID',
+    type: 'string',
+    format: 'uuid',
+    example: '123e4567-e89b-12d3-a456-426614174000',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Category deleted successfully',
+  })
   @MessageResponse(MESSAGE.BLOG.BLOG_CATEGORY_DELETED)
   async removeBlogCategory(@Param('id') id: string) {
     return this.blogsService.removeBlogCategory(id);
@@ -288,12 +499,87 @@ export class BlogsController {
   @Get('/admin')
   @ApiOperation({
     summary: 'Get all blogs (Admin)',
-    description: 'Retrieve all blogs with any status for admin management',
+    description:
+      'Retrieve all blogs with any status for admin management with pagination',
   })
-  @ApiResponse({ status: 200, description: 'All blogs retrieved successfully' })
+  @ApiQuery({
+    name: 'page',
+    required: false,
+    type: Number,
+    description: 'Page number (starts from 1)',
+    example: 1,
+  })
+  @ApiQuery({
+    name: 'pageSize',
+    required: false,
+    type: Number,
+    description: 'Number of items per page',
+    example: 10,
+  })
+  @ApiQuery({
+    name: 'sortBy',
+    required: false,
+    type: String,
+    description: 'Field to sort by',
+    example: 'created_at',
+  })
+  @ApiQuery({
+    name: 'sortOrder',
+    required: false,
+    type: String,
+    description: 'Sort order (asc or desc)',
+    example: 'desc',
+  })
+  @ApiQuery({
+    name: 'status',
+    required: false,
+    type: String,
+    description: 'Filter by blog status (draft, published, archived)',
+    example: 'published',
+  })
+  @ApiQuery({
+    name: 'search',
+    required: false,
+    type: String,
+    description: 'Search term for blog title or content',
+    example: 'IELTS',
+  })
+  @ApiQuery({
+    name: 'author_id',
+    required: false,
+    type: String,
+    description: 'Filter by author/teacher ID',
+    example: '123e4567-e89b-12d3-a456-426614174000',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'All blogs retrieved successfully',
+    schema: {
+      type: 'object',
+      properties: {
+        meta: {
+          type: 'object',
+          properties: {
+            current: { type: 'number', example: 1 },
+            currentSize: { type: 'number', example: 10 },
+            pageSize: { type: 'number', example: 10 },
+            total: { type: 'number', example: 100 },
+            pages: { type: 'number', example: 10 },
+          },
+        },
+        result: {
+          type: 'array',
+          items: { $ref: '#/components/schemas/BlogResponseDto' },
+        },
+      },
+    },
+  })
   @MessageResponse(MESSAGE.BLOG.BLOGS_FETCHED)
-  async findAllBlogsForAdmin() {
-    return this.blogsService.findAllBlogsForAdmin();
+  async findAllBlogsForAdmin(
+    @Query() query: PaginationQueryDto,
+    @Req() req: Request,
+  ) {
+    return this.blogsService.findAllBlogsForAdmin(query, req.query);
   }
 
   @ApiBearerAuth()
@@ -302,15 +588,60 @@ export class BlogsController {
   @Get('/admin/draft')
   @ApiOperation({
     summary: 'Get draft blogs (Admin)',
-    description: 'Retrieve all blogs with draft status',
+    description: 'Retrieve all blogs with draft status with pagination',
+  })
+  @ApiQuery({
+    name: 'page',
+    required: false,
+    type: Number,
+    description: 'Page number (starts from 1)',
+    example: 1,
+  })
+  @ApiQuery({
+    name: 'pageSize',
+    required: false,
+    type: Number,
+    description: 'Number of items per page',
+    example: 10,
+  })
+  @ApiQuery({
+    name: 'sortBy',
+    required: false,
+    type: String,
+    description: 'Field to sort by',
+    example: 'created_at',
+  })
+  @ApiQuery({
+    name: 'sortOrder',
+    required: false,
+    type: String,
+    description: 'Sort order (asc or desc)',
+    example: 'desc',
+  })
+  @ApiQuery({
+    name: 'search',
+    required: false,
+    type: String,
+    description: 'Search term for blog title or content',
+    example: 'IELTS',
+  })
+  @ApiQuery({
+    name: 'author_id',
+    required: false,
+    type: String,
+    description: 'Filter by author/teacher ID',
+    example: '123e4567-e89b-12d3-a456-426614174000',
   })
   @ApiResponse({
     status: 200,
     description: 'Draft blogs retrieved successfully',
   })
   @MessageResponse(MESSAGE.BLOG.BLOGS_FETCHED)
-  async findDraftBlogs() {
-    return this.blogsService.findBlogsByStatus('draft');
+  async findDraftBlogs(
+    @Query() query: PaginationQueryDto,
+    @Req() req: Request,
+  ) {
+    return this.blogsService.findBlogsByStatus('draft', query, req.query);
   }
 
   @ApiBearerAuth()
@@ -319,15 +650,60 @@ export class BlogsController {
   @Get('/admin/published')
   @ApiOperation({
     summary: 'Get published blogs (Admin)',
-    description: 'Retrieve all blogs with published status',
+    description: 'Retrieve all blogs with published status with pagination',
+  })
+  @ApiQuery({
+    name: 'page',
+    required: false,
+    type: Number,
+    description: 'Page number (starts from 1)',
+    example: 1,
+  })
+  @ApiQuery({
+    name: 'pageSize',
+    required: false,
+    type: Number,
+    description: 'Number of items per page',
+    example: 10,
+  })
+  @ApiQuery({
+    name: 'sortBy',
+    required: false,
+    type: String,
+    description: 'Field to sort by',
+    example: 'created_at',
+  })
+  @ApiQuery({
+    name: 'sortOrder',
+    required: false,
+    type: String,
+    description: 'Sort order (asc or desc)',
+    example: 'desc',
+  })
+  @ApiQuery({
+    name: 'search',
+    required: false,
+    type: String,
+    description: 'Search term for blog title or content',
+    example: 'IELTS',
+  })
+  @ApiQuery({
+    name: 'author_id',
+    required: false,
+    type: String,
+    description: 'Filter by author/teacher ID',
+    example: '123e4567-e89b-12d3-a456-426614174000',
   })
   @ApiResponse({
     status: 200,
     description: 'Published blogs retrieved successfully',
   })
   @MessageResponse(MESSAGE.BLOG.BLOGS_FETCHED)
-  async findPublishedBlogs() {
-    return this.blogsService.findBlogsByStatus('published');
+  async findPublishedBlogs(
+    @Query() query: PaginationQueryDto,
+    @Req() req: Request,
+  ) {
+    return this.blogsService.findBlogsByStatus('published', query, req.query);
   }
 
   @ApiBearerAuth()
@@ -336,15 +712,60 @@ export class BlogsController {
   @Get('/admin/archived')
   @ApiOperation({
     summary: 'Get archived blogs (Admin)',
-    description: 'Retrieve all blogs with archived status',
+    description: 'Retrieve all blogs with archived status with pagination',
+  })
+  @ApiQuery({
+    name: 'page',
+    required: false,
+    type: Number,
+    description: 'Page number (starts from 1)',
+    example: 1,
+  })
+  @ApiQuery({
+    name: 'pageSize',
+    required: false,
+    type: Number,
+    description: 'Number of items per page',
+    example: 10,
+  })
+  @ApiQuery({
+    name: 'sortBy',
+    required: false,
+    type: String,
+    description: 'Field to sort by',
+    example: 'created_at',
+  })
+  @ApiQuery({
+    name: 'sortOrder',
+    required: false,
+    type: String,
+    description: 'Sort order (asc or desc)',
+    example: 'desc',
+  })
+  @ApiQuery({
+    name: 'search',
+    required: false,
+    type: String,
+    description: 'Search term for blog title or content',
+    example: 'IELTS',
+  })
+  @ApiQuery({
+    name: 'author_id',
+    required: false,
+    type: String,
+    description: 'Filter by author/teacher ID',
+    example: '123e4567-e89b-12d3-a456-426614174000',
   })
   @ApiResponse({
     status: 200,
     description: 'Archived blogs retrieved successfully',
   })
   @MessageResponse(MESSAGE.BLOG.BLOGS_FETCHED)
-  async findArchivedBlogs() {
-    return this.blogsService.findBlogsByStatus('archived');
+  async findArchivedBlogs(
+    @Query() query: PaginationQueryDto,
+    @Req() req: Request,
+  ) {
+    return this.blogsService.findBlogsByStatus('archived', query, req.query);
   }
 
   @ApiBearerAuth()
