@@ -1,5 +1,5 @@
 import { PartialType, PickType } from '@nestjs/mapped-types';
-import { ApiProperty } from '@nestjs/swagger';
+import { ApiProperty, OmitType } from '@nestjs/swagger';
 import { USER_STATUS, UserStatus } from 'src/common/constants/user';
 
 import {
@@ -93,6 +93,25 @@ export class UpdatePasswordDto {
   @IsNotEmpty()
   current_password: string;
 
+  @ApiProperty({ description: 'New password' })
+  @IsString()
+  @MinLength(8, { message: 'Password must be at least 8 characters long' })
+  @Matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]/, {
+    message:
+      'Password must contain at least one uppercase letter, one lowercase letter, one number, and one special character',
+  })
+  @IsNotEmpty()
+  new_password: string;
+
+  @ApiProperty({ description: 'Confirm new password' })
+  @IsString()
+  @IsNotEmpty()
+  confirm_password: string;
+}
+
+export class ResetTeacherPasswordDto extends OmitType(UpdatePasswordDto, [
+  'current_password',
+] as const) {
   @ApiProperty({ description: 'New password' })
   @IsString()
   @MinLength(8, { message: 'Password must be at least 8 characters long' })

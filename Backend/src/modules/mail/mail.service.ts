@@ -1,6 +1,5 @@
 import { MailerService } from '@nestjs-modules/mailer';
 import { BadRequestException, Injectable } from '@nestjs/common';
-import { USER_STATUS } from 'src/common/constants';
 import { UsersService } from 'src/modules/users/users.service';
 
 @Injectable()
@@ -23,19 +22,33 @@ export class MailService {
         },
       });
     } catch (e) {
-      await this.usersService.updateStatus(id, {
-        status: USER_STATUS.INACTIVE,
-      });
       throw new BadRequestException(e);
     }
   }
 
-  // Ví dụ thêm nếu muốn mở rộng
-  async sendWelcomeEmail(to: string) {
-    await this.mailerService.sendMail({
-      to,
-      subject: 'Welcome to our service',
-      html: `<p>Hello! Thank you for joining us.</p>`,
-    });
+  async sendResetTeacherPasswordEmail(
+    id: string,
+    to: string,
+    token: string,
+    fullName: string,
+  ) {
+    try {
+      const resetUrl = `http://localhost:3000/api/v1/auth/reset-teacher-password?token=${token}`;
+
+      if (!fullName) {
+        fullName = 'New Teacher';
+      }
+      await this.mailerService.sendMail({
+        to,
+        subject: 'Reset your password',
+        template: 'reset-teacher-password', // templates/reset-password.hbs
+        context: {
+          fullName,
+          resetUrl,
+        },
+      });
+    } catch (e) {
+      throw new BadRequestException(e);
+    }
   }
 }
