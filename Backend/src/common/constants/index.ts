@@ -1,4 +1,5 @@
 export * from './blog';
+export * from './coupons';
 export * from './course';
 export * from './file';
 export * from './student';

@@ -6,6 +6,7 @@ import {
 import { Prisma } from '@prisma/client';
 import { FileType } from 'src/common/constants';
 import { PaginationQueryDto } from 'src/common/dto/pagination-query.dto';
+import { UploadedFileType } from 'src/interface/file-type.interface';
 import { FilesService } from 'src/modules/files/files.service';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { UtilsService } from 'src/utils/utils.service';
@@ -17,7 +18,6 @@ import {
   UpdateCourseCategoryDto,
   UpdateCourseDto,
 } from './dto/update-course.dto';
-import { UploadedFileType } from 'src/interface/file-type.interface';
 
 @Injectable()
 export class CoursesService {
