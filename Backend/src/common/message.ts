@@ -51,6 +51,7 @@ export const MESSAGE = {
     BLOG_CATEGORY_CREATED: 'Blog category created successfully',
     BLOG_CATEGORY_UPDATED: 'Blog category updated successfully',
     BLOG_CATEGORY_DELETED: 'Blog category deleted successfully',
+    BLOG_CATEGORY_FETCHED: 'Blog category fetched successfully',
     BLOG_CATEGORY_NOT_FOUND: 'Blog category not found',
     BLOG_CATEGORIES_FETCHED: 'Blog categories fetched successfully',
     BLOGS_FETCHED: 'Blogs fetched successfully',

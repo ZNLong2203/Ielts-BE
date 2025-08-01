@@ -122,6 +122,73 @@ export class BlogsService {
     }
   }
 
+  async getDetailBlogCategory(id: string): Promise<blog_categories> {
+    try {
+      const cachedBlogCategory = await this.redisService.get(
+        `blogCategory:${id}`,
+      );
+      if (cachedBlogCategory) {
+        return JSON.parse(cachedBlogCategory) as blog_categories;
+      }
+
+      const blogCategory = await this.prismaService.blog_categories.findUnique({
+        where: { id },
+      });
+
+      if (!blogCategory) {
+        throw new Error(MESSAGE.BLOG.BLOG_CATEGORY_NOT_FOUND);
+      }
+
+      await this.redisService.set(
+        `blogCategory:${id}`,
+        JSON.stringify(blogCategory),
+        3600,
+      );
+
+      return blogCategory;
+    } catch (error) {
+      if (error instanceof Error) {
+        throw new Error(error.message);
+      }
+      throw new Error(MESSAGE.ERROR.UNEXPECTED_ERROR);
+    }
+  }
+
+  async getPublicBlogCategoryDetail(id: string): Promise<blog_categories> {
+    try {
+      const cachedBlogCategory = await this.redisService.get(
+        `publicBlogCategory:${id}`,
+      );
+      if (cachedBlogCategory) {
+        return JSON.parse(cachedBlogCategory) as blog_categories;
+      }
+
+      const blogCategory = await this.prismaService.blog_categories.findUnique({
+        where: {
+          id,
+          is_active: true,
+        },
+      });
+
+      if (!blogCategory) {
+        throw new Error(MESSAGE.BLOG.BLOG_CATEGORY_NOT_FOUND);
+      }
+
+      await this.redisService.set(
+        `publicBlogCategory:${id}`,
+        JSON.stringify(blogCategory),
+        3600,
+      );
+
+      return blogCategory;
+    } catch (error) {
+      if (error instanceof Error) {
+        throw new Error(error.message);
+      }
+      throw new Error(MESSAGE.ERROR.UNEXPECTED_ERROR);
+    }
+  }
+
   async updateBlogCategory(
     id: string,
     updateBlogCategoryDto: UpdateBlogCategoryDto,

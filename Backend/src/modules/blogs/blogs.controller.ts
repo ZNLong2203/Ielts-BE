@@ -480,6 +480,35 @@ export class BlogsController {
 
   @ApiBearerAuth()
   @UseGuards(PermissionGuard)
+  @CheckPolicies((ability) => ability.can(Action.Read, BlogCategory))
+  @Get('/admin/category/:id')
+  @ApiOperation({
+    summary: 'Get blog category details (Admin)',
+    description: 'Retrieve detailed information of a specific blog category',
+  })
+  @ApiParam({
+    name: 'id',
+    description: 'Category ID',
+    type: 'string',
+    format: 'uuid',
+    example: '123e4567-e89b-12d3-a456-426614174000',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Category details retrieved successfully',
+    type: ApiResponseDto<BlogCategoryResponseDto>,
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'Category not found',
+  })
+  @MessageResponse(MESSAGE.BLOG.BLOG_CATEGORY_FETCHED)
+  async getDetailBlogCategory(@Param('id') id: string) {
+    return this.blogsService.getDetailBlogCategory(id);
+  }
+
+  @ApiBearerAuth()
+  @UseGuards(PermissionGuard)
   @CheckPolicies((ability) => ability.can(Action.Update, BlogCategory))
   @Patch('/admin/category/:id')
   @ApiOperation({
