@@ -6,15 +6,37 @@ import {
   Blog,
   BlogCategory,
   BlogComment,
+  Cart,
+  CartItem,
+  Coupon,
+  CouponUsage,
   Course,
   CourseCategory,
+  Enrollment,
+  Exercise,
+  ExerciseType,
+  LearningPath,
+  Lesson,
+  LessonNote,
+  MockTest,
+  Order,
+  OrderItem,
+  Payment,
+  Question,
+  QuestionAnswer,
+  QuestionOption,
   Student,
   Teacher,
+  TestResult,
   User,
+  UserLearningPath,
+  UserProgress,
+  UserSubmission,
 } from 'src/casl/entities';
 import { Action } from 'src/casl/enums/action.enum';
 import { BlogCommentsService } from 'src/modules/blog-comments/blog-comments.service';
 import { BlogsService } from 'src/modules/blogs/blogs.service';
+import { CouponsService } from 'src/modules/coupons/coupons.service';
 import { CoursesService } from 'src/modules/courses/courses.service';
 import { StudentsService } from 'src/modules/students/students.service';
 import { TeachersService } from 'src/modules/teachers/teachers.service';
@@ -31,7 +53,28 @@ export type SubjectClasses =
   | typeof BlogCategory
   | typeof BlogComment
   | typeof Student
-  | typeof Teacher;
+  | typeof Teacher
+  | typeof Coupon
+  | typeof CouponUsage
+  | typeof Cart
+  | typeof CartItem
+  | typeof Enrollment
+  | typeof Exercise
+  | typeof ExerciseType
+  | typeof LearningPath
+  | typeof LessonNote
+  | typeof Lesson
+  | typeof MockTest
+  | typeof Order
+  | typeof OrderItem
+  | typeof Payment
+  | typeof QuestionAnswer
+  | typeof Question
+  | typeof QuestionOption
+  | typeof TestResult
+  | typeof UserLearningPath
+  | typeof UserProgress
+  | typeof UserSubmission;
 
 export type SubjectInstances =
   | User
@@ -41,7 +84,28 @@ export type SubjectInstances =
   | BlogCategory
   | BlogComment
   | Student
-  | Teacher;
+  | Teacher
+  | Coupon
+  | CouponUsage
+  | Cart
+  | CartItem
+  | Enrollment
+  | Exercise
+  | ExerciseType
+  | LearningPath
+  | LessonNote
+  | Lesson
+  | MockTest
+  | Order
+  | OrderItem
+  | Payment
+  | QuestionAnswer
+  | Question
+  | QuestionOption
+  | TestResult
+  | UserLearningPath
+  | UserProgress
+  | UserSubmission;
 
 export type Subjects =
   | InferSubjects<SubjectClasses | SubjectInstances>
@@ -63,6 +127,7 @@ export interface ServiceContext {
   blogCommentsService?: BlogCommentsService;
   blogsService?: BlogsService;
   coursesService?: CoursesService;
+  couponsService?: CouponsService;
   [key: string]: any;
 }
 
@@ -73,4 +138,5 @@ export interface ServiceTypeMap {
   blogCommentsService: BlogCommentsService;
   blogsService: BlogsService;
   coursesService: CoursesService;
+  couponsService: CouponsService;
 }

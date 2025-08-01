@@ -39,6 +39,14 @@ export const MESSAGE = {
     TEACHER_CERTIFICATION_UPDATE: 'Teacher certification updated successfully',
   },
 
+  COUPON: {
+    CREATE_SUCCESS: 'Coupon created successfully',
+    UPDATE_SUCCESS: 'Coupon updated successfully',
+    DELETE_SUCCESS: 'Coupon deleted successfully',
+    APPLY_SUCCESS: 'Coupon applied successfully',
+    VALIDATION_SUCCESS: 'Coupon validated successfully',
+  },
+
   BLOG: {
     BLOG_CATEGORY_CREATED: 'Blog category created successfully',
     BLOG_CATEGORY_UPDATED: 'Blog category updated successfully',

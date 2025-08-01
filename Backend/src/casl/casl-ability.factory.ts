@@ -58,7 +58,7 @@ export class CaslAbilityFactory {
     return build({
       detectSubjectType: (item) =>
         typeof item === 'string'
-          ? item
+          ? (item as unknown as ExtractSubjectType<Subjects>)
           : (item.constructor as ExtractSubjectType<Subjects>),
     });
   }

@@ -20,4 +20,7 @@ export enum Action {
   // Specific for course
   Feature = 'feature',
   Publish = 'publish',
+
+  // Specific for coupon
+  ApplyCoupon = 'apply_coupon',
 }

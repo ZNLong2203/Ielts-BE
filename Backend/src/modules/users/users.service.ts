@@ -1,7 +1,12 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { Prisma, users } from '@prisma/client';
 import * as bcrypt from 'bcryptjs';
-import { FileType, USER_ROLE, USER_STATUS } from 'src/common/constants';
+import {
+  FileType,
+  TEACHER_STATUS,
+  USER_ROLE,
+  USER_STATUS,
+} from 'src/common/constants';
 import { UploadedFileType } from 'src/interface/file-type.interface';
 import { FilesService } from 'src/modules/files/files.service';
 import {
@@ -9,6 +14,7 @@ import {
   RegisterTeacherDto,
 } from 'src/modules/users/dto/create-user.dto';
 import {
+  ResetTeacherPasswordDto,
   UpdateStatusDto,
   UpdateUserDto,
 } from 'src/modules/users/dto/update-user.dto';
@@ -67,6 +73,7 @@ export class UsersService {
           email_verification_token: token,
           email_verified: false,
           role: USER_ROLE.STUDENT,
+          status: USER_STATUS.INACTIVE,
         };
         if (dto.date_of_birth) {
           userData.date_of_birth = dto.date_of_birth;
@@ -192,9 +199,12 @@ export class UsersService {
             gender: dto.gender,
             country: dto.country,
             city: dto.city,
-            email_verification_token: token,
+            email_verification_token: null,
             email_verified: false,
+            password_reset_token: token,
+            password_reset_expires: new Date(Date.now() + 24 * 60 * 60 * 1000), // 24 hours
             role: USER_ROLE.TEACHER,
+            status: USER_STATUS.INACTIVE,
           },
         });
 
@@ -241,7 +251,60 @@ export class UsersService {
       data: {
         email_verified: true,
         email_verification_token: null, // Xoá token sau khi xác thực
+        status: USER_STATUS.ACTIVE, // Cập nhật trạng thái thành ACTIVE
       },
+    });
+  }
+
+  async resetTeacherPassword(token: string, dto: ResetTeacherPasswordDto) {
+    // Tìm user theo token
+    const user = await this.prisma.users.findFirst({
+      where: { password_reset_token: token },
+    });
+
+    if (!user) throw new BadRequestException('Invalid reset token');
+    if (
+      user.password_reset_expires &&
+      user.password_reset_expires < new Date()
+    ) {
+      throw new BadRequestException('Reset token has expired');
+    }
+
+    // Kiểm tra mật khẩu mới có hợp lệ không
+    if (dto.new_password !== dto.confirm_password) {
+      throw new BadRequestException(
+        'New password and confirm password do not match',
+      );
+    }
+
+    // Cập nhật mật khẩu
+    const hashedPassword = this.getHashPassword(dto.new_password);
+    return await this.prisma.$transaction(async (tx) => {
+      // Thực hiện các thao tác database bên trong transaction
+      // Cập nhật mật khẩu và xoá token
+      const userUpdate = await tx.users.update({
+        where: { id: user.id },
+        data: {
+          password: hashedPassword,
+          password_reset_token: null, // Xoá token sau khi đặt lại mật khẩu
+          password_reset_expires: null, // Xoá thời gian hết hạn token
+          status: USER_STATUS.ACTIVE, // Cập nhật trạng thái thành ACTIVE
+          email_verification_token: null, // Xoá token xác thực email nếu có
+          email_verified: true, // Đánh dấu email đã được xác thực
+        },
+      });
+
+      const teacher = await tx.teachers.update({
+        where: { user_id: user.id },
+        data: {
+          status: TEACHER_STATUS.APPROVED,
+        },
+      });
+
+      return {
+        userUpdate,
+        teacher,
+      };
     });
   }
 

@@ -8,6 +8,7 @@ import { JwtService } from '@nestjs/jwt';
 import { Request, Response } from 'express';
 import * as ms from 'ms';
 import { StringValue } from 'ms';
+import { USER_STATUS } from 'src/common/constants';
 import { UploadedFileType } from 'src/interface/file-type.interface';
 import { IJwtPayload } from 'src/interface/jwt-payload.interface';
 import { IUser } from 'src/interface/users.interface';
@@ -21,6 +22,7 @@ import {
   RegisterTeacherDto,
 } from 'src/modules/users/dto/create-user.dto';
 import {
+  ResetTeacherPasswordDto,
   UpdatePasswordDto,
   UpdateUserDto,
 } from 'src/modules/users/dto/update-user.dto';
@@ -54,7 +56,12 @@ export class AuthService {
   async registerTeacher(dto: RegisterTeacherDto, file: UploadedFileType) {
     const { token, user } = await this.usersService.registerTeacher(dto, file);
     // Gửi email xác thực
-    await this.mailService.sendVerificationEmail(user.id, user.email, token);
+    await this.mailService.sendResetTeacherPasswordEmail(
+      user.id,
+      user.email,
+      token,
+      user.full_name || '',
+    );
 
     return {
       createdAt: user.created_at,
@@ -70,6 +77,18 @@ export class AuthService {
 
     return {
       updatedAt: user.updated_at,
+    };
+  }
+
+  async resetTeacherPassword(token: string, dto: ResetTeacherPasswordDto) {
+    const user = await this.usersService.resetTeacherPassword(token, dto);
+
+    if (!user) {
+      throw new BadRequestException('Invalid or expired reset token');
+    }
+
+    return {
+      updatedAt: user.userUpdate.updated_at,
     };
   }
 
@@ -89,6 +108,13 @@ export class AuthService {
       email: user.email,
       role: user.role,
     };
+    const checkUser = await this.usersService.findById(user.id);
+    if (!checkUser) {
+      throw new UnauthorizedException('User not found');
+    }
+    if (checkUser.status === USER_STATUS.INACTIVE) {
+      throw new UnauthorizedException('User account is inactive');
+    }
     return this.createBothTokens(payload, payload, user, res, user.id);
   }
 

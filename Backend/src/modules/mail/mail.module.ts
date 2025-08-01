@@ -24,7 +24,7 @@ import { MailService } from './mail.service';
           },
         },
         defaults: {
-          from: `"No Reply" <${configService.get<string>('EMAIL_AUTH_USER')}>`,
+          from: '"IELTS Platform" <no-reply@ielts.com>',
         },
         template: {
           dir: join(process.cwd(), 'src', 'modules', 'mail', 'templates'),

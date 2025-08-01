@@ -45,6 +45,7 @@ import {
   UserLoginDto,
 } from 'src/modules/users/dto/create-user.dto';
 import {
+  ResetTeacherPasswordDto,
   UpdatePasswordDto,
   UpdateUserDto,
 } from 'src/modules/users/dto/update-user.dto';
@@ -74,14 +75,14 @@ export class AuthController {
 
   @ApiOperation({
     summary: 'Register teacher',
-    description: 'Register a new teacher and send verification email.',
+    description: 'Register a new teacher and send reset password.',
   })
   @ApiConsumes('multipart/form-data')
   @ApiBody({
     description: 'Teacher registration data with file upload',
     type: RegisterTeacherDto,
   })
-  @Public()
+  @CheckPolicies((ability) => ability.can(Action.Create, Teacher))
   @Post('register-teacher')
   @MessageResponse(MESSAGE.AUTH.REGISTER_SUCCESS)
   @UseInterceptors(FileInterceptor('file'))
@@ -119,6 +120,31 @@ export class AuthController {
   @MessageResponse(MESSAGE.AUTH.EMAIL_VERIFICATION_SUCCESS)
   verifyEmail(@Query('token') token: string) {
     return this.authService.verifyEmail(token);
+  }
+
+  @ApiOperation({
+    summary: 'Reset password',
+    description:
+      'Reset the password of a teacher using the token sent via email.',
+  })
+  @ApiQuery({
+    name: 'token',
+    description: 'Reset password token',
+    required: true,
+    type: String,
+  })
+  @ApiBody({
+    description: 'New password data',
+    type: ResetTeacherPasswordDto,
+  })
+  @Public()
+  @Post('reset-teacher-password')
+  @MessageResponse(MESSAGE.AUTH.PASSWORD_RESET_SUCCESS)
+  resetPassword(
+    @Query('token') token: string,
+    @Body() dto: ResetTeacherPasswordDto,
+  ) {
+    return this.authService.resetTeacherPassword(token, dto);
   }
 
   @ApiOperation({
