@@ -63,26 +63,56 @@ export class BlogsService {
     }
   }
 
-  async findAllBlogCategories(): Promise<blog_categories[]> {
+  async findAllBlogCategories(
+    query?: PaginationQueryDto,
+    rawQuery?: Record<string, any>,
+  ) {
     try {
-      const cachedAllBlogCategories =
-        await this.redisService.get('allBlogCategories');
-      if (cachedAllBlogCategories) {
-        return JSON.parse(cachedAllBlogCategories) as blog_categories[];
+      if (!query) {
+        const cachedAllBlogCategories =
+          await this.redisService.get('allBlogCategories');
+        if (cachedAllBlogCategories) {
+          return JSON.parse(cachedAllBlogCategories) as blog_categories[];
+        }
+
+        const allBlogCategories =
+          await this.prismaService.blog_categories.findMany({
+            orderBy: { ordering: 'asc' },
+          });
+
+        await this.redisService.set(
+          'allBlogCategories',
+          JSON.stringify(allBlogCategories),
+          3600,
+        );
+
+        return allBlogCategories;
       }
 
-      const allBlogCategories =
-        await this.prismaService.blog_categories.findMany({
-          orderBy: { ordering: 'asc' },
-        });
+      const whereCondition: Prisma.blog_categoriesWhereInput = {
+        ...this.utilsService.buildWhereFromQuery(rawQuery || {}),
+      };
 
-      await this.redisService.set(
-        'allBlogCategories',
-        JSON.stringify(allBlogCategories),
-        3600,
-      );
-
-      return allBlogCategories;
+      return this.utilsService.paginate<
+        Prisma.blog_categoriesWhereInput,
+        Prisma.blog_categoriesInclude,
+        Prisma.blog_categoriesSelect,
+        Prisma.blog_categoriesOrderByWithRelationInput
+      >({
+        model: this.prismaService.blog_categories,
+        query,
+        defaultOrderBy: { ordering: 'asc' },
+        select: {
+          id: true,
+          name: true,
+          slug: true,
+          description: true,
+          ordering: true,
+          created_at: true,
+          updated_at: true,
+        },
+        where: whereCondition,
+      });
     } catch (error) {
       if (error instanceof Error) {
         throw new Error(error.message);

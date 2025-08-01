@@ -64,7 +64,43 @@ export class BlogsController {
   @Get('/category')
   @ApiOperation({
     summary: 'Get all blog categories',
-    description: 'Retrieve all available blog categories for public use',
+    description:
+      'Retrieve all available blog categories for public use with pagination',
+  })
+  @ApiQuery({
+    name: 'page',
+    required: false,
+    type: Number,
+    description: 'Page number (starts from 1)',
+    example: 1,
+  })
+  @ApiQuery({
+    name: 'pageSize',
+    required: false,
+    type: Number,
+    description: 'Number of items per page',
+    example: 10,
+  })
+  @ApiQuery({
+    name: 'sortBy',
+    required: false,
+    type: String,
+    description: 'Field to sort by',
+    example: 'ordering',
+  })
+  @ApiQuery({
+    name: 'sortOrder',
+    required: false,
+    type: String,
+    description: 'Sort order (asc or desc)',
+    example: 'asc',
+  })
+  @ApiQuery({
+    name: 'search',
+    required: false,
+    type: String,
+    description: 'Search term for category name or description',
+    example: 'ielts',
   })
   @ApiResponse({
     status: 200,
@@ -72,8 +108,11 @@ export class BlogsController {
     type: ApiResponseDto<BlogCategoryResponseDto[]>,
   })
   @MessageResponse(MESSAGE.BLOG.BLOG_CATEGORIES_FETCHED)
-  async findAllBlogCategories() {
-    return this.blogsService.findAllBlogCategories();
+  async findAllBlogCategories(
+    @Query() query: PaginationQueryDto,
+    @Req() req: Request,
+  ) {
+    return this.blogsService.findAllBlogCategories(query, req.query);
   }
 
   @Public()
