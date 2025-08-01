@@ -108,6 +108,7 @@ export class BlogsService {
           slug: true,
           description: true,
           ordering: true,
+          is_active: true,
           created_at: true,
           updated_at: true,
         },
