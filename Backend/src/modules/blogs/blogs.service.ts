@@ -810,6 +810,62 @@ export class BlogsService {
     }
   }
 
+  async createBlogByAdmin(
+    createBlogDto: CreateBlogDto,
+    adminId: string,
+    file: UploadedFileType | null = null,
+  ): Promise<blogs> {
+    try {
+      const categoryExists =
+        await this.prismaService.blog_categories.findUnique({
+          where: { id: createBlogDto.category_id },
+        });
+
+      if (!categoryExists) {
+        throw new Error(MESSAGE.BLOG.BLOG_CATEGORY_NOT_FOUND);
+      }
+
+      let imageUrl = '';
+      if (file) {
+        const fileData = await this.filesService.uploadFile(
+          file.buffer,
+          file.originalname,
+          FileType.BLOG_IMAGE,
+        );
+        imageUrl = fileData.url || '';
+      } else if (
+        createBlogDto.image &&
+        this.isValidImageUrl(createBlogDto.image)
+      ) {
+        imageUrl = createBlogDto.image;
+      }
+
+      const blog = await this.prismaService.blogs.create({
+        data: {
+          ...createBlogDto,
+          author_id: adminId,
+          image: imageUrl,
+          status: 'published',
+          published_at: new Date(),
+        },
+      });
+
+      await this.redisService.del('allBlogsAdmin');
+      await this.redisService.del('publishedBlogs');
+      await this.redisService.del('blogsByStatus:published');
+      await this.redisService.del(
+        `publishedBlogsByCategory:${createBlogDto.category_id}`,
+      );
+
+      return blog;
+    } catch (error) {
+      if (error instanceof Error) {
+        throw new Error(error.message);
+      }
+      throw new Error(MESSAGE.ERROR.UNEXPECTED_ERROR);
+    }
+  }
+
   async updateBlogStatus(id: string, status: string): Promise<blogs> {
     try {
       const updatedBlog = await this.prismaService.blogs.update({

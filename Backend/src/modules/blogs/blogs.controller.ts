@@ -564,6 +564,45 @@ export class BlogsController {
   @ApiBearerAuth()
   @UseGuards(PermissionGuard)
   @CheckPolicies((ability) => ability.can(Action.Manage, Blog))
+  @Post('/admin')
+  @ApiOperation({
+    summary: 'Create a new blog (Admin)',
+    description:
+      'Create a new blog as admin. Blog will be created with published status immediately.',
+  })
+  @ApiBody({ type: CreateBlogWithFileDto })
+  @ApiResponse({
+    status: 201,
+    description: 'Blog created successfully',
+    type: ApiResponseDto<BlogResponseDto>,
+  })
+  @UseInterceptors(FileInterceptor('file'))
+  @ApiConsumes('multipart/form-data')
+  @MessageResponse(MESSAGE.BLOG.BLOG_CREATED)
+  async createBlogByAdmin(
+    @Body() createBlogDto: CreateBlogDto,
+    @CurrentUser() user: IUser,
+    @UploadedFile(
+      new ParseFilePipeBuilder()
+        .addFileTypeValidator({
+          fileType: 'image/jpeg|image/png|image/jpg|image/webp',
+        })
+        .addMaxSizeValidator({
+          maxSize: 3 * 1024 * 1024, // 3MB
+        })
+        .build({
+          errorHttpStatusCode: HttpStatus.UNPROCESSABLE_ENTITY,
+          fileIsRequired: false,
+        }),
+    )
+    file: UploadedFileType,
+  ) {
+    return this.blogsService.createBlogByAdmin(createBlogDto, user.id, file);
+  }
+
+  @ApiBearerAuth()
+  @UseGuards(PermissionGuard)
+  @CheckPolicies((ability) => ability.can(Action.Manage, Blog))
   @Get('/admin')
   @ApiOperation({
     summary: 'Get all blogs (Admin)',
