@@ -109,7 +109,7 @@ export class TeachersService {
     });
   }
 
-  findOne(id: string) {
+  async findOne(id: string) {
     return this.usersService.findUniqueUserByCondition({
       id,
       role: USER_ROLE.TEACHER,
@@ -117,9 +117,9 @@ export class TeachersService {
   }
 
   async update(id: string, updateTeacherDto: UpdateTeacherDto) {
-    const existingStudent = await this.usersService.findById(id);
-    if (!existingStudent || existingStudent.role !== USER_ROLE.STUDENT) {
-      throw new Error('Student not found');
+    const existingTeacher = await this.usersService.findById(id);
+    if (!existingTeacher || existingTeacher.role !== USER_ROLE.TEACHER) {
+      throw new Error('Teacher not found');
     }
 
     const updatedData: Prisma.teachersUpdateInput =

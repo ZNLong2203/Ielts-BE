@@ -4,7 +4,6 @@ import { Type } from 'class-transformer';
 import {
   ArrayMinSize,
   IsArray,
-  IsDecimal,
   IsEnum,
   IsNumber,
   IsOptional,
@@ -48,7 +47,7 @@ export class CreateTeacherDto {
     maximum: 9,
     example: 8.5,
   })
-  @IsDecimal({ decimal_digits: '1', force_decimal: true })
+  @IsNumber({ maxDecimalPlaces: 1 })
   @Min(0)
   @Max(9)
   @Type(() => Number)
