@@ -96,6 +96,53 @@ CREATE TABLE courses (
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
+CREATE TABLE enrollments (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID REFERENCES users(id) ON DELETE CASCADE,
+    course_id UUID REFERENCES courses(id) ON DELETE CASCADE,
+    enrollment_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    completion_date TIMESTAMP,
+    progress_percentage DECIMAL(5,2) DEFAULT 0,
+    certificate_url VARCHAR(500),
+    is_active BOOLEAN DEFAULT TRUE,
+    deleted BOOLEAN DEFAULT FALSE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(user_id, course_id)
+);
+
+CREATE TABLE combo_courses (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    name VARCHAR(255) NOT NULL,
+    description TEXT,
+    thumbnail VARCHAR(500),
+    original_price DECIMAL(10,2) NOT NULL,
+    combo_price DECIMAL(10,2) NOT NULL,
+    discount_percentage DECIMAL(5,2),
+    course_ids UUID[] NOT NULL, -- array of course IDs included in combo
+    is_published BOOLEAN DEFAULT FALSE,
+    enrollment_count INTEGER DEFAULT 0,
+    tags TEXT[],
+    created_by UUID REFERENCES users(id),
+    deleted BOOLEAN DEFAULT FALSE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE combo_enrollments (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID REFERENCES users(id) ON DELETE CASCADE,
+    combo_id UUID REFERENCES combo_courses(id) ON DELETE CASCADE,
+    enrollment_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    overall_progress_percentage DECIMAL(5,2) DEFAULT 0,
+    certificate_url VARCHAR(500),
+    is_active BOOLEAN DEFAULT TRUE,
+    deleted BOOLEAN DEFAULT FALSE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(user_id, combo_id)
+);
+
 CREATE TABLE lessons (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     course_id UUID REFERENCES courses(id) ON DELETE CASCADE,
@@ -142,21 +189,6 @@ CREATE TABLE user_progress (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     UNIQUE(user_id, lesson_id)
-);
-
-CREATE TABLE enrollments (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    user_id UUID REFERENCES users(id) ON DELETE CASCADE,
-    course_id UUID REFERENCES courses(id) ON DELETE CASCADE,
-    enrollment_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    completion_date TIMESTAMP,
-    progress_percentage DECIMAL(5,2) DEFAULT 0,
-    certificate_url VARCHAR(500),
-    is_active BOOLEAN DEFAULT TRUE,
-    deleted BOOLEAN DEFAULT FALSE,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    UNIQUE(user_id, course_id)
 );
 
 CREATE TABLE exercise_types (
@@ -337,12 +369,14 @@ CREATE TABLE cart_items (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     cart_id UUID REFERENCES carts(id) ON DELETE CASCADE,
     course_id UUID REFERENCES courses(id) ON DELETE CASCADE,
+    combo_id UUID REFERENCES combo_courses(id),
+    item_type VARCHAR(20) DEFAULT 'course', -- course, combo
     price DECIMAL(10,2) NOT NULL,
     discount_amount DECIMAL(10,2) DEFAULT 0,
     deleted BOOLEAN DEFAULT FALSE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    UNIQUE(cart_id, course_id)
+    UNIQUE(cart_id, course_id, combo_id)
 );
 
 CREATE TABLE orders (
@@ -366,6 +400,9 @@ CREATE TABLE order_items (
     order_id UUID REFERENCES orders(id) ON DELETE CASCADE,
     course_id UUID REFERENCES courses(id),
     course_title VARCHAR(255),
+    combo_id UUID REFERENCES combo_courses(id),
+    combo_name VARCHAR(255),
+    item_type VARCHAR(20) DEFAULT 'course', -- course, combo
     price DECIMAL(10,2) NOT NULL,
     discount_amount DECIMAL(10,2) DEFAULT 0,
     deleted BOOLEAN DEFAULT FALSE,
@@ -393,6 +430,7 @@ CREATE TABLE coupons (
     code VARCHAR(50) UNIQUE NOT NULL,
     name VARCHAR(255) NOT NULL,
     description TEXT,
+    coupon_type VARCHAR(20) DEFAULT 'course', -- course, combo
     discount_type VARCHAR(20) NOT NULL, -- percentage, fixed_amount
     discount_value DECIMAL(10,2) NOT NULL,
     minimum_amount DECIMAL(10,2),
@@ -402,7 +440,8 @@ CREATE TABLE coupons (
     valid_from TIMESTAMP NOT NULL,
     valid_until TIMESTAMP NOT NULL,
     is_active BOOLEAN DEFAULT TRUE,
-    applicable_courses UUID[], -- specific courses or null for all
+    applicable_courses UUID[], -- specific courses or null for all (when coupon_type = 'course')
+    applicable_combos UUID[], -- specific combo IDs or null for all (when coupon_type = 'combo')
     created_by UUID REFERENCES users(id),
     deleted BOOLEAN DEFAULT FALSE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -414,6 +453,8 @@ CREATE TABLE coupon_usage (
     coupon_id UUID REFERENCES coupons(id),
     user_id UUID REFERENCES users(id),
     order_id UUID REFERENCES orders(id),
+    course_id UUID REFERENCES courses(id), -- for course coupons
+    combo_id UUID REFERENCES combo_courses(id), -- for combo coupons
     discount_amount DECIMAL(10,2),
     used_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     deleted BOOLEAN DEFAULT FALSE,
@@ -463,5 +504,14 @@ CREATE INDEX idx_enrollments_user ON enrollments(user_id);
 CREATE INDEX idx_enrollments_course ON enrollments(course_id);
 CREATE INDEX idx_questions_exercise ON questions(exercise_id);
 CREATE INDEX idx_blogs_status_published ON blogs(status, published_at);
+CREATE INDEX idx_combo_courses_published ON combo_courses(is_published);
+CREATE INDEX idx_combo_enrollments_user ON combo_enrollments(user_id);
+CREATE INDEX idx_combo_enrollments_combo ON combo_enrollments(combo_id);
+CREATE INDEX idx_cart_items_cart ON cart_items(cart_id);
+CREATE INDEX idx_order_items_order ON order_items(order_id);
+CREATE INDEX idx_coupons_code ON coupons(code);
+CREATE INDEX idx_coupons_type_active ON coupons(coupon_type, is_active);
+CREATE INDEX idx_coupon_usage_coupon ON coupon_usage(coupon_id);
+CREATE INDEX idx_coupon_usage_user ON coupon_usage(user_id);
 
 
