@@ -356,29 +356,6 @@ CREATE TABLE blog_comments (
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE TABLE carts (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    user_id UUID REFERENCES users(id) ON DELETE CASCADE,
-    is_active BOOLEAN DEFAULT TRUE,
-    deleted BOOLEAN DEFAULT FALSE,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-
-CREATE TABLE cart_items (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    cart_id UUID REFERENCES carts(id) ON DELETE CASCADE,
-    course_id UUID REFERENCES courses(id) ON DELETE CASCADE,
-    combo_id UUID REFERENCES combo_courses(id),
-    item_type VARCHAR(20) DEFAULT 'course', -- course, combo
-    price DECIMAL(10,2) NOT NULL,
-    discount_amount DECIMAL(10,2) DEFAULT 0,
-    deleted BOOLEAN DEFAULT FALSE,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    UNIQUE(cart_id, course_id, combo_id)
-);
-
 CREATE TABLE orders (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id UUID REFERENCES users(id),
@@ -413,7 +390,7 @@ CREATE TABLE order_items (
 CREATE TABLE payments (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     order_id UUID REFERENCES orders(id),
-    payment_method VARCHAR(50) NOT NULL, -- vnpay, momo, paypal, stripe
+    payment_method VARCHAR(50) NOT NULL, -- zalopay, stripe
     transaction_id VARCHAR(255),
     amount DECIMAL(10,2) NOT NULL,
     currency VARCHAR(3) DEFAULT 'VND',
@@ -440,7 +417,6 @@ CREATE TABLE coupons (
     valid_from TIMESTAMP NOT NULL,
     valid_until TIMESTAMP NOT NULL,
     is_active BOOLEAN DEFAULT TRUE,
-    applicable_courses UUID[], -- specific courses or null for all (when coupon_type = 'course')
     applicable_combos UUID[], -- specific combo IDs or null for all (when coupon_type = 'combo')
     created_by UUID REFERENCES users(id),
     deleted BOOLEAN DEFAULT FALSE,
@@ -453,7 +429,6 @@ CREATE TABLE coupon_usage (
     coupon_id UUID REFERENCES coupons(id),
     user_id UUID REFERENCES users(id),
     order_id UUID REFERENCES orders(id),
-    course_id UUID REFERENCES courses(id), -- for course coupons
     combo_id UUID REFERENCES combo_courses(id), -- for combo coupons
     discount_amount DECIMAL(10,2),
     used_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -507,7 +482,6 @@ CREATE INDEX idx_blogs_status_published ON blogs(status, published_at);
 CREATE INDEX idx_combo_courses_published ON combo_courses(is_published);
 CREATE INDEX idx_combo_enrollments_user ON combo_enrollments(user_id);
 CREATE INDEX idx_combo_enrollments_combo ON combo_enrollments(combo_id);
-CREATE INDEX idx_cart_items_cart ON cart_items(cart_id);
 CREATE INDEX idx_order_items_order ON order_items(order_id);
 CREATE INDEX idx_coupons_code ON coupons(code);
 CREATE INDEX idx_coupons_type_active ON coupons(coupon_type, is_active);
