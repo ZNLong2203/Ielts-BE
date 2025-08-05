@@ -80,8 +80,6 @@ CREATE TABLE courses (
     estimated_duration INTEGER, -- in hours
     price DECIMAL(10,2) DEFAULT 0,
     discount_price DECIMAL(10,2),
-    is_free BOOLEAN DEFAULT FALSE,
-    is_published BOOLEAN DEFAULT FALSE,
     is_featured BOOLEAN DEFAULT FALSE,
     enrollment_count INTEGER DEFAULT 0,
     rating DECIMAL(2,1) DEFAULT 0,
@@ -120,7 +118,6 @@ CREATE TABLE combo_courses (
     combo_price DECIMAL(10,2) NOT NULL,
     discount_percentage DECIMAL(5,2),
     course_ids UUID[] NOT NULL, -- array of course IDs included in combo
-    is_published BOOLEAN DEFAULT FALSE,
     enrollment_count INTEGER DEFAULT 0,
     tags TEXT[],
     created_by UUID REFERENCES users(id),
@@ -155,9 +152,7 @@ CREATE TABLE lessons (
     materials_urls TEXT[],
     ordering INTEGER DEFAULT 0,
     is_preview BOOLEAN DEFAULT FALSE,
-    is_published BOOLEAN DEFAULT TRUE,
     transcript TEXT,
-    subtitles JSONB, -- multi-language subtitles
     deleted BOOLEAN DEFAULT FALSE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
@@ -169,7 +164,6 @@ CREATE TABLE lesson_notes (
     lesson_id UUID REFERENCES lessons(id) ON DELETE CASCADE,
     content TEXT NOT NULL,
     timestamp_in_video INTEGER, -- position in video where note was taken
-    is_public BOOLEAN DEFAULT FALSE,
     deleted BOOLEAN DEFAULT FALSE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
@@ -287,7 +281,6 @@ CREATE TABLE mock_tests (
     total_questions INTEGER,
     max_score DECIMAL(5,2),
     difficulty_level VARCHAR(20),
-    is_published BOOLEAN DEFAULT FALSE,
     created_by UUID REFERENCES teachers(id),
     deleted BOOLEAN DEFAULT FALSE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -448,7 +441,6 @@ CREATE TABLE learning_paths (
     estimated_duration INTEGER, -- in weeks
     course_sequence UUID[], -- ordered list of course IDs
     prerequisites TEXT[],
-    is_published BOOLEAN DEFAULT FALSE,
     created_by UUID REFERENCES teachers(id),
     deleted BOOLEAN DEFAULT FALSE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -479,7 +471,6 @@ CREATE INDEX idx_enrollments_user ON enrollments(user_id);
 CREATE INDEX idx_enrollments_course ON enrollments(course_id);
 CREATE INDEX idx_questions_exercise ON questions(exercise_id);
 CREATE INDEX idx_blogs_status_published ON blogs(status, published_at);
-CREATE INDEX idx_combo_courses_published ON combo_courses(is_published);
 CREATE INDEX idx_combo_enrollments_user ON combo_enrollments(user_id);
 CREATE INDEX idx_combo_enrollments_combo ON combo_enrollments(combo_id);
 CREATE INDEX idx_order_items_order ON order_items(order_id);
