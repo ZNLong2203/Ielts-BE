@@ -8,6 +8,7 @@ import {
 import { Prisma } from '@prisma/client';
 import { FileType, TEACHER_STATUS, USER_ROLE } from 'src/common/constants';
 import { PaginationQueryDto } from 'src/common/dto/pagination-query.dto';
+import { UploadedFileType } from 'src/interface/file-type.interface';
 import { FilesService } from 'src/modules/files/files.service';
 import { UsersService } from 'src/modules/users/users.service';
 import { PrismaService } from 'src/prisma/prisma.service';
@@ -18,7 +19,6 @@ import {
   UpdateTeacherDto,
   UpdateTeacherStatusDto,
 } from './dto/update-teacher.dto';
-import { UploadedFileType } from 'src/interface/file-type.interface';
 
 @Injectable()
 export class TeachersService {
@@ -110,10 +110,16 @@ export class TeachersService {
   }
 
   async findOne(id: string) {
-    return this.usersService.findUniqueUserByCondition({
+    const teacher = await this.usersService.findUniqueUserByCondition({
       id,
       role: USER_ROLE.TEACHER,
     });
+
+    if (!teacher) {
+      throw new Error('Teacher not found');
+    }
+    const { password, ...dataFormat } = teacher;
+    return dataFormat;
   }
 
   async update(id: string, updateTeacherDto: UpdateTeacherDto) {

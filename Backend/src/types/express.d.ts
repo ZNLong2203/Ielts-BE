@@ -9,5 +9,6 @@ declare module 'express' {
     ability?: AppAbility;
     user?: IUser;
     serviceContext: ServiceContext;
+    rawBody?: Buffer;
   }
 }

@@ -74,7 +74,7 @@ export class CouponsService {
         valid_from: createCouponDto.valid_from,
         valid_until: createCouponDto.valid_until,
         is_active: createCouponDto.is_active,
-        applicable_courses: createCouponDto.applicable_courses,
+        applicable_combos: createCouponDto.applicable_combos,
         created_by: userId,
       },
     });
@@ -111,7 +111,7 @@ export class CouponsService {
         valid_from: true,
         valid_until: true,
         is_active: true,
-        applicable_courses: true,
+        applicable_combos: true,
         created_at: true,
         updated_at: true,
       },
@@ -255,8 +255,8 @@ export class CouponsService {
         ...(updateCouponDto.is_active !== undefined && {
           is_active: updateCouponDto.is_active,
         }),
-        ...(updateCouponDto.applicable_courses !== undefined && {
-          applicable_courses: updateCouponDto.applicable_courses,
+        ...(updateCouponDto.applicable_combos !== undefined && {
+          applicable_combos: updateCouponDto.applicable_combos,
         }),
         updated_at: new Date(),
       },
@@ -293,7 +293,7 @@ export class CouponsService {
    * Validate if a coupon is valid for a user and courses
    */
   async validateCoupon(validateCouponDto: ValidateCouponDto, userId: string) {
-    const { code, course_ids, total_amount } = validateCouponDto;
+    const { code, combo_ids, total_amount } = validateCouponDto;
 
     // Find coupon by code
     const coupon = await this.prisma.coupons.findFirst({
@@ -349,14 +349,14 @@ export class CouponsService {
       };
     }
 
-    // Check course applicability
-    if (coupon.applicable_courses && coupon.applicable_courses.length > 0) {
-      // Check if any of the cart courses are applicable
-      const hasApplicableCourse = course_ids.some((courseId) =>
-        coupon.applicable_courses.includes(courseId),
+    // Check combo applicability
+    if (coupon.applicable_combos && coupon.applicable_combos.length > 0) {
+      // Check if any of the cart combos are applicable
+      const hasApplicableCombo = combo_ids.some((comboId) =>
+        coupon.applicable_combos.includes(comboId),
       );
 
-      if (!hasApplicableCourse) {
+      if (!hasApplicableCombo) {
         return {
           isValid: false,
           errorMessage: 'Coupon is not applicable to selected courses',
@@ -421,7 +421,7 @@ export class CouponsService {
     const validationResult = await this.validateCoupon(
       {
         code: applyCouponDto.code,
-        course_ids: applyCouponDto.course_ids,
+        combo_ids: applyCouponDto.combo_ids,
         total_amount: totalAmount,
       },
       userId,
@@ -463,7 +463,7 @@ export class CouponsService {
   /**
    * Get available coupons for a user
    */
-  async getAvailableCouponsForUser(userId: string, courseIds: string[]) {
+  async getAvailableCouponsForUser(userId: string, comboIds: string[]) {
     const now = new Date();
 
     // Get all active and valid coupons
@@ -502,14 +502,14 @@ export class CouponsService {
         return false;
       }
 
-      // Check course applicability
-      if (coupon.applicable_courses && coupon.applicable_courses.length > 0) {
-        // Check if any of the cart courses are applicable
-        const hasApplicableCourse = courseIds.some((courseId) =>
-          coupon.applicable_courses.includes(courseId),
+      // Check combo applicability
+      if (coupon.applicable_combos && coupon.applicable_combos.length > 0) {
+        // Check if any of the cart combos are applicable
+        const hasApplicableCombo = comboIds.some((comboId) =>
+          coupon.applicable_combos.includes(comboId),
         );
 
-        if (!hasApplicableCourse) {
+        if (!hasApplicableCombo) {
           return false;
         }
       }

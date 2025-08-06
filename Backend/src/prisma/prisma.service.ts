@@ -12,8 +12,6 @@ function createExtendedPrisma(base: PrismaClient) {
         blog_categories: true,
         blog_comments: true,
         blogs: true,
-        cart_items: true,
-        carts: true,
         coupon_usage: true,
         coupons: true,
         course_categories: true,

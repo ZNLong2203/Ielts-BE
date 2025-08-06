@@ -5,6 +5,7 @@ export enum Action {
   Read = 'read',
   Update = 'update',
   Delete = 'delete',
+  ReadAll = 'read_all',
 
   // Specific actions
   UpdateProfile = 'update_profile',

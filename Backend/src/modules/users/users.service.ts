@@ -8,6 +8,7 @@ import {
   USER_STATUS,
 } from 'src/common/constants';
 import { UploadedFileType } from 'src/interface/file-type.interface';
+import { IUser } from 'src/interface/users.interface';
 import { FilesService } from 'src/modules/files/files.service';
 import {
   RegisterStudentDto,
@@ -356,6 +357,31 @@ export class UsersService {
         return otherUser;
       }
     }
+  }
+
+  async findAllUsers(user: IUser) {
+    const admin = await this.findUniqueUserByCondition({
+      id: user.id,
+    });
+    if (!admin || admin.role !== USER_ROLE.ADMIN) {
+      throw new BadRequestException('Only admin can access this resource');
+    }
+    const users = await this.prisma.users.findMany({
+      where: {
+        status: USER_STATUS.ACTIVE,
+      },
+      include: {
+        students: true,
+        teachers: true,
+      },
+      orderBy: {
+        created_at: 'desc',
+      },
+    });
+    return users.map((user) => {
+      const { password, ...userWithoutPassword } = user;
+      return userWithoutPassword;
+    });
   }
 
   async findByEmail(email: string) {

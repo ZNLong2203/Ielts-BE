@@ -118,12 +118,12 @@ export class CreateCouponDto {
   is_active: boolean;
 
   @ApiPropertyOptional({
-    description: 'Course IDs this coupon applies to (empty for all courses)',
+    description: 'Combo IDs this coupon applies to (empty for all courses)',
     type: [String],
   })
   @IsArray()
   @IsUUID(undefined, { each: true })
-  applicable_courses: string[];
+  applicable_combos: string[];
 }
 
 export class ApplyCouponDto {
@@ -136,13 +136,13 @@ export class ApplyCouponDto {
   code: string;
 
   @ApiProperty({
-    description: 'Course IDs to apply coupon for',
+    description: 'Combo IDs to apply coupon for',
     type: [String],
     example: ['123e4567-e89b-12d3-a456-426614174000'],
   })
   @IsArray()
   @IsUUID(undefined, { each: true })
-  course_ids: string[];
+  combo_ids: string[];
 }
 
 export class ValidateCouponDto {
@@ -155,13 +155,13 @@ export class ValidateCouponDto {
   code: string;
 
   @ApiProperty({
-    description: 'Course IDs to validate coupon for',
+    description: 'Combo IDs to validate coupon for',
     type: [String],
     example: ['123e4567-e89b-12d3-a456-426614174000'],
   })
   @IsArray()
   @IsUUID(undefined, { each: true })
-  course_ids: string[];
+  combo_ids: string[];
 
   @ApiPropertyOptional({
     description: 'Total cart amount before discount',

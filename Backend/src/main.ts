@@ -3,6 +3,7 @@ import { ConfigService } from '@nestjs/config';
 import { NestFactory, Reflector } from '@nestjs/core';
 import { NestExpressApplication } from '@nestjs/platform-express';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
+import * as bodyParser from 'body-parser';
 import * as cookieParser from 'cookie-parser';
 import * as express from 'express';
 import helmet from 'helmet';
@@ -65,6 +66,22 @@ async function bootstrap() {
   app.use(helmet());
 
   app.set('query parser', (str) => qs.parse(str));
+
+  // Raw body parser for Stripe webhooks
+  app.use(
+    bodyParser.json({
+      verify: (req: express.Request, res: express.Response, buf: Buffer) => {
+        const url = req.originalUrl;
+        // Check if URL is string and includes webhook path
+        if (
+          typeof url === 'string' &&
+          url.includes('/api/payments/stripe/webhook')
+        ) {
+          req.rawBody = buf;
+        }
+      },
+    }),
+  );
 
   const config = new DocumentBuilder()
     .setTitle('English Learning API')

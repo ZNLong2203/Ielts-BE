@@ -48,11 +48,16 @@ export class StudentsService {
     });
   }
 
-  findOne(id: string) {
-    return this.usersService.findUniqueUserByCondition({
+  async findOne(id: string) {
+    const student = await this.usersService.findUniqueUserByCondition({
       id,
       role: USER_ROLE.STUDENT,
     });
+    if (!student) {
+      throw new Error('Student not found');
+    }
+    const { password, ...dataFormat } = student;
+    return dataFormat;
   }
 
   async update(id: string, updateStudentDto: UpdateStudentDto) {

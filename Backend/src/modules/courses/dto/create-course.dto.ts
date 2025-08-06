@@ -125,22 +125,6 @@ export class CreateCourseDto {
   discount_price?: number;
 
   @ApiPropertyOptional({
-    description: 'Is the course free',
-    default: false,
-  })
-  @IsBoolean()
-  @IsOptional()
-  is_free?: boolean;
-
-  @ApiPropertyOptional({
-    description: 'Is course published',
-    default: false,
-  })
-  @IsBoolean()
-  @IsOptional()
-  is_published?: boolean;
-
-  @ApiPropertyOptional({
     description: 'Is course featured',
     default: false,
   })
@@ -193,15 +177,6 @@ export class CreateCourseDto {
   @IsString({ each: true })
   @IsOptional()
   tags?: string[];
-}
-
-export class PublishCourseDto {
-  @ApiProperty({
-    description: 'Course publish status',
-    example: true,
-  })
-  @IsBoolean()
-  is_published!: boolean;
 }
 
 export class FeatureCourseDto {

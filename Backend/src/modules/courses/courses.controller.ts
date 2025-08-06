@@ -29,7 +29,6 @@ import {
   canCreateCourse,
   canFeatureCourse,
   canManageCourseCategories,
-  canPublishCourse,
   canUpdateCourse,
 } from 'src/casl/policies/course.policies';
 import { PaginationQueryDto } from 'src/common/dto/pagination-query.dto';
@@ -40,18 +39,17 @@ import {
   MessageResponse,
   SkipCheckPermission,
 } from 'src/decorator/customize';
+import { UploadedFileType } from 'src/interface/file-type.interface';
 import {
   CreateCourseCategoryDto,
   CreateCourseDto,
   FeatureCourseDto,
-  PublishCourseDto,
 } from 'src/modules/courses/dto/create-course.dto';
 import {
   UpdateCourseCategoryDto,
   UpdateCourseDto,
 } from 'src/modules/courses/dto/update-course.dto';
 import { CoursesService } from './courses.service';
-import { UploadedFileType } from 'src/interface/file-type.interface';
 
 @ApiTags('Courses')
 @Controller('courses')
@@ -152,15 +150,6 @@ export class CoursesController {
     return this.coursesService.getFeaturedCourses(limit);
   }
 
-  @Get('popular')
-  @ApiOperation({ summary: 'Get popular courses' })
-  @ApiQuery({ name: 'limit', required: false, type: Number })
-  @SkipCheckPermission()
-  @MessageResponse(MESSAGE.COURSE.COURES_POPULAR)
-  async getPopularCourses(@Query('limit') limit?: number) {
-    return this.coursesService.getPopularCourses(limit);
-  }
-
   @Get('newest')
   @ApiOperation({ summary: 'Get newest courses' })
   @ApiQuery({ name: 'limit', required: false, type: Number })
@@ -219,15 +208,6 @@ export class CoursesController {
   @MessageResponse(MESSAGE.COURSE.COURSE_DELETED)
   async remove(@Param('id') id: string) {
     return this.coursesService.remove(id);
-  }
-
-  @Patch(':id/publish')
-  @ApiOperation({ summary: 'Publish or unpublish a course' })
-  @ApiBearerAuth()
-  @CheckPolicies(canPublishCourse)
-  @MessageResponse(MESSAGE.COURSE.COURSE_PUBLISHED)
-  async publishCourse(@Param('id') id: string, @Body() dto: PublishCourseDto) {
-    return this.coursesService.publishCourse(id, dto.is_published);
   }
 
   @Patch(':id/feature')

@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Get,
   HttpStatus,
   Param,
   ParseFilePipeBuilder,
@@ -14,10 +15,15 @@ import { ApiBearerAuth, ApiBody, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { User } from 'src/casl/entities';
 import { Action } from 'src/casl/enums/action.enum';
 import { MESSAGE } from 'src/common/message';
-import { CheckPolicies, MessageResponse } from 'src/decorator/customize';
+import {
+  CheckPolicies,
+  CurrentUser,
+  MessageResponse,
+} from 'src/decorator/customize';
+import { UploadedFileType } from 'src/interface/file-type.interface';
+import { IUser } from 'src/interface/users.interface';
 import { UsersService } from 'src/modules/users/users.service';
 import { UpdateStatusDto, UpdateUserDto } from './dto/update-user.dto';
-import { UploadedFileType } from 'src/interface/file-type.interface';
 
 @ApiTags('User Profile')
 @Controller('profile')
@@ -102,5 +108,17 @@ export class UsersController {
     file: UploadedFileType,
   ) {
     return this.usersService.updateAvatar(id, file);
+  }
+
+  @ApiOperation({
+    summary: 'Get all users profile',
+    description: 'Retrieve a list of all user profiles.',
+  })
+  @ApiBearerAuth()
+  @CheckPolicies((ability) => ability.can(Action.ReadAll, User))
+  @MessageResponse(MESSAGE.USER.FETCH_ALL)
+  @Get()
+  findAll(@CurrentUser() user: IUser) {
+    return this.usersService.findAllUsers(user);
   }
 }

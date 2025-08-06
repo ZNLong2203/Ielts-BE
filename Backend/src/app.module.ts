@@ -4,6 +4,7 @@ import { APP_GUARD } from '@nestjs/core';
 import { PermissionGuard } from 'src/casl/guards/permission.guard';
 import { JwtAuthGuard } from 'src/modules/auth/guards/jwt-auth.guard';
 import { CouponsModule } from 'src/modules/coupons/coupons.module';
+import { PaymentsModule } from 'src/modules/payments/payments.module';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { CaslModule } from './casl/casl.module';
@@ -13,6 +14,7 @@ import { DatabaseService } from './database/database.service';
 import { AuthModule } from './modules/auth/auth.module';
 import { BlogCommentsModule } from './modules/blog-comments/blog-comments.module';
 import { BlogsModule } from './modules/blogs/blogs.module';
+import { CartsModule } from './modules/carts/carts.module';
 import { CoursesModule } from './modules/courses/courses.module';
 import { FilesModule } from './modules/files/files.module';
 import { MailModule } from './modules/mail/mail.module';
@@ -43,6 +45,8 @@ import { UtilsModule } from './utils/utils.module';
     BlogCommentsModule,
     CoursesModule,
     CouponsModule,
+    CartsModule,
+    PaymentsModule,
   ],
   controllers: [AppController, DatabaseController],
   providers: [

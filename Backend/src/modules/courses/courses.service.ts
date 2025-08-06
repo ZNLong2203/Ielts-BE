@@ -105,7 +105,6 @@ export class CoursesService {
           where: {
             category_id: category.id,
             deleted: false,
-            is_published: true,
           },
         });
 
@@ -152,8 +151,6 @@ export class CoursesService {
         estimated_duration: dto.estimated_duration,
         price: dto.price || 0,
         discount_price: dto.discount_price,
-        is_free: dto.is_free || false,
-        is_published: false, // Default to false, needs explicit publishing
         is_featured: false, // Default to false, only admin can feature
         requirements: dto.requirements,
         what_you_learn: dto.what_you_learn,
@@ -185,8 +182,6 @@ export class CoursesService {
         estimated_duration: true,
         price: true,
         discount_price: true,
-        is_free: true,
-        is_published: true,
         is_featured: true,
         rating: true,
         rating_count: true,
@@ -239,7 +234,6 @@ export class CoursesService {
             description: true,
             video_duration: true,
             is_preview: true,
-            is_published: true,
             ordering: true,
           },
         },
@@ -261,8 +255,6 @@ export class CoursesService {
       estimated_duration: course.estimated_duration,
       price: course.price,
       discount_price: course.discount_price,
-      is_free: course.is_free,
-      is_published: course.is_published,
       is_featured: course.is_featured,
       enrollment_count: course.enrollment_count,
       rating: course.rating,
@@ -334,28 +326,6 @@ export class CoursesService {
     });
   }
 
-  async publishCourse(id: string, isPublished: boolean) {
-    const course = await this.findById(id, true);
-
-    // Check if course has lessons
-    const lessonCount = await this.prisma.lessons.count({
-      where: { course_id: id, deleted: false },
-    });
-
-    if (isPublished && lessonCount === 0) {
-      throw new BadRequestException('Cannot publish course without lessons');
-    }
-
-    return this.prisma.courses.update({
-      where: { id },
-      data: {
-        is_published: isPublished,
-        published_at: isPublished ? new Date() : null,
-        updated_at: new Date(),
-      },
-    });
-  }
-
   async featureCourse(id: string, isFeatured: boolean) {
     const course = await this.findById(id);
 
@@ -414,7 +384,6 @@ export class CoursesService {
         thumbnail: true,
         price: true,
         discount_price: true,
-        is_free: true,
         rating: true,
         enrollment_count: true,
         created_at: true,
@@ -428,7 +397,6 @@ export class CoursesService {
     const courses = await this.prisma.courses.findMany({
       where: {
         is_featured: true,
-        is_published: true,
         deleted: false,
       },
       take: limit,
@@ -459,7 +427,6 @@ export class CoursesService {
       thumbnail: course.thumbnail,
       price: course.price,
       discount_price: course.discount_price,
-      is_free: course.is_free,
       rating: course.rating,
       enrollment_count: course.enrollment_count,
       teacher: course.teachers?.users?.full_name,
@@ -469,39 +436,9 @@ export class CoursesService {
     }));
   }
 
-  async getPopularCourses(limit = 8) {
-    return this.prisma.courses.findMany({
-      where: {
-        is_published: true,
-        deleted: false,
-      },
-      take: limit,
-      orderBy: [{ enrollment_count: 'desc' }, { rating: 'desc' }],
-      include: {
-        teachers: {
-          select: {
-            users: {
-              select: {
-                full_name: true,
-                avatar: true,
-              },
-            },
-          },
-        },
-        course_categories: {
-          select: {
-            name: true,
-            icon: true,
-          },
-        },
-      },
-    });
-  }
-
   async getNewestCourses(limit = 8) {
     return this.prisma.courses.findMany({
       where: {
-        is_published: true,
         deleted: false,
       },
       take: limit,

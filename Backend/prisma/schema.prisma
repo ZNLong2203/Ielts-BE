@@ -173,8 +173,6 @@ model courses {
   estimated_duration Int?
   price              Decimal?           @default(0) @db.Decimal(10, 2)
   discount_price     Decimal?           @db.Decimal(10, 2)
-  is_free            Boolean?           @default(false)
-  is_published       Boolean?           @default(false)
   is_featured        Boolean?           @default(false)
   enrollment_count   Int?               @default(0)
   rating             Decimal?           @default(0) @db.Decimal(2, 1)
@@ -259,7 +257,6 @@ model learning_paths {
   estimated_duration  Int?
   course_sequence     String[]              @db.Uuid
   prerequisites       String[]
-  is_published        Boolean?              @default(false)
   created_by          String?               @db.Uuid
   deleted             Boolean?              @default(false)
   created_at          DateTime?             @default(now()) @db.Timestamp(6)
@@ -274,7 +271,6 @@ model lesson_notes {
   lesson_id          String?   @db.Uuid
   content            String
   timestamp_in_video Int?
-  is_public          Boolean?  @default(false)
   deleted            Boolean?  @default(false)
   created_at         DateTime? @default(now()) @db.Timestamp(6)
   updated_at         DateTime? @default(now()) @db.Timestamp(6)
@@ -294,9 +290,7 @@ model lessons {
   materials_urls String[]
   ordering       Int?            @default(0)
   is_preview     Boolean?        @default(false)
-  is_published   Boolean?        @default(true)
   transcript     String?
-  subtitles      Json?
   deleted        Boolean?        @default(false)
   created_at     DateTime?       @default(now()) @db.Timestamp(6)
   updated_at     DateTime?       @default(now()) @db.Timestamp(6)
@@ -317,7 +311,6 @@ model mock_tests {
   total_questions  Int?
   max_score        Decimal?       @db.Decimal(5, 2)
   difficulty_level String?        @db.VarChar(20)
-  is_published     Boolean?       @default(false)
   created_by       String?        @db.Uuid
   deleted          Boolean?       @default(false)
   created_at       DateTime?      @default(now()) @db.Timestamp(6)
@@ -564,7 +557,6 @@ model combo_courses {
   combo_price         Decimal             @db.Decimal(10, 2)
   discount_percentage Decimal?            @db.Decimal(5, 2)
   course_ids          String[]            @db.Uuid
-  is_published        Boolean?            @default(false)
   enrollment_count    Int?                @default(0)
   tags                String[]
   created_by          String?             @db.Uuid
@@ -575,8 +567,6 @@ model combo_courses {
   combo_enrollments   combo_enrollments[]
   coupon_usage        coupon_usage[]
   order_items         order_items[]
-
-  @@index([is_published], map: "idx_combo_courses_published")
 }
 
 model combo_enrollments {
