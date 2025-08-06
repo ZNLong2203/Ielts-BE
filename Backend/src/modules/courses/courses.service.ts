@@ -11,10 +11,12 @@ import { FilesService } from 'src/modules/files/files.service';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { UtilsService } from 'src/utils/utils.service';
 import {
+  CreateComboCourseDto,
   CreateCourseCategoryDto,
   CreateCourseDto,
 } from './dto/create-course.dto';
 import {
+  UpdateComboCourseDto,
   UpdateCourseCategoryDto,
   UpdateCourseDto,
 } from './dto/update-course.dto';
@@ -460,6 +462,134 @@ export class CoursesService {
             icon: true,
           },
         },
+      },
+    });
+  }
+
+  async findAllComboCourses(
+    query: PaginationQueryDto,
+    rawQuery: Record<string, any>,
+  ) {
+    const whereCondition: Prisma.combo_coursesWhereInput =
+      this.utilsService.buildWhereFromQuery(rawQuery);
+    return this.utilsService.paginate<
+      Prisma.combo_coursesWhereInput,
+      Prisma.combo_coursesInclude,
+      Prisma.combo_coursesSelect,
+      Prisma.combo_coursesOrderByWithRelationInput
+    >({
+      model: this.prisma.combo_courses,
+      query,
+      defaultOrderBy: { created_at: 'desc' },
+      where: whereCondition,
+    });
+  }
+  async findComboCourseById(id: string) {
+    const comboCourse = await this.prisma.combo_courses.findFirst({
+      where: { id, deleted: false },
+    });
+
+    if (!comboCourse) {
+      throw new NotFoundException('Combo course not found');
+    }
+
+    return comboCourse;
+  }
+  async createComboCourse(dto: CreateComboCourseDto) {
+    const courseIds = dto.course_ids;
+
+    if (!courseIds || courseIds.length === 0) {
+      throw new BadRequestException('At least one course must be selected');
+    }
+
+    // Check if all courses exist
+    const courses = await this.prisma.courses.findMany({
+      where: {
+        id: { in: courseIds },
+        deleted: false,
+      },
+    });
+
+    if (courses.length !== courseIds.length) {
+      throw new BadRequestException(
+        'One or more selected courses do not exist',
+      );
+    }
+
+    return this.prisma.combo_courses.create({
+      data: {
+        name: dto.name,
+        description: dto.description,
+        original_price: dto.original_price || 0,
+        discount_percentage: dto.discount_percentage || 0,
+        combo_price: dto.combo_price || 0,
+        tags: dto.tags || [],
+        course_ids: dto.course_ids,
+      },
+    });
+  }
+  async updateComboCourse(id: string, dto: UpdateComboCourseDto) {
+    const comboCourse = await this.findComboCourseById(id);
+
+    // Check if course IDs are provided
+    if (dto.course_ids && dto.course_ids.length > 0) {
+      // Check if all courses exist
+      const courses = await this.prisma.courses.findMany({
+        where: {
+          id: { in: dto.course_ids },
+          deleted: false,
+        },
+      });
+
+      if (courses.length !== dto.course_ids.length) {
+        throw new BadRequestException(
+          'One or more selected courses do not exist',
+        );
+      }
+    }
+
+    return this.prisma.combo_courses.update({
+      where: { id },
+      data: {
+        updated_at: new Date(),
+        name: dto.name,
+        description: dto.description,
+        original_price: dto.original_price || 0,
+        discount_percentage: dto.discount_percentage || 0,
+        combo_price: dto.combo_price || 0,
+        tags: dto.tags || [],
+        course_ids: dto.course_ids,
+      },
+    });
+  }
+  async removeComboCourse(id: string) {
+    const comboCourse = await this.findComboCourseById(id);
+
+    return this.prisma.combo_courses.update({
+      where: { id },
+      data: {
+        deleted: true,
+        updated_at: new Date(),
+      },
+    });
+  }
+
+  async uploadComboThumbnail(id: string, file: UploadedFileType) {
+    const comboCourse = await this.findComboCourseById(id);
+
+    // Upload to storage
+    const fileData = await this.filesService.uploadFile(
+      file.buffer,
+      file.originalname,
+      FileType.COURSE_THUMBNAIL,
+    );
+
+    // Update combo course thumbnail
+    return this.prisma.combo_courses.update({
+      where: { id },
+      data: {
+        thumbnail: fileData.url,
+        updated_at: new Date(),
       },
     });
   }

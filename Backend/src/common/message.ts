@@ -103,6 +103,11 @@ export const MESSAGE = {
     COURSE_NEWEST: 'Newest courses retrieved successfully',
     COURSE_PUBLISHED: 'Course publication status updated successfully',
     THUMBNAIL_UPLOAD_SUCCESS: 'Course thumbnail uploaded successfully',
+    COMBO_COURSE_CREATED: 'Combo course created successfully',
+    COMBO_COURSE_UPDATED: 'Combo course updated successfully',
+    COMBO_COURSE_DELETED: 'Combo course deleted successfully',
+    COMBO_COURSE_FETCHED: 'Combo course fetched successfully',
+    COMBO_COURSE_LIST: 'Combo courses retrieved successfully',
   },
 
   FILES: {

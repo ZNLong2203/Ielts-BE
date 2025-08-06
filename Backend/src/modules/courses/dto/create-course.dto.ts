@@ -187,3 +187,64 @@ export class FeatureCourseDto {
   @IsBoolean()
   is_featured!: boolean;
 }
+
+export class CreateComboCourseDto {
+  @ApiProperty({
+    description: 'Combo course title',
+    example: 'IELTS Mastery Combo',
+  })
+  @IsString()
+  @IsNotEmpty()
+  @MaxLength(255)
+  name: string;
+
+  @ApiPropertyOptional({ description: 'Combo course description' })
+  @IsString()
+  @IsOptional()
+  description?: string;
+
+  @ApiProperty({
+    description: 'List of course IDs included in the combo',
+    type: [String],
+    example: ['course-id-1', 'course-id-2'],
+  })
+  @IsArray()
+  @IsUUID(undefined, { each: true })
+  course_ids: string[];
+
+  @ApiPropertyOptional({
+    description: 'Combo course price',
+    example: 999000,
+  })
+  @IsNumber()
+  @Min(0)
+  @IsOptional()
+  original_price?: number;
+
+  @ApiPropertyOptional({
+    description: 'Discounted combo course price',
+    example: 799000,
+  })
+  @IsNumber()
+  @Min(0)
+  @IsOptional()
+  combo_price?: number;
+
+  @ApiPropertyOptional({
+    description: 'Discount percentage for the combo course',
+    example: 20,
+  })
+  @IsNumber()
+  @Min(0)
+  @IsOptional()
+  discount_percentage?: number;
+
+  @ApiPropertyOptional({
+    description: 'Combo course tags',
+    example: ['IELTS', 'Reading', 'Academic'],
+  })
+  @IsArray()
+  @IsString({ each: true })
+  @IsOptional()
+  tags?: string[];
+}

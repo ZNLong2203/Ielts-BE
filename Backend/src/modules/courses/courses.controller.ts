@@ -41,11 +41,13 @@ import {
 } from 'src/decorator/customize';
 import { UploadedFileType } from 'src/interface/file-type.interface';
 import {
+  CreateComboCourseDto,
   CreateCourseCategoryDto,
   CreateCourseDto,
   FeatureCourseDto,
 } from 'src/modules/courses/dto/create-course.dto';
 import {
+  UpdateComboCourseDto,
   UpdateCourseCategoryDto,
   UpdateCourseDto,
 } from 'src/modules/courses/dto/update-course.dto';
@@ -254,5 +256,94 @@ export class CoursesController {
     file: UploadedFileType,
   ) {
     return this.coursesService.uploadThumbnail(id, file);
+  }
+
+  @Post('combo')
+  @ApiOperation({ summary: 'Create a combo course' })
+  @ApiBearerAuth()
+  @CheckPolicies(canCreateCourse)
+  @MessageResponse(MESSAGE.COURSE.COMBO_COURSE_CREATED)
+  async createComboCourse(
+    @Body() createComboCourseDto: CreateComboCourseDto,
+    @CurrentUser() user: User,
+  ) {
+    return this.coursesService.createComboCourse(createComboCourseDto);
+  }
+
+  @Get('combo')
+  @ApiOperation({ summary: 'Get all combo courses' })
+  @MessageResponse(MESSAGE.COURSE.COMBO_COURSE_LIST)
+  @SkipCheckPermission()
+  async findAllComboCourses(
+    @Query() query: PaginationQueryDto,
+    @Req() req: Request,
+  ) {
+    return this.coursesService.findAllComboCourses(query, req.query);
+  }
+
+  @Get('combo/:id')
+  @ApiOperation({ summary: 'Get a combo course by ID' })
+  @SkipCheckPermission()
+  @MessageResponse(MESSAGE.COURSE.COMBO_COURSE_FETCHED)
+  async findOneComboCourse(@Param('id') id: string) {
+    return this.coursesService.findComboCourseById(id);
+  }
+
+  @Patch('combo/:id')
+  @ApiOperation({ summary: 'Update a combo course' })
+  @ApiBearerAuth()
+  @CheckPolicies(canUpdateCourse)
+  @MessageResponse(MESSAGE.COURSE.COMBO_COURSE_UPDATED)
+  async updateComboCourse(
+    @Param('id') id: string,
+    @Body() updateComboCourseDto: UpdateComboCourseDto,
+  ) {
+    return this.coursesService.updateComboCourse(id, updateComboCourseDto);
+  }
+
+  @Delete('combo/:id')
+  @ApiOperation({ summary: 'Delete a combo course' })
+  @ApiBearerAuth()
+  @CheckPolicies(canUpdateCourse)
+  @MessageResponse(MESSAGE.COURSE.COMBO_COURSE_DELETED)
+  async removeComboCourse(@Param('id') id: string) {
+    return this.coursesService.removeComboCourse(id);
+  }
+
+  @Post('combo/:id/thumbnail')
+  @ApiOperation({ summary: 'Upload combo course thumbnail' })
+  @ApiBearerAuth()
+  @CheckPolicies(canUpdateCourse)
+  @UseInterceptors(FileInterceptor('file'))
+  @ApiConsumes('multipart/form-data')
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        file: {
+          type: 'string',
+          format: 'binary',
+        },
+      },
+    },
+  })
+  @MessageResponse(MESSAGE.COURSE.THUMBNAIL_UPLOAD_SUCCESS)
+  async uploadComboThumbnail(
+    @Param('id') id: string,
+    @UploadedFile(
+      new ParseFilePipeBuilder()
+        .addFileTypeValidator({
+          fileType: 'image/jpeg|image/png|image/jpg|image/webp',
+        })
+        .addMaxSizeValidator({
+          maxSize: 3 * 1024 * 1024, // 3MB
+        })
+        .build({
+          errorHttpStatusCode: HttpStatus.UNPROCESSABLE_ENTITY,
+        }),
+    )
+    file: UploadedFileType,
+  ) {
+    return this.coursesService.uploadComboThumbnail(id, file);
   }
 }
