@@ -1,68 +1,64 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import {
   IsEnum,
-  IsNotEmpty,
   IsNumber,
   IsOptional,
   IsString,
   IsUUID,
 } from 'class-validator';
-import { PaymentMethod } from '../constants/payment.constants';
+import { PaymentMethod } from '../constants/payments.constant';
 
 export class CreatePaymentDto {
   @ApiProperty({
-    description: 'Order ID',
-    example: '123e4567-e89b-12d3-a456-426614174000',
+    example: 'uuid-order',
+    description: 'Order ID liên kết thanh toán',
   })
   @IsUUID()
-  @IsNotEmpty()
-  orderId: string;
+  orderId!: string;
 
   @ApiProperty({
-    description: 'Payment method',
-    enum: PaymentMethod,
-    example: PaymentMethod.VISA,
-  })
-  @IsEnum(PaymentMethod)
-  @IsNotEmpty()
-  paymentMethod: PaymentMethod;
-
-  @ApiProperty({
-    description: 'Amount to pay',
-    example: 100000,
+    example: 500000,
+    description: 'Số tiền thanh toán (major unit)',
   })
   @IsNumber()
-  @IsNotEmpty()
-  amount: number;
+  amount!: number;
+
+  @ApiProperty({ example: 'VND', description: 'Currency code' })
+  @IsString()
+  currency!: string;
 
   @ApiProperty({
-    description: 'Currency',
-    example: 'VND',
-    default: 'VND',
+    enum: PaymentMethod,
+    example: PaymentMethod.ZALOPAY,
+    description: 'Phương thức thanh toán',
   })
-  @IsString()
-  @IsOptional()
-  currency: string = 'VND';
+  @IsEnum(PaymentMethod)
+  method!: PaymentMethod;
 
-  @ApiPropertyOptional({
-    description: 'Return URL after payment',
-    example: 'https://yoursite.com/order/success',
-  })
-  @IsString()
+  @ApiProperty({ required: false, description: 'Optional description' })
   @IsOptional()
-  returnUrl?: string;
+  @IsString()
+  description?: string;
+}
 
-  @ApiPropertyOptional({
-    description: 'IP address of the customer',
-  })
-  @IsString()
-  @IsOptional()
-  ipAddress?: string;
+export class ZaloPayCallbackDto {
+  @ApiProperty()
+  data!: any;
 
-  @ApiPropertyOptional({
-    description: 'Order description',
-  })
-  @IsString()
-  @IsOptional()
-  orderDescription?: string;
+  @ApiProperty()
+  mac!: string;
+}
+
+export class PaymentCreateResponseDto {
+  @ApiProperty({ description: 'Payment ID' })
+  paymentId: string;
+
+  @ApiProperty({ description: 'Payment provider (stripe/zalopay)' })
+  provider: string;
+
+  @ApiProperty({ description: 'Checkout URL for payment', nullable: true })
+  checkoutUrl: string | null;
+
+  @ApiPropertyOptional({ description: 'Raw provider response' })
+  raw?: unknown;
 }
