@@ -8,7 +8,7 @@ export interface ZaloPayPayload {
   item: string;
   description: string;
   mac: string;
-  call_back_url?: string;
+  callback_url?: string;
 }
 
 export interface ZaloPayCallbackData {
@@ -48,6 +48,15 @@ export interface ZaloPayVerificationResult {
   valid: boolean;
   reason?: string;
   data?: ZaloPayCallbackData;
+}
+
+export interface ZaloPayTransactionQueryRes {
+  return_code: number;
+  return_message: string;
+  sub_return_code: number;
+  sub_return_message: string;
+  is_processing: boolean;
+  zp_trans_id: string;
 }
 
 export interface PaymentRecord {

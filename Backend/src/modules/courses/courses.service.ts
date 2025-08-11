@@ -41,14 +41,39 @@ export class CoursesService {
     });
   }
 
-  async findAllCategory(includeInactive = false) {
-    const where = includeInactive
-      ? { deleted: false }
-      : { deleted: false, is_active: true };
+  async findAllCategory(
+    includeInactive = false,
+    query: PaginationQueryDto,
+    rawQuery: Record<string, any>,
+  ) {
+    const whereCondition: Prisma.course_categoriesWhereInput =
+      this.utilsService.buildWhereFromQuery(rawQuery);
 
-    return this.prisma.course_categories.findMany({
-      where,
-      orderBy: { ordering: 'asc' },
+    if (!includeInactive) {
+      whereCondition.deleted = false;
+      whereCondition.is_active = true;
+    }
+
+    return this.utilsService.paginate<
+      Prisma.course_categoriesWhereInput,
+      Prisma.course_categoriesInclude,
+      Prisma.course_categoriesSelect,
+      Prisma.course_categoriesOrderByWithRelationInput
+    >({
+      model: this.prisma.course_categories,
+      query,
+      defaultOrderBy: { created_at: 'desc' },
+      select: {
+        id: true,
+        name: true,
+        description: true,
+        icon: true,
+        ordering: true,
+        is_active: true,
+        created_at: true,
+        updated_at: true,
+      },
+      where: whereCondition,
     });
   }
 

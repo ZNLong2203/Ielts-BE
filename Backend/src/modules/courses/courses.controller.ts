@@ -82,8 +82,14 @@ export class CoursesController {
   async findAllCategory(
     @Query('includeInactive', new ParseBoolPipe({ optional: true }))
     includeInactive = false,
+    @Query() query: PaginationQueryDto,
+    @Req() req: Request,
   ) {
-    return this.coursesService.findAllCategory(includeInactive);
+    return this.coursesService.findAllCategory(
+      includeInactive,
+      query,
+      req.query,
+    );
   }
 
   @Get('/categories/course-counts')

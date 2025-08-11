@@ -265,6 +265,19 @@ export class PaymentService {
     });
   }
 
+  // call ZALOPAY_QUERY_ENDPOINT to retrieve payment information
+  async findPaymentByZaloId(
+    app_trans_id: string,
+  ): Promise<PaymentRecord | null> {
+    const resp =
+      await this.zaloProvider.findPaymentStatusByAppTransId(app_trans_id);
+    if (!resp) {
+      return null;
+    }
+
+    return resp;
+  }
+
   private async findPaymentByOrderId(
     orderId: string,
   ): Promise<PaymentRecord | null> {
