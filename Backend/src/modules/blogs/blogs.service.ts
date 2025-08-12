@@ -285,6 +285,15 @@ export class BlogsService {
         select: {
           id: true,
           author_id: true,
+          users: {
+            select: {
+              id: true,
+              full_name: true,
+              avatar: true,
+              email: true,
+              role: true,
+            },
+          },
           category_id: true,
           title: true,
           content: true,
@@ -373,6 +382,15 @@ export class BlogsService {
         select: {
           id: true,
           author_id: true,
+          users: {
+            select: {
+              id: true,
+              full_name: true,
+              avatar: true,
+              email: true,
+              role: true,
+            },
+          },
           category_id: true,
           title: true,
           content: true,
@@ -514,6 +532,15 @@ export class BlogsService {
         select: {
           id: true,
           author_id: true,
+          users: {
+            select: {
+              id: true,
+              full_name: true,
+              avatar: true,
+              email: true,
+              role: true,
+            },
+          },
           category_id: true,
           title: true,
           content: true,
@@ -706,6 +733,15 @@ export class BlogsService {
         select: {
           id: true,
           author_id: true,
+          users: {
+            select: {
+              id: true,
+              full_name: true,
+              avatar: true,
+              email: true,
+              role: true,
+            },
+          },
           category_id: true,
           title: true,
           content: true,
@@ -773,6 +809,15 @@ export class BlogsService {
         select: {
           id: true,
           author_id: true,
+          users: {
+            select: {
+              id: true,
+              full_name: true,
+              avatar: true,
+              email: true,
+              role: true,
+            },
+          },
           category_id: true,
           title: true,
           content: true,
