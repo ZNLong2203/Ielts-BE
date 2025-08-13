@@ -3,22 +3,25 @@ import { ConfigService } from '@nestjs/config';
 import { NestFactory, Reflector } from '@nestjs/core';
 import { NestExpressApplication } from '@nestjs/platform-express';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
-import * as bodyParser from 'body-parser';
 import * as cookieParser from 'cookie-parser';
 import * as express from 'express';
 import helmet from 'helmet';
 import * as qs from 'qs';
-import { DatabaseService } from 'src/database/database.service';
 import { HttpExceptionFilter } from 'src/filter/http-exception.filter';
 import { LoggingInterceptor } from 'src/interceptor/logging.interceptor';
 import { TransformInterceptor } from 'src/interceptor/transform.interceptor';
 import { AppModule } from './app.module';
 
 async function bootstrap() {
-  const app = await NestFactory.create<NestExpressApplication>(AppModule);
+  const app = await NestFactory.create<NestExpressApplication>(AppModule, {
+    rawBody: true,
+  });
   const configService = app.get(ConfigService);
   const port = configService.get<number>('PORT') || 3000;
   const reflector = app.get(Reflector);
+
+  // Raw body parser for Stripe webhooks
+  app.use('/api/v1/webhooks/stripe', express.raw({ type: 'application/json' }));
 
   // Configure body parsing for different content types
   app.use(express.json({ limit: '50mb' }));
@@ -67,22 +70,6 @@ async function bootstrap() {
 
   app.set('query parser', (str) => qs.parse(str));
 
-  // Raw body parser for Stripe webhooks
-  app.use(
-    bodyParser.json({
-      verify: (req: express.Request, res: express.Response, buf: Buffer) => {
-        const url = req.originalUrl;
-        // Check if URL is string and includes webhook path
-        if (
-          typeof url === 'string' &&
-          url.includes('/api/payments/stripe/webhook')
-        ) {
-          req.rawBody = buf;
-        }
-      },
-    }),
-  );
-
   const config = new DocumentBuilder()
     .setTitle('English Learning API')
     .setDescription('API documentation for English Learning application')
@@ -112,10 +99,6 @@ async function bootstrap() {
       persistAuthorization: true,
     },
   });
-
-  const dbService = app.get(DatabaseService);
-  await dbService.createAdminUser();
-  await dbService.seedSampleData();
   await app.listen(port);
 }
 void bootstrap();

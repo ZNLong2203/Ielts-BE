@@ -1,42 +1,78 @@
 import {
-  Controller,
-  Get,
-  Post,
   Body,
-  Patch,
-  Param,
+  Controller,
   Delete,
+  Get,
+  HttpCode,
+  HttpStatus,
+  Param,
+  Patch,
+  Post,
+  Query,
+  Req,
 } from '@nestjs/common';
+import { ApiOperation, ApiTags } from '@nestjs/swagger';
+import { Request } from 'express';
+import { PaginationQueryDto } from 'src/common/dto/pagination-query.dto';
+import { CurrentUser, SkipCheckPermission } from 'src/decorator/customize';
+import { IUser } from 'src/interface/users.interface';
+import { CreateOrderDto } from 'src/modules/orders/dto/create-order.dto';
+import {
+  RetryPaymentDto,
+  UpdateOrderStatusDto,
+} from 'src/modules/orders/dto/update-order.dto';
 import { OrdersService } from './orders.service';
-import { CreateOrderDto } from './dto/create-order.dto';
-import { UpdateOrderDto } from './dto/update-order.dto';
 
+@ApiTags('orders')
 @Controller('orders')
 export class OrdersController {
   constructor(private readonly ordersService: OrdersService) {}
 
   @Post()
-  create(@Body() createOrderDto: CreateOrderDto) {
-    return this.ordersService.create(createOrderDto);
+  @ApiOperation({ summary: 'Create order from combo' })
+  @SkipCheckPermission()
+  async create(@CurrentUser() user: IUser, @Body() dto: CreateOrderDto) {
+    return this.ordersService.createOrder(user.id, dto);
   }
 
   @Get()
-  findAll() {
-    return this.ordersService.findAll();
+  @ApiOperation({ summary: 'List orders' })
+  async list(@Query() query: PaginationQueryDto, @Req() req: Request) {
+    return this.ordersService.listOrders(query, req.query);
   }
 
   @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.ordersService.findOne(+id);
+  @ApiOperation({ summary: 'Get order details' })
+  async get(@Param('id') id: string) {
+    return this.ordersService.getOrder(id);
   }
 
-  @Patch(':id')
-  update(@Param('id') id: string, @Body() updateOrderDto: UpdateOrderDto) {
-    return this.ordersService.update(+id, updateOrderDto);
+  @Patch(':id/cancel')
+  @ApiOperation({ summary: 'Cancel order' })
+  async cancel(@Param('id') id: string) {
+    return this.ordersService.cancelOrder(id);
+  }
+
+  @Patch(':id/status')
+  @ApiOperation({ summary: 'Update order status (admin)' })
+  async updateStatus(
+    @Param('id') id: string,
+    @Body() dto: UpdateOrderStatusDto,
+  ) {
+    return this.ordersService.updateStatus(id, dto);
   }
 
   @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.ordersService.remove(+id);
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiOperation({ summary: 'Soft delete order' })
+  async remove(@Param('id') id: string) {
+    await this.ordersService.softDelete(id);
+    return;
+  }
+
+  @Post(':id/retry-payment')
+  @ApiOperation({ summary: 'Retry payment for order' })
+  async retry(@Param('id') id: string, @Body() dto: RetryPaymentDto) {
+    return this.ordersService.retryPayment(id, dto);
   }
 }

@@ -5,6 +5,8 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { Response } from 'express';
+import { OrderStatus } from 'src/modules/orders/dto/update-order.dto';
 import {
   PaymentMethod,
   PaymentStatus,
@@ -23,7 +25,7 @@ import { StripeProvider } from './providers/stripe.provider';
 import { ZaloPayProvider } from './providers/zalopay.provider';
 
 @Injectable()
-export class PaymentService {
+export class PaymentsService {
   private readonly logger = new Logger('PaymentService');
 
   constructor(
@@ -80,10 +82,10 @@ export class PaymentService {
   ): Promise<PaymentCreateResponseDto> {
     const { orderId, amount, currency, description } = dto;
     const baseUrl =
-      this.config.get<string>('FRONTEND_URL') || 'http://localhost:3000';
+      this.config.get<string>('APP_BASE_URL') || 'http://localhost:3000';
 
-    const successUrl = `${baseUrl}/payment-success?orderId=${orderId}&paymentId=${payment.id}`;
-    const cancelUrl = `${baseUrl}/payment-cancel?orderId=${orderId}&paymentId=${payment.id}`;
+    const successUrl = `${baseUrl}/api/v1/payments/stripe/success?orderId=${orderId}&paymentId=${payment.id}`;
+    const cancelUrl = `${baseUrl}/api/v1/payments/stripe/cancel?orderId=${orderId}&paymentId=${payment.id}`;
 
     const session = await this.stripeProvider.createCheckoutSession({
       amountMajor: amount,
@@ -164,26 +166,19 @@ export class PaymentService {
   async handleStripeEvent(event: Stripe.Event): Promise<void> {
     const { type, data } = event;
     const session = data.object as Stripe.Checkout.Session;
-    let transactionId: string;
-    if (typeof session.payment_intent === 'string') {
-      transactionId = session.payment_intent;
-    } else if (
-      session.payment_intent &&
-      typeof session.payment_intent === 'object'
-    ) {
-      transactionId = session.payment_intent.id;
-    } else {
-      transactionId = session.id;
-    }
 
-    let payment = await this.findPaymentByTransactionId(transactionId);
+    // Use consistent strategy: try session.id first, then payment_intent.id
+    let payment = await this.findPaymentByTransactionId(session.id);
 
+    // 2. Nếu không tìm thấy, thử tìm theo orderId từ metadata
     if (!payment && session.metadata?.orderId) {
       payment = await this.findPaymentByOrderId(session.metadata.orderId);
     }
 
     if (!payment) {
-      this.logger.warn(`Stripe webhook, payment not found: ${transactionId}`);
+      this.logger.warn(
+        `Stripe webhook, payment not found. Session: ${session.id}, OrderId: ${session.metadata?.orderId}`,
+      );
       return;
     }
 
@@ -251,6 +246,92 @@ export class PaymentService {
     }
   }
 
+  // handle successful payment stripe with successUrl when created to check db updated and redirect
+  async handleSuccessfulPaymentStripe(
+    orderId: string,
+    paymentId: string,
+    res: Response,
+  ): Promise<void> {
+    // find and update if necessary for db order and payment with transaction
+    await this.prisma.$transaction(async (tx) => {
+      const payment = await tx.payments.findUnique({
+        where: { id: paymentId },
+      });
+      if (!payment) {
+        throw new NotFoundException('Payment not found or not completed');
+      }
+
+      const order = await tx.orders.findUnique({
+        where: { id: orderId },
+      });
+      if (!order) {
+        throw new NotFoundException('Order not found');
+      }
+
+      // Update order and payment if necessary
+      await tx.payments.update({
+        where: { id: paymentId },
+        data: { status: PaymentStatus.COMPLETED },
+      });
+
+      await tx.orders.update({
+        where: { id: orderId },
+        data: {
+          status: OrderStatus.COMPLETED,
+          payment_status: PaymentStatus.COMPLETED,
+        },
+      });
+    });
+
+    // Redirect to success URL
+    const successUrl = `${this.config.get<string>('FRONTEND_URL')}/order-success?orderId=${orderId}&paymentId=${paymentId}`;
+    // Implement redirection logic here
+    res.redirect(successUrl);
+  }
+
+  // handle cancel payment stripe with cancelUrl when created to check db updated and redirect
+  async handleCancelPaymentStripe(
+    orderId: string,
+    paymentId: string,
+    res: Response,
+  ): Promise<void> {
+    // find and update if necessary for db order and payment with transaction
+    await this.prisma.$transaction(async (tx) => {
+      const payment = await tx.payments.findUnique({
+        where: { id: paymentId },
+      });
+      if (!payment) {
+        throw new NotFoundException('Payment not found or not completed');
+      }
+
+      const order = await tx.orders.findUnique({
+        where: { id: orderId },
+      });
+      if (!order) {
+        throw new NotFoundException('Order not found');
+      }
+
+      // Update order and payment if necessary
+      await tx.payments.update({
+        where: { id: paymentId },
+        data: { status: PaymentStatus.CANCELLED },
+      });
+
+      await tx.orders.update({
+        where: { id: orderId },
+        data: {
+          status: OrderStatus.CANCELLED,
+          payment_status: PaymentStatus.CANCELLED,
+          updated_at: new Date(),
+        },
+      });
+    });
+
+    // Redirect to cancel URL
+    const cancelUrl = `${this.config.get<string>('FRONTEND_URL')}/order-cancelled?orderId=${orderId}&paymentId=${paymentId}`;
+    res.redirect(cancelUrl);
+  }
+
   private async findPaymentByTransactionId(
     transactionId: string,
   ): Promise<PaymentRecord | null> {
@@ -292,6 +373,12 @@ export class PaymentService {
     });
   }
 
+  private async findPaymentById(paymentId: string) {
+    return await this.prisma.payments.findUnique({
+      where: { id: paymentId },
+    });
+  }
+
   private async updatePaymentStatus(
     paymentId: string,
     status: PaymentStatus,
@@ -309,17 +396,29 @@ export class PaymentService {
     const currentGatewayResponse =
       (payment.gateway_response as Record<string, unknown>) ?? {};
 
-    await this.prisma.payments.update({
-      where: { id: paymentId },
-      data: {
-        status,
-        processed_at: new Date(),
-        updated_at: new Date(),
-        gateway_response: {
-          ...currentGatewayResponse,
-          stripe_event: event,
-        } as any,
-      },
+    // use transaction
+    await this.prisma.$transaction(async (tx) => {
+      const payment = await tx.payments.update({
+        where: { id: paymentId },
+        data: {
+          status,
+          processed_at: new Date(),
+          updated_at: new Date(),
+          gateway_response: {
+            ...currentGatewayResponse,
+            stripe_event: event,
+          } as any,
+        },
+      });
+
+      // update order status
+      await tx.orders.update({
+        where: { id: payment.order_id ?? '' },
+        data: {
+          status: OrderStatus.COMPLETED,
+          payment_status: PaymentStatus.COMPLETED,
+        },
+      });
     });
   }
 
@@ -341,18 +440,64 @@ export class PaymentService {
     const currentGatewayResponse =
       (payment.gateway_response as Record<string, unknown>) ?? {};
 
-    await this.prisma.payments.update({
+    // use transaction
+    await this.prisma.$transaction(async (tx) => {
+      const paymentUpdate = await tx.payments.update({
+        where: { id: paymentId },
+        data: {
+          status,
+          processed_at: new Date(),
+          updated_at: new Date(),
+          transaction_id: zpTransId || payment.transaction_id,
+          gateway_response: {
+            ...currentGatewayResponse,
+            zalopay_callback: callbackData,
+          } as any,
+        },
+      });
+
+      // update order status
+      await tx.orders.update({
+        where: { id: paymentUpdate.order_id ?? '' },
+        data: {
+          status: OrderStatus.COMPLETED,
+          payment_status: PaymentStatus.COMPLETED,
+        },
+      });
+    });
+  }
+
+  async cancelPayment(paymentId: string) {
+    const payment = await this.prisma.payments.findUnique({
       where: { id: paymentId },
-      data: {
-        status,
-        processed_at: new Date(),
-        updated_at: new Date(),
-        transaction_id: zpTransId || payment.transaction_id,
-        gateway_response: {
-          ...currentGatewayResponse,
-          zalopay_callback: callbackData,
-        } as any,
-      },
+    });
+
+    if (!payment) {
+      throw new NotFoundException('Payment not found');
+    }
+
+    // use transaction
+    return await this.prisma.$transaction(async (tx) => {
+      const payment = await tx.payments.update({
+        where: { id: paymentId },
+        data: {
+          status: PaymentStatus.CANCELLED,
+          processed_at: new Date(),
+          updated_at: new Date(),
+        },
+      });
+
+      // update order status
+      const order = await tx.orders.update({
+        where: { id: payment.order_id ?? '' },
+        data: {
+          status: OrderStatus.CANCELLED,
+          payment_status: PaymentStatus.CANCELLED,
+          updated_at: new Date(),
+        },
+      });
+
+      return { payment, order };
     });
   }
 }
