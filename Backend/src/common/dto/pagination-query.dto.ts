@@ -1,6 +1,6 @@
 // src/common/dto/pagination-query.dto.ts
 import { Type } from 'class-transformer';
-import { IsNumber, IsOptional, IsString } from 'class-validator';
+import { IsBoolean, IsNumber, IsOptional, IsString } from 'class-validator';
 
 export class PaginationQueryDto {
   @IsOptional()
@@ -20,4 +20,8 @@ export class PaginationQueryDto {
   @IsOptional()
   @IsString()
   search?: string;
+
+  @IsOptional()
+  @IsBoolean()
+  all?: boolean; // if true, return all records without pagination
 }

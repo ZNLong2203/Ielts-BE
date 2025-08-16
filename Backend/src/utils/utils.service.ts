@@ -32,7 +32,7 @@ export class UtilsService {
 
     const page = Number(query.page ?? 1);
     const limit = Number(query.limit ?? 10);
-    const skip = (page - 1) * limit;
+    const all = Boolean(query.all ?? false);
 
     const [field, order] = query.sort?.split(':') ?? [];
 
@@ -40,25 +40,29 @@ export class UtilsService {
       ? ({ [field]: order === 'desc' ? 'desc' : 'asc' } as TOrderBy)
       : defaultOrderBy;
 
+    // Prepare query options
+    const queryOptions = {
+      where,
+      include,
+      select,
+      orderBy,
+      ...(all ? {} : { skip: (page - 1) * limit, take: limit }),
+    };
+
     const [items, totalItems] = await Promise.all([
-      model.findMany({
-        where,
-        include,
-        select,
-        skip,
-        take: limit,
-        orderBy,
-      }),
+      model.findMany(queryOptions),
       model.count({ where }),
     ]);
 
-    const totalPages = Math.ceil(totalItems / limit);
+    // Calculate meta values
+    const effectivePageSize = all ? items.length : limit;
+    const totalPages = Math.ceil(totalItems / effectivePageSize);
 
     return {
       meta: {
-        current: page,
+        current: all ? 1 : page,
         currentSize: items.length,
-        pageSize: limit,
+        pageSize: effectivePageSize,
         total: totalItems,
         pages: totalPages,
       },
@@ -189,7 +193,7 @@ export class UtilsService {
    */
   buildWhereFromQuery(query: Record<string, unknown>): Record<string, unknown> {
     const where: Record<string, unknown> = {};
-    const { page, limit, sort, search, ...filters } = query;
+    const { page, limit, sort, search, all, ...filters } = query;
 
     for (const key in filters) {
       const value = filters[key];

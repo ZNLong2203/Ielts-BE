@@ -20,6 +20,7 @@ export interface PaginationOptions<
     limit?: number;
     sort?: string;
     search?: string;
+    all?: boolean;
   };
   where?: TWhere;
   include?: TInclude;

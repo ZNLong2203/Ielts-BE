@@ -10,9 +10,9 @@ export const USER_GENDER = {
 } as const;
 
 export const USER_ROLE = {
-  ADMIN: 'ADMIN',
-  TEACHER: 'TEACHER',
-  STUDENT: 'STUDENT',
+  ADMIN: 'admin',
+  TEACHER: 'teacher',
+  STUDENT: 'student',
 } as const;
 
 export type UserRole = (typeof USER_ROLE)[keyof typeof USER_ROLE];

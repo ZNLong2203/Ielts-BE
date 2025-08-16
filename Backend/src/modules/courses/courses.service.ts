@@ -169,7 +169,6 @@ export class CoursesService {
 
     return this.prisma.courses.create({
       data: {
-        teacher_id: teacher.id,
         category_id: dto.category_id,
         title: dto.title,
         description: dto.description,
