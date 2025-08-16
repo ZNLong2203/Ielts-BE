@@ -4,7 +4,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
-import { FileType } from 'src/common/constants';
+import { FileType, USER_ROLE } from 'src/common/constants';
 import { PaginationQueryDto } from 'src/common/dto/pagination-query.dto';
 import { UploadedFileType } from 'src/interface/file-type.interface';
 import { FilesService } from 'src/modules/files/files.service';
@@ -147,13 +147,13 @@ export class CoursesService {
   }
 
   async create(dto: CreateCourseDto, userId: string) {
-    // Check if teacher exists
-    const teacher = await this.prisma.teachers.findFirst({
-      where: { user_id: userId, deleted: false },
+    // Check if admin exists
+    const admin = await this.prisma.users.findFirst({
+      where: { id: userId, deleted: false },
     });
 
-    if (!teacher) {
-      throw new BadRequestException('Teacher profile not found');
+    if (!admin || admin.role !== USER_ROLE.ADMIN) {
+      throw new BadRequestException('Admin profile not found');
     }
 
     // Check if category exists if provided
