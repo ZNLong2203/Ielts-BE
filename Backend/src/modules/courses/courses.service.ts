@@ -223,7 +223,7 @@ export class CoursesService {
     const where = {
       id,
       deleted: false,
-      ...(includeUnpublished ? {} : { is_published: true }),
+      // ...(includeUnpublished ? {} : { is_published: true }),
     };
 
     const course = await this.prisma.courses.findFirst({
