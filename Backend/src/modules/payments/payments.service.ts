@@ -128,14 +128,48 @@ export class PaymentsService {
     const { orderId, amount, description } = dto;
     const baseUrl =
       this.config.get<string>('APP_BASE_URL') || 'http://localhost:3000';
+    const frontendUrl = this.config.get<string>('FRONTEND_URL') || baseUrl;
     const returnUrl = `${baseUrl}/webhooks/zalopay`;
+    const redirectUrl = `${frontendUrl}/zalopay-success?order=${orderId}&paymentId=${payment.id}`;
+
+    // find all order items
+    const order = await this.prisma.orders.findUnique({
+      where: { id: orderId },
+    });
+    const orderItems = await this.prisma.order_items.findMany({
+      where: { order_id: orderId },
+      include: { combo_courses: true, courses: true },
+    });
 
     const resp = await this.zaloProvider.createOrder(
       amount,
-      orderId,
+      order,
       description,
       returnUrl,
+      redirectUrl,
+      orderItems,
     );
+
+    if (resp.respData.return_code !== 1) {
+      this.logger.error(
+        `ZaloPay create order failed: ${resp.respData.return_message}`,
+      );
+
+      // update payment status
+      await this.updateZaloPaymentStatus(
+        payment.id,
+        PaymentStatus.FAILED,
+        '',
+        returnUrl,
+      );
+
+      throw new Error(
+        'ZaloPay create order failed: ' +
+          resp.respData.return_message +
+          ', ' +
+          resp.respData.sub_return_message,
+      );
+    }
 
     const checkoutUrl = resp.respData?.order_url ?? null;
 
@@ -412,11 +446,16 @@ export class PaymentsService {
       });
 
       // update order status
+      // set order status based on payment status
+      const orderStatus =
+        status === PaymentStatus.COMPLETED
+          ? OrderStatus.COMPLETED
+          : OrderStatus.FAILED;
       await tx.orders.update({
         where: { id: payment.order_id ?? '' },
         data: {
-          status: OrderStatus.COMPLETED,
-          payment_status: PaymentStatus.COMPLETED,
+          status: orderStatus,
+          payment_status: status,
         },
       });
     });
@@ -457,11 +496,16 @@ export class PaymentsService {
       });
 
       // update order status
+      // set order status based on payment status
+      const orderStatus =
+        status === PaymentStatus.COMPLETED
+          ? OrderStatus.COMPLETED
+          : OrderStatus.FAILED;
       await tx.orders.update({
         where: { id: paymentUpdate.order_id ?? '' },
         data: {
-          status: OrderStatus.COMPLETED,
-          payment_status: PaymentStatus.COMPLETED,
+          status: orderStatus,
+          payment_status: status,
         },
       });
     });

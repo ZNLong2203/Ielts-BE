@@ -1,5 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { order_items, orders } from '@prisma/client';
 import axios, { AxiosResponse } from 'axios';
 import * as crypto from 'crypto';
 import {
@@ -37,13 +38,30 @@ export class ZaloPayProvider {
   buildPayload(
     appTransId: string,
     amount: number,
-    orderId: string,
+    order: orders | null,
     description: string,
     returnUrl?: string,
+    redirectUrl?: string,
+    orderItems?: order_items[],
   ): ZaloPayPayload {
-    const embed = JSON.stringify({ orderId });
-    const items = JSON.stringify([]);
-    const appUser = 'user';
+    const embed = JSON.stringify({
+      redirecturl: redirectUrl,
+      preferred_payment_method: ['vietqr'],
+    });
+    let formatItems: {
+      itemid: string;
+      itemname: string | null;
+      itemprice: number;
+    }[] = [];
+    if (orderItems) {
+      formatItems = orderItems.map((item) => ({
+        itemid: item.id,
+        itemname: item.course_title,
+        itemprice: Number(item.price),
+      }));
+    }
+    const items = JSON.stringify(formatItems || []);
+    const appUser = order?.user_id ? order.user_id.toString() : 'unknown';
     const appTime = Date.now();
 
     const raw = `${this.appId}|${appTransId}|${appUser}|${amount}|${appTime}|${embed}|${items}`;
@@ -70,18 +88,26 @@ export class ZaloPayProvider {
 
   async createOrder(
     amount: number,
-    orderId: string,
+    order: orders | null,
     description?: string,
     returnUrl?: string,
+    redirectUrl?: string,
+    orderItems?: order_items[],
   ): Promise<ZaloPayCreateResult> {
-    const appTransId = `${Math.floor(Date.now() / 1000)}_${orderId}`;
+    const date = new Date();
+    const yymmdd = date.toISOString().slice(2, 10).replace(/-/g, ''); // 250814
+    const appTransId = `${yymmdd}_${order?.id}`;
+
     const payload = this.buildPayload(
       appTransId,
       Math.round(amount),
-      orderId,
-      description || `Payment for order ${orderId}`,
+      order,
+      description || `Payment for order ${order?.id}`,
       returnUrl,
+      redirectUrl,
+      orderItems,
     );
+    console.log('ZaloPay create order payload:', payload);
 
     const resp: AxiosResponse<ZaloPayResponse> = await axios.post(
       this.endpoint,
@@ -91,6 +117,21 @@ export class ZaloPayProvider {
         timeout: 15000,
       },
     );
+    console.log('ZaloPay create order response:', resp.data);
+
+    // const resp: AxiosResponse<ZaloPayResponse> = await axios.post(
+    //   this.endpoint,
+    //   qs.stringify(payload),
+    //   {
+    //     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    //     // timeout: 15000,
+    //   },
+    // );
+
+    if (resp.status !== 200) {
+      this.logger.error(`ZaloPay create order failed: ${resp.statusText}`);
+      throw new Error('ZaloPay create order failed');
+    }
 
     return { respData: resp.data, appTransId };
   }

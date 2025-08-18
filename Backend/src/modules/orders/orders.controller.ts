@@ -17,10 +17,7 @@ import { PaginationQueryDto } from 'src/common/dto/pagination-query.dto';
 import { CurrentUser, SkipCheckPermission } from 'src/decorator/customize';
 import { IUser } from 'src/interface/users.interface';
 import { CreateOrderDto } from 'src/modules/orders/dto/create-order.dto';
-import {
-  RetryPaymentDto,
-  UpdateOrderStatusDto,
-} from 'src/modules/orders/dto/update-order.dto';
+import { UpdateOrderStatusDto } from 'src/modules/orders/dto/update-order.dto';
 import { OrdersService } from './orders.service';
 
 @ApiTags('orders')
@@ -68,11 +65,5 @@ export class OrdersController {
   async remove(@Param('id') id: string) {
     await this.ordersService.softDelete(id);
     return;
-  }
-
-  @Post(':id/retry-payment')
-  @ApiOperation({ summary: 'Retry payment for order' })
-  async retry(@Param('id') id: string, @Body() dto: RetryPaymentDto) {
-    return this.ordersService.retryPayment(id, dto);
   }
 }
