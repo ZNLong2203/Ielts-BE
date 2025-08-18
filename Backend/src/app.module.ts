@@ -18,6 +18,7 @@ import { BlogsModule } from './modules/blogs/blogs.module';
 import { CartsModule } from './modules/carts/carts.module';
 import { CoursesModule } from './modules/courses/courses.module';
 import { FilesModule } from './modules/files/files.module';
+import { LessonsModule } from './modules/lessons/lessons.module';
 import { MailModule } from './modules/mail/mail.module';
 import { StudentsModule } from './modules/students/students.module';
 import { TeachersModule } from './modules/teachers/teachers.module';
@@ -49,6 +50,7 @@ import { UtilsModule } from './utils/utils.module';
     CartsModule,
     PaymentsModule,
     OrdersModule,
+    LessonsModule,
   ],
   controllers: [AppController, DatabaseController],
   providers: [
