@@ -313,7 +313,7 @@ export class CoursesService {
   }
 
   async update(id: string, dto: UpdateCourseDto) {
-    await this.findById(id, true); // Check if exists
+    await this.findById(id); // Check if exists
 
     // Check if category exists if provided
     if (dto.category_id) {
@@ -340,7 +340,7 @@ export class CoursesService {
   }
 
   async remove(id: string) {
-    await this.findById(id, true); // Check if exists
+    await this.findById(id); // Check if exists
 
     return this.prisma.courses.update({
       where: { id },
@@ -364,7 +364,7 @@ export class CoursesService {
   }
 
   async uploadThumbnail(id: string, file: UploadedFileType) {
-    const course = await this.findById(id, true);
+    const course = await this.findById(id);
 
     // Upload to storage
     const fileData = await this.filesService.uploadFile(
