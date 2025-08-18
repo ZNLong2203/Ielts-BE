@@ -189,12 +189,8 @@ export class CoursesController {
   })
   @SkipCheckPermission()
   @MessageResponse(MESSAGE.COURSE.COURSE_FETCHED)
-  async findOne(
-    @Param('id') id: string,
-    @Query('includeUnpublished', new ParseBoolPipe({ optional: true }))
-    includeUnpublished = false,
-  ) {
-    return this.coursesService.findById(id, includeUnpublished);
+  async findOne(@Param('id') id: string) {
+    return this.coursesService.findById(id);
   }
 
   @Patch(':id')

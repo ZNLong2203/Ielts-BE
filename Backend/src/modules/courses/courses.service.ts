@@ -219,11 +219,10 @@ export class CoursesService {
     });
   }
 
-  async findById(id: string, includeUnpublished = false) {
+  async findById(id: string) {
     const where = {
       id,
       deleted: false,
-      // ...(includeUnpublished ? {} : { is_published: true }),
     };
 
     const course = await this.prisma.courses.findFirst({
