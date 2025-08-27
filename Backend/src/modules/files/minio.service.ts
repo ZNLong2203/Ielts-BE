@@ -1,8 +1,9 @@
-import { Injectable, BadRequestException, Logger } from '@nestjs/common';
+import { BadRequestException, Injectable, Logger } from '@nestjs/common';
 import * as Minio from 'minio';
-import { MinioConfigService } from 'src/configs/minio.config';
-import { v4 as uuid } from 'uuid';
 import * as path from 'path';
+import { MinioConfigService } from 'src/configs/minio.config';
+import { Readable } from 'stream';
+import { v4 as uuid } from 'uuid';
 
 export interface UploadResult {
   fileName: string;
@@ -69,6 +70,7 @@ export class MinioService {
     }
   }
 
+  // General upload method
   async uploadFromBuffer(
     buffer: Buffer,
     originalName: string,
@@ -77,7 +79,6 @@ export class MinioService {
     folder?: string,
   ): Promise<UploadResult> {
     try {
-      // Validate file type and size
       this.validateFileBuffer(buffer, mimetype, fileType);
 
       const bucketName = this.buckets[fileType];
@@ -85,7 +86,6 @@ export class MinioService {
       const fileName = `${uuid()}${fileExtension}`;
       const objectName = folder ? `${folder}/${fileName}` : fileName;
 
-      // Upload file
       const uploadInfo = await this.minioClient.putObject(
         bucketName,
         objectName,
@@ -93,11 +93,10 @@ export class MinioService {
         buffer.length,
         {
           'Content-Type': mimetype,
-          'Cache-Control': 'max-age=31536000', // 1 year
+          'Cache-Control': 'max-age=31536000',
         },
       );
 
-      // Generate public URL
       const url = await this.getFileUrl(bucketName, objectName);
 
       return {
@@ -173,20 +172,6 @@ export class MinioService {
     );
   }
 
-  async uploadVideo(
-    buffer: Buffer,
-    originalName: string,
-    mimetype: string,
-  ): Promise<UploadResult> {
-    return this.uploadFromBuffer(
-      buffer,
-      originalName,
-      mimetype,
-      'videos',
-      'lessons',
-    );
-  }
-
   async uploadAudio(
     buffer: Buffer,
     originalName: string,
@@ -215,6 +200,70 @@ export class MinioService {
     );
   }
 
+  // Public methods for VideoService to use
+  async putObject(
+    bucketName: string,
+    objectName: string,
+    buffer: Buffer,
+    metadata?: Record<string, string>,
+  ) {
+    return await this.minioClient.putObject(
+      bucketName,
+      objectName,
+      buffer,
+      buffer.length,
+      metadata,
+    );
+  }
+
+  async getObjectStream(
+    bucketName: string,
+    objectName: string,
+  ): Promise<Readable> {
+    try {
+      return await this.minioClient.getObject(bucketName, objectName);
+    } catch (error) {
+      this.logger.error(
+        `Failed to get object stream: ${bucketName}/${objectName}`,
+        error,
+      );
+      throw error;
+    }
+  }
+
+  async objectExists(bucketName: string, objectName: string): Promise<boolean> {
+    try {
+      await this.minioClient.statObject(bucketName, objectName);
+      return true;
+    } catch (error) {
+      return false;
+    }
+  }
+
+  async listObjectsWithPrefix(
+    bucketName: string,
+    prefix: string,
+  ): Promise<string[]> {
+    const objectsList = this.minioClient.listObjects(bucketName, prefix, true);
+    const objectsToDelete: string[] = [];
+
+    for await (const obj of objectsList) {
+      const objectInfo = obj as { name?: string };
+      if (objectInfo.name) {
+        objectsToDelete.push(objectInfo.name);
+      }
+    }
+
+    return objectsToDelete;
+  }
+
+  async removeObjects(
+    bucketName: string,
+    objectNames: string[],
+  ): Promise<void> {
+    await this.minioClient.removeObjects(bucketName, objectNames);
+  }
+
   async deleteFile(bucketName: string, objectName: string): Promise<void> {
     try {
       await this.minioClient.removeObject(bucketName, objectName);
@@ -229,7 +278,6 @@ export class MinioService {
 
   async getFileUrl(bucketName: string, objectName: string): Promise<string> {
     try {
-      // For public buckets, return direct URL
       if (
         bucketName === this.buckets.images ||
         bucketName === this.buckets.videos
@@ -241,7 +289,7 @@ export class MinioService {
         bucketName,
         objectName,
         24 * 60 * 60,
-      ); // 24 hours
+      );
     } catch (error) {
       this.logger.error('Get URL failed:', error);
       const errorMessage =
@@ -303,6 +351,28 @@ export class MinioService {
       };
     } catch {
       return null;
+    }
+  }
+
+  async deleteFolderContents(
+    bucketName: string,
+    prefix: string,
+  ): Promise<void> {
+    try {
+      const objects = this.minioClient.listObjects(bucketName, prefix, true);
+      const objectsToDelete: string[] = [];
+
+      for await (const obj of objects) {
+        if (obj.name) {
+          objectsToDelete.push(obj.name);
+        }
+      }
+
+      if (objectsToDelete.length > 0) {
+        await this.minioClient.removeObjects(bucketName, objectsToDelete);
+      }
+    } catch (error) {
+      throw new Error(`Failed to delete folder contents: ${error.message}`);
     }
   }
 }

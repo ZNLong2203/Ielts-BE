@@ -1,0 +1,296 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>HLS Quick Test</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+    <style>
+      :root {
+        color-scheme: light dark;
+      }
+      body {
+        margin: 24px;
+        font-family:
+          system-ui,
+          -apple-system,
+          Segoe UI,
+          Roboto,
+          Arial,
+          sans-serif;
+      }
+      .wrap {
+        max-width: 920px;
+        margin: 0 auto;
+      }
+      h1 {
+        margin: 0 0 12px;
+        font-size: 22px;
+      }
+      .row {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+        align-items: center;
+      }
+      input[type='text'] {
+        flex: 1 1 520px;
+        padding: 10px 12px;
+        border-radius: 8px;
+        border: 1px solid #ccc;
+      }
+      button {
+        padding: 10px 16px;
+        border: 0;
+        border-radius: 8px;
+        background: #0d6efd;
+        color: #fff;
+        cursor: pointer;
+      }
+      button:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+      }
+      .badges {
+        display: flex;
+        gap: 8px;
+        margin: 8px 0 16px;
+        flex-wrap: wrap;
+      }
+      .badge {
+        font-size: 12px;
+        padding: 4px 8px;
+        border-radius: 999px;
+        border: 1px solid #ddd;
+      }
+      .ok {
+        background: #d1e7dd;
+        border-color: #badbcc;
+        color: #0f5132;
+      }
+      .warn {
+        background: #fff3cd;
+        border-color: #ffecb5;
+        color: #664d03;
+      }
+      .err {
+        background: #f8d7da;
+        border-color: #f5c2c7;
+        color: #842029;
+      }
+      video {
+        width: 100%;
+        max-width: 900px;
+        margin: 16px 0;
+        border-radius: 12px;
+      }
+      pre {
+        white-space: pre-wrap;
+        background: #1111;
+        padding: 12px;
+        border-radius: 8px;
+        max-height: 280px;
+        overflow: auto;
+        font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      }
+      .hint {
+        font-size: 12px;
+        opacity: 0.8;
+        margin-top: 6px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <h1>HLS Quick Test</h1>
+
+      <div class="row">
+        <input
+          id="src"
+          type="text"
+          placeholder="https://your-host/path/to/playlist.m3u8"
+        />
+        <button id="loadBtn">Load</button>
+      </div>
+      <div class="hint">
+        Tip: có thể truyền sẵn bằng query: <code>?src=https://...</code>
+      </div>
+
+      <div class="badges" id="badges"></div>
+
+      <video id="video" controls muted playsinline preload="auto">
+        Your browser does not support the video tag.
+      </video>
+
+      <details open>
+        <summary><strong>Logs</strong></summary>
+        <pre id="log"></pre>
+      </details>
+    </div>
+
+    <script>
+      const $ = (id) => document.getElementById(id);
+      const badges = $('badges');
+      const logEl = $('log');
+      const video = $('video');
+      const srcInput = $('src');
+      const loadBtn = $('loadBtn');
+
+      // Helpers
+      const log = (...args) => {
+        const line = args
+          .map((a) => (typeof a === 'object' ? JSON.stringify(a) : String(a)))
+          .join(' ');
+        console.log(...args);
+        logEl.textContent += line + '\n';
+        logEl.scrollTop = logEl.scrollHeight;
+      };
+      const addBadge = (txt, cls = 'badge') => {
+        const b = document.createElement('span');
+        b.className = `badge ${cls}`;
+        b.textContent = txt;
+        badges.appendChild(b);
+      };
+      const clearBadges = () => badges.replaceChildren();
+
+      // Prefill from ?src= or hash
+      const params = new URLSearchParams(location.search);
+      const preset =
+        params.get('src') ||
+        (location.hash.startsWith('#src=')
+          ? decodeURIComponent(location.hash.slice(5))
+          : '');
+      if (preset) srcInput.value = preset;
+
+      // Basic HEAD check for playlist availability
+      async function headOk(url) {
+        try {
+          const res = await fetch(url, { method: 'HEAD' });
+          return res.ok;
+        } catch (e) {
+          return false;
+        }
+      }
+
+      async function load() {
+        const src = srcInput.value.trim();
+        logEl.textContent = '';
+        clearBadges();
+
+        if (!src) {
+          addBadge('Missing .m3u8 URL', 'err');
+          log('❌ No src provided');
+          return;
+        }
+
+        loadBtn.disabled = true;
+
+        addBadge(`SRC set`, 'badge');
+        log('🎯 Source:', src);
+
+        // HEAD check
+        const headOkRes = await headOk(src);
+        if (headOkRes) {
+          addBadge('Playlist reachable (HEAD 200)', 'ok');
+          log('✅ HEAD 200 for playlist');
+        } else {
+          addBadge('Playlist not reachable', 'warn');
+          log('⚠️ HEAD failed or non-200 for playlist');
+        }
+
+        // Try to play
+        if (window.Hls && Hls.isSupported()) {
+          addBadge('Hls.js supported', 'ok');
+          const hls = new Hls({ enableWorker: true });
+
+          hls.on(Hls.Events.MANIFEST_PARSED, (_, data) => {
+            addBadge(`Levels: ${data.levels?.length ?? 0}`, 'badge');
+            log('✅ MANIFEST_PARSED levels=', data.levels?.length ?? 0);
+            // Autoplay when allowed
+            video
+              .play()
+              .catch((err) =>
+                log('⚠️ Autoplay prevented:', err?.message || err),
+              );
+          });
+
+          hls.on(Hls.Events.ERROR, (_, data) => {
+            const severity = data?.fatal ? 'FATAL' : 'NON-FATAL';
+            addBadge(
+              `${severity} ${data?.type || 'HLS_ERROR'}`,
+              data?.fatal ? 'err' : 'warn',
+            );
+            log('❌ HLS ERROR:', data);
+            if (data.fatal) {
+              switch (data.type) {
+                case Hls.ErrorTypes.NETWORK_ERROR:
+                  log('🔄 Recover: startLoad()');
+                  hls.startLoad();
+                  break;
+                case Hls.ErrorTypes.MEDIA_ERROR:
+                  log('🔄 Recover: recoverMediaError()');
+                  hls.recoverMediaError();
+                  break;
+                default:
+                  log('💥 Destroy Hls instance');
+                  hls.destroy();
+              }
+            }
+          });
+
+          hls.loadSource(src);
+          hls.attachMedia(video);
+        } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+          addBadge('Native HLS (Safari)', 'ok');
+          video.src = src;
+          video
+            .play()
+            .catch((err) => log('⚠️ Autoplay prevented:', err?.message || err));
+        } else {
+          addBadge('HLS not supported in this browser', 'err');
+          log('❌ HLS not supported');
+        }
+
+        // Video event hooks (quick diagnostics)
+        const evts = [
+          'loadstart',
+          'loadedmetadata',
+          'canplay',
+          'playing',
+          'pause',
+          'stalled',
+          'waiting',
+          'ended',
+          'error',
+          'seeked',
+          'seeking',
+        ];
+        evts.forEach((e) =>
+          video.addEventListener(
+            e,
+            (evt) => {
+              if (e === 'error') {
+                const err = video.error;
+                addBadge('VIDEO ERROR', 'err');
+                log(
+                  '❌ VIDEO ERROR:',
+                  err && { code: err.code, message: err.message },
+                );
+              } else {
+                log(`🎬 video event: ${e}`);
+              }
+            },
+            { once: false },
+          ),
+        );
+
+        loadBtn.disabled = false;
+      }
+
+      loadBtn.addEventListener('click', load);
+
+      // Auto-load if preset exists
+      if (srcInput.value) load();
+    </script>
+  </body>
+</html>

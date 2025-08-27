@@ -3,6 +3,7 @@ import { ConfigModule } from '@nestjs/config';
 import { MulterModule } from '@nestjs/platform-express';
 import { memoryStorage } from 'multer';
 import { MinioConfigService } from 'src/configs/minio.config';
+import { RedisModule } from 'src/redis/redis.module';
 import { FilesController } from './files.controller';
 import { FilesService } from './files.service';
 import { MinioService } from './minio.service';
@@ -10,6 +11,7 @@ import { MinioService } from './minio.service';
 @Module({
   imports: [
     ConfigModule,
+    RedisModule,
     MulterModule.register({
       storage: memoryStorage(),
       limits: {

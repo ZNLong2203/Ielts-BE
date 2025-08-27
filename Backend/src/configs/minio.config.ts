@@ -37,7 +37,7 @@ export class MinioConfigService {
       },
       videos: {
         allowedTypes: ['video/mp4', 'video/avi', 'video/mov', 'video/webm'],
-        maxSize: 200 * 1024 * 1024, // 200MB
+        maxSize: 2 * 1024 * 1024 * 1024, // 2GB cho videos 30-45 phút
         folder: 'videos',
       },
       audio: {

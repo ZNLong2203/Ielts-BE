@@ -1,5 +1,6 @@
+import { BullModule } from '@nestjs/bullmq';
 import { Module } from '@nestjs/common';
-import { ConfigModule } from '@nestjs/config';
+import { ConfigModule, ConfigService } from '@nestjs/config';
 import { APP_GUARD } from '@nestjs/core';
 import { PermissionGuard } from 'src/casl/guards/permission.guard';
 import { JwtAuthGuard } from 'src/modules/auth/guards/jwt-auth.guard';
@@ -23,6 +24,7 @@ import { MailModule } from './modules/mail/mail.module';
 import { StudentsModule } from './modules/students/students.module';
 import { TeachersModule } from './modules/teachers/teachers.module';
 import { UsersModule } from './modules/users/users.module';
+import { VideoModule } from './modules/video/video.module';
 import { PrismaModule } from './prisma/prisma.module';
 import { RedisModule } from './redis/redis.module';
 import { UtilsModule } from './utils/utils.module';
@@ -31,6 +33,17 @@ import { UtilsModule } from './utils/utils.module';
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
+    }),
+    BullModule.forRootAsync({
+      imports: [ConfigModule],
+      useFactory: (configService: ConfigService) => ({
+        connection: {
+          host: configService.get<string>('REDIS_HOST', 'localhost'),
+          port: configService.get<number>('REDIS_PORT', 6379),
+          password: configService.get<string>('REDIS_PASSWORD'),
+        },
+      }),
+      inject: [ConfigService],
     }),
     PrismaModule,
     DatabaseModule,
@@ -51,6 +64,7 @@ import { UtilsModule } from './utils/utils.module';
     PaymentsModule,
     OrdersModule,
     LessonsModule,
+    VideoModule,
   ],
   controllers: [AppController, DatabaseController],
   providers: [

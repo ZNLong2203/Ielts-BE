@@ -23,8 +23,16 @@ export class RedisService {
     });
   }
 
-  async set(key: string, value: string, ttlSeconds: number) {
-    await this.redis.set(key, value, 'EX', ttlSeconds);
+  getClient(): Redis {
+    return this.redis;
+  }
+
+  async set(key: string, value: string, ttlSeconds?: number) {
+    if (ttlSeconds) {
+      await this.redis.set(key, value, 'EX', ttlSeconds);
+    } else {
+      await this.redis.set(key, value);
+    }
   }
 
   async get(key: string) {
@@ -43,5 +51,26 @@ export class RedisService {
       this.logger.error(`Error deleting key ${key} from Redis:`, error);
       throw error;
     }
+  }
+
+  async setJSON(key: string, value: unknown, ttlSeconds?: number) {
+    return this.set(key, JSON.stringify(value), ttlSeconds || 3600);
+  }
+
+  async getJSON<T = any>(key: string): Promise<T | null> {
+    const raw = await this.get(key);
+    if (!raw) return null;
+    try {
+      return JSON.parse(raw) as T;
+    } catch (err) {
+      this.logger.warn(`Failed to parse JSON from Redis key ${key}`, err);
+      return null;
+    }
+  }
+
+  onModuleDestroy() {
+    this.redis.quit().catch((err) => {
+      this.logger.error('Error quitting Redis client:', err);
+    });
   }
 }
