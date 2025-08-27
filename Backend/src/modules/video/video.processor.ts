@@ -227,7 +227,6 @@ export class VideoProcessor extends WorkerHost {
       const stats = await fs.promises.stat(filePath);
 
       if (stats.isFile()) {
-        const fileBuffer = await fs.promises.readFile(filePath);
         const objectName = `${objectPrefix}/${file}`;
 
         let contentType = 'application/octet-stream';
@@ -237,11 +236,24 @@ export class VideoProcessor extends WorkerHost {
           contentType = 'video/mp2t';
         }
 
-        await this.minioService.putObject(bucketName, objectName, fileBuffer, {
-          'Content-Type': contentType,
-          'Cache-Control': 'max-age=31536000',
-          'Access-Control-Allow-Origin': '*',
-        });
+        // const fileBuffer = await fs.promises.readFile(filePath);
+        // await this.minioService.putObject(bucketName, objectName, fileBuffer, {
+        //   'Content-Type': contentType,
+        //   'Cache-Control': 'max-age=31536000',
+        //   'Access-Control-Allow-Origin': '*',
+        // });
+
+        const readStream = fs.createReadStream(filePath);
+        await this.minioService.putObjectStream(
+          bucketName,
+          objectName,
+          readStream,
+          {
+            'Content-Type': contentType,
+            'Cache-Control': 'max-age=31536000',
+            'Access-Control-Allow-Origin': '*',
+          },
+        );
 
         uploadedCount++;
         const uploadProgress =

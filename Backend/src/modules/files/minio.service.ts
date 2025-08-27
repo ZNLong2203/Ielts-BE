@@ -216,6 +216,21 @@ export class MinioService {
     );
   }
 
+  async putObjectStream(
+    bucketName: string,
+    objectName: string,
+    stream: Readable,
+    metadata?: Record<string, string>,
+  ) {
+    return await this.minioClient.putObject(
+      bucketName,
+      objectName,
+      stream,
+      undefined,
+      metadata,
+    );
+  }
+
   async getObjectStream(
     bucketName: string,
     objectName: string,
