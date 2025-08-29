@@ -250,16 +250,27 @@ export class CoursesService {
             icon: true,
           },
         },
-        lessons: {
+        sections: {
           where: { deleted: false },
           orderBy: { ordering: 'asc' },
           select: {
             id: true,
             title: true,
             description: true,
-            video_duration: true,
-            is_preview: true,
             ordering: true,
+            lessons: {
+              where: { deleted: false },
+              orderBy: { ordering: 'asc' },
+              select: {
+                id: true,
+                title: true,
+                description: true,
+                lesson_type: true,
+                video_duration: true,
+                is_preview: true,
+                ordering: true,
+              },
+            },
           },
         },
       },
@@ -305,7 +316,7 @@ export class CoursesService {
             icon: course.course_categories.icon,
           }
         : null,
-      lessons: course.lessons,
+      sections: course.sections,
       created_at: course.created_at,
       updated_at: course.updated_at,
       published_at: course.published_at,

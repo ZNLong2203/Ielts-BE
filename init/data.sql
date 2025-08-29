@@ -42,14 +42,28 @@ INSERT INTO combo_courses (id, name, description, thumbnail, original_price, com
 ('850e8400-e29b-41d4-a716-446655440002', 'Academic IELTS Pro', 'Academic-focused courses with mock tests', 'https://example.com/combo2.jpg', 7300000, 5200000, 28.77, ARRAY['950e8400-e29b-41d4-a716-446655440001', '950e8400-e29b-41d4-a716-446655440003', '950e8400-e29b-41d4-a716-446655440006']::UUID[], 32, ARRAY['academic', 'premium'], '550e8400-e29b-41d4-a716-446655440001'),
 ('850e8400-e29b-41d4-a716-446655440003', 'Speaking & Listening Combo', 'Perfect combination for conversation skills', 'https://example.com/combo3.jpg', 4200000, 3000000, 28.57, ARRAY['950e8400-e29b-41d4-a716-446655440002', '950e8400-e29b-41d4-a716-446655440004']::UUID[], 28, ARRAY['speaking', 'listening'], '550e8400-e29b-41d4-a716-446655440001');
 
+-- Insert sample sections
+INSERT INTO sections (id, course_id, title, description, ordering) VALUES
+('c50e8400-e29b-41d4-a716-446655440001', '950e8400-e29b-41d4-a716-446655440001', 'Reading Fundamentals', 'Basic concepts and strategies for IELTS Reading', 1),
+('c50e8400-e29b-41d4-a716-446655440002', '950e8400-e29b-41d4-a716-446655440001', 'Advanced Reading Techniques', 'Advanced strategies and practice', 2),
+('c50e8400-e29b-41d4-a716-446655440003', '950e8400-e29b-41d4-a716-446655440002', 'Speaking Basics', 'Introduction to IELTS Speaking test', 1),
+('c50e8400-e29b-41d4-a716-446655440004', '950e8400-e29b-41d4-a716-446655440002', 'Speaking Practice', 'Advanced speaking practice and fluency', 2),
+('c50e8400-e29b-41d4-a716-446655440005', '950e8400-e29b-41d4-a716-446655440003', 'Writing Fundamentals', 'Basic writing skills for IELTS', 1),
+('c50e8400-e29b-41d4-a716-446655440006', '950e8400-e29b-41d4-a716-446655440003', 'Advanced Writing', 'Advanced writing techniques', 2),
+('c50e8400-e29b-41d4-a716-446655440007', '950e8400-e29b-41d4-a716-446655440004', 'Listening Skills', 'Essential listening strategies', 1),
+('c50e8400-e29b-41d4-a716-446655440008', '950e8400-e29b-41d4-a716-446655440005', 'Complete Preparation', 'Comprehensive IELTS preparation', 1),
+('c50e8400-e29b-41d4-a716-446655440009', '950e8400-e29b-41d4-a716-446655440006', 'Mock Test Preparation', 'Getting ready for mock tests', 1);
+
 -- Insert sample lessons
-INSERT INTO lessons (id, course_id, title, description, content, video_url, video_duration, audio_url, materials_urls, ordering, is_preview) VALUES
-('d50e8400-e29b-41d4-a716-446655440001', '950e8400-e29b-41d4-a716-446655440001', 'Introduction to IELTS Reading', 'Overview of IELTS Reading test format and scoring', 'Welcome to IELTS Reading Mastery course...', 'https://example.com/video1.mp4', 1800, 'https://example.com/audio1.mp3', ARRAY['https://example.com/material1.pdf'], 1, TRUE),
-('d50e8400-e29b-41d4-a716-446655440002', '950e8400-e29b-41d4-a716-446655440001', 'Skimming and Scanning Techniques', 'Learn essential reading strategies', 'In this lesson, you will master...', 'https://example.com/video2.mp4', 2700, 'https://example.com/audio2.mp3', ARRAY['https://example.com/material2.pdf'], 2, FALSE),
-('d50e8400-e29b-41d4-a716-446655440003', '950e8400-e29b-41d4-a716-446655440002', 'IELTS Speaking Part 1', 'Master the personal questions section', 'Speaking Part 1 covers personal topics...', 'https://example.com/video3.mp4', 2100, NULL, ARRAY['https://example.com/speaking1.pdf'], 1, TRUE),
-('d50e8400-e29b-41d4-a716-446655440004', '950e8400-e29b-41d4-a716-446655440002', 'Cue Card Strategies', 'How to tackle Part 2 effectively', 'The cue card section requires...', 'https://example.com/video4.mp4', 3000, NULL, ARRAY['https://example.com/cuecard.pdf'], 2, FALSE),
-('d50e8400-e29b-41d4-a716-446655440005', '950e8400-e29b-41d4-a716-446655440003', 'Academic Writing Task 1', 'Describing charts and graphs', 'Task 1 requires you to describe...', 'https://example.com/video5.mp4', 3300, NULL, ARRAY['https://example.com/task1.pdf'], 1, FALSE),
-('d50e8400-e29b-41d4-a716-446655440006', '950e8400-e29b-41d4-a716-446655440004', 'Note-taking Strategies', 'Effective listening note-taking methods', 'Good note-taking is crucial for...', 'https://example.com/video6.mp4', 2400, 'https://example.com/listen1.mp3', ARRAY['https://example.com/notes.pdf'], 1, TRUE);
+INSERT INTO lessons (id, section_id, title, description, lesson_type, video_url, video_duration, document_url, ordering, is_preview) VALUES
+('d50e8400-e29b-41d4-a716-446655440001', 'c50e8400-e29b-41d4-a716-446655440001', 'Introduction to IELTS Reading', 'Overview of IELTS Reading test format and scoring', 'video', 'https://example.com/video1.mp4', 1800, 'https://example.com/material1.pdf', 1, TRUE),
+('d50e8400-e29b-41d4-a716-446655440002', 'c50e8400-e29b-41d4-a716-446655440002', 'Skimming and Scanning Techniques', 'Learn essential reading strategies', 'video', 'https://example.com/video2.mp4', 2700, 'https://example.com/material2.pdf', 1, FALSE),
+('d50e8400-e29b-41d4-a716-446655440003', 'c50e8400-e29b-41d4-a716-446655440003', 'IELTS Speaking Part 1', 'Master the personal questions section', 'video', 'https://example.com/video3.mp4', 2100, 'https://example.com/speaking1.pdf', 1, TRUE),
+('d50e8400-e29b-41d4-a716-446655440004', 'c50e8400-e29b-41d4-a716-446655440004', 'Cue Card Strategies', 'How to tackle Part 2 effectively', 'video', 'https://example.com/video4.mp4', 3000, 'https://example.com/cuecard.pdf', 1, FALSE),
+('d50e8400-e29b-41d4-a716-446655440005', 'c50e8400-e29b-41d4-a716-446655440005', 'Academic Writing Task 1', 'Describing charts and graphs', 'video', 'https://example.com/video5.mp4', 3300, 'https://example.com/task1.pdf', 1, FALSE),
+('d50e8400-e29b-41d4-a716-446655440006', 'c50e8400-e29b-41d4-a716-446655440007', 'Note-taking Strategies', 'Effective listening note-taking methods', 'video', 'https://example.com/video6.mp4', 2400, 'https://example.com/notes.pdf', 1, TRUE),
+('d50e8400-e29b-41d4-a716-446655440007', 'c50e8400-e29b-41d4-a716-446655440008', 'Complete IELTS Overview', 'Comprehensive introduction to all IELTS skills', 'video', 'https://example.com/video7.mp4', 2700, 'https://example.com/overview.pdf', 1, TRUE),
+('d50e8400-e29b-41d4-a716-446655440008', 'c50e8400-e29b-41d4-a716-446655440009', 'Mock Test Guidelines', 'How to approach IELTS mock tests', 'video', 'https://example.com/video8.mp4', 1500, 'https://example.com/guidelines.pdf', 1, FALSE);
 
 -- Insert sample enrollments
 INSERT INTO enrollments (id, user_id, course_id, enrollment_date, progress_percentage, is_active) VALUES
@@ -67,13 +81,22 @@ INSERT INTO combo_enrollments (id, user_id, combo_id, enrollment_date, overall_p
 ('760e8400-e29b-41d4-a716-446655440003', '550e8400-e29b-41d4-a716-446655440006', '850e8400-e29b-41d4-a716-446655440003', NOW() - INTERVAL '22 days', 55.25, TRUE);
 
 -- Insert sample user progress
-INSERT INTO user_progress (id, user_id, course_id, lesson_id, status, progress_percentage, time_spent, last_watched_position) VALUES
-('550e8400-e29b-41d4-a716-446655441001', '550e8400-e29b-41d4-a716-446655440004', '950e8400-e29b-41d4-a716-446655440001', 'd50e8400-e29b-41d4-a716-446655440001', 'completed', 100.00, 1800, 1800),
-('550e8400-e29b-41d4-a716-446655441002', '550e8400-e29b-41d4-a716-446655440004', '950e8400-e29b-41d4-a716-446655440001', 'd50e8400-e29b-41d4-a716-446655440002', 'in_progress', 65.50, 1770, 1770),
-('550e8400-e29b-41d4-a716-446655441003', '550e8400-e29b-41d4-a716-446655440005', '950e8400-e29b-41d4-a716-446655440002', 'd50e8400-e29b-41d4-a716-446655440003', 'completed', 100.00, 2100, 2100),
-('550e8400-e29b-41d4-a716-446655441004', '550e8400-e29b-41d4-a716-446655440005', '950e8400-e29b-41d4-a716-446655440002', 'd50e8400-e29b-41d4-a716-446655440004', 'in_progress', 45.00, 1350, 1350),
-('550e8400-e29b-41d4-a716-446655441005', '550e8400-e29b-41d4-a716-446655440006', '950e8400-e29b-41d4-a716-446655440003', 'd50e8400-e29b-41d4-a716-446655440005', 'completed', 100.00, 3300, 3300),
-('550e8400-e29b-41d4-a716-446655441006', '550e8400-e29b-41d4-a716-446655440006', '950e8400-e29b-41d4-a716-446655440004', 'd50e8400-e29b-41d4-a716-446655440006', 'not_started', 0.00, 0, 0);
+INSERT INTO user_progress (id, user_id, course_id, section_id, lesson_id, status, progress_percentage, completion_date) VALUES
+('550e8400-e29b-41d4-a716-446655441001', '550e8400-e29b-41d4-a716-446655440004', '950e8400-e29b-41d4-a716-446655440001', 'c50e8400-e29b-41d4-a716-446655440001', 'd50e8400-e29b-41d4-a716-446655440001', 'completed', 100.00, NOW() - INTERVAL '3 days'),
+('550e8400-e29b-41d4-a716-446655441002', '550e8400-e29b-41d4-a716-446655440004', '950e8400-e29b-41d4-a716-446655440001', 'c50e8400-e29b-41d4-a716-446655440002', 'd50e8400-e29b-41d4-a716-446655440002', 'in_progress', 65.50, NULL),
+('550e8400-e29b-41d4-a716-446655441003', '550e8400-e29b-41d4-a716-446655440005', '950e8400-e29b-41d4-a716-446655440002', 'c50e8400-e29b-41d4-a716-446655440003', 'd50e8400-e29b-41d4-a716-446655440003', 'completed', 100.00, NOW() - INTERVAL '5 days'),
+('550e8400-e29b-41d4-a716-446655441004', '550e8400-e29b-41d4-a716-446655440005', '950e8400-e29b-41d4-a716-446655440002', 'c50e8400-e29b-41d4-a716-446655440004', 'd50e8400-e29b-41d4-a716-446655440004', 'in_progress', 45.00, NULL),
+('550e8400-e29b-41d4-a716-446655441005', '550e8400-e29b-41d4-a716-446655440006', '950e8400-e29b-41d4-a716-446655440003', 'c50e8400-e29b-41d4-a716-446655440005', 'd50e8400-e29b-41d4-a716-446655440005', 'completed', 100.00, NOW() - INTERVAL '2 days'),
+('550e8400-e29b-41d4-a716-446655441006', '550e8400-e29b-41d4-a716-446655440006', '950e8400-e29b-41d4-a716-446655440004', 'c50e8400-e29b-41d4-a716-446655440007', 'd50e8400-e29b-41d4-a716-446655440006', 'not_started', 0.00, NULL);
+
+-- Insert sample section progress
+INSERT INTO section_progress (id, user_id, section_id, course_id, completed_lessons, total_lessons, progress_percentage, started_at, completed_at) VALUES
+('560e8400-e29b-41d4-a716-446655440001', '550e8400-e29b-41d4-a716-446655440004', 'c50e8400-e29b-41d4-a716-446655440001', '950e8400-e29b-41d4-a716-446655440001', 1, 1, 100.00, NOW() - INTERVAL '10 days', NOW() - INTERVAL '3 days'),
+('560e8400-e29b-41d4-a716-446655440002', '550e8400-e29b-41d4-a716-446655440004', 'c50e8400-e29b-41d4-a716-446655440002', '950e8400-e29b-41d4-a716-446655440001', 0, 1, 65.50, NOW() - INTERVAL '8 days', NULL),
+('560e8400-e29b-41d4-a716-446655440003', '550e8400-e29b-41d4-a716-446655440005', 'c50e8400-e29b-41d4-a716-446655440003', '950e8400-e29b-41d4-a716-446655440002', 1, 1, 100.00, NOW() - INTERVAL '12 days', NOW() - INTERVAL '5 days'),
+('560e8400-e29b-41d4-a716-446655440004', '550e8400-e29b-41d4-a716-446655440005', 'c50e8400-e29b-41d4-a716-446655440004', '950e8400-e29b-41d4-a716-446655440002', 0, 1, 45.00, NOW() - INTERVAL '7 days', NULL),
+('560e8400-e29b-41d4-a716-446655440005', '550e8400-e29b-41d4-a716-446655440006', 'c50e8400-e29b-41d4-a716-446655440005', '950e8400-e29b-41d4-a716-446655440003', 1, 1, 100.00, NOW() - INTERVAL '15 days', NOW() - INTERVAL '2 days'),
+('560e8400-e29b-41d4-a716-446655440006', '550e8400-e29b-41d4-a716-446655440006', 'c50e8400-e29b-41d4-a716-446655440007', '950e8400-e29b-41d4-a716-446655440004', 0, 1, 0.00, NOW() - INTERVAL '5 days', NULL);
 
 -- Insert sample exercise types
 INSERT INTO exercise_types (id, name, description) VALUES
@@ -95,12 +118,12 @@ INSERT INTO exercises (id, lesson_id, exercise_type_id, title, instruction, cont
 
 -- Insert sample questions
 INSERT INTO questions (id, exercise_id, question_text, question_type, media_url, explanation, points, ordering, difficulty_level) VALUES
-('140e8400-e29b-41d4-a716-446655440001', '130e8400-e29b-41d4-a716-446655440001', 'What is the main idea of the passage?', 'multiple_choice', NULL, 'The main idea is found in the first paragraph', 1.00, 1, 'medium'),
-('140e8400-e29b-41d4-a716-446655440002', '130e8400-e29b-41d4-a716-446655440001', 'According to the text, which statement is true?', 'multiple_choice', NULL, 'Look for supporting evidence in paragraph 2', 1.00, 2, 'medium'),
-('140e8400-e29b-41d4-a716-446655440003', '130e8400-e29b-41d4-a716-446655440002', 'The passage discusses environmental issues.', 'true_false', NULL, 'Check the topic sentences of each paragraph', 1.00, 1, 'easy'),
-('140e8400-e29b-41d4-a716-446655440004', '130e8400-e29b-41d4-a716-446655440003', 'Tell me about your hometown.', 'speaking', NULL, 'Mention location, size, characteristics, and what you like about it', 0.00, 1, 'easy'),
-('140e8400-e29b-41d4-a716-446655440005', '130e8400-e29b-41d4-a716-446655440005', 'Describe the main trend shown in the chart.', 'essay', 'https://example.com/chart1.png', 'Start with an overview of the main trend', 0.00, 1, 'medium'),
-('140e8400-e29b-41d4-a716-446655440006', '130e8400-e29b-41d4-a716-446655440006', 'What is the speakers main concern?', 'multiple_choice', 'https://example.com/audio1.mp3', 'Listen for key phrases that indicate concern', 1.00, 1, 'medium');
+('140e8400-e29b-41d4-a716-446655440001', '130e8400-e29b-41d4-a716-446655440001', 'What is the main idea of the passage?', 'multiple_choice', NULL, 'The main idea is found in the first paragraph', 1.00, 1, 6.0),
+('140e8400-e29b-41d4-a716-446655440002', '130e8400-e29b-41d4-a716-446655440001', 'According to the text, which statement is true?', 'multiple_choice', NULL, 'Look for supporting evidence in paragraph 2', 1.00, 2, 6.5),
+('140e8400-e29b-41d4-a716-446655440003', '130e8400-e29b-41d4-a716-446655440002', 'The passage discusses environmental issues.', 'true_false', NULL, 'Check the topic sentences of each paragraph', 1.00, 1, 5.5),
+('140e8400-e29b-41d4-a716-446655440004', '130e8400-e29b-41d4-a716-446655440003', 'Tell me about your hometown.', 'speaking', NULL, 'Mention location, size, characteristics, and what you like about it', 0.00, 1, 5.0),
+('140e8400-e29b-41d4-a716-446655440005', '130e8400-e29b-41d4-a716-446655440005', 'Describe the main trend shown in the chart.', 'essay', 'https://example.com/chart1.png', 'Start with an overview of the main trend', 0.00, 1, 7.0),
+('140e8400-e29b-41d4-a716-446655440006', '130e8400-e29b-41d4-a716-446655440006', 'What is the speakers main concern?', 'multiple_choice', 'https://example.com/audio1.mp3', 'Listen for key phrases that indicate concern', 1.00, 1, 6.5);
 
 -- Insert sample question options
 INSERT INTO question_options (id, question_id, option_text, is_correct, ordering, explanation) VALUES

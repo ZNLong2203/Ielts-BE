@@ -140,19 +140,28 @@ CREATE TABLE combo_enrollments (
     UNIQUE(user_id, combo_id)
 );
 
-CREATE TABLE lessons (
+CREATE TABLE sections (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     course_id UUID REFERENCES courses(id) ON DELETE CASCADE,
     title VARCHAR(255) NOT NULL,
     description TEXT,
-    content TEXT,
+    ordering INTEGER DEFAULT 0,
+    deleted BOOLEAN DEFAULT FALSE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE lessons (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    section_id UUID REFERENCES sections(id) ON DELETE CASCADE,
+    title VARCHAR(255) NOT NULL,
+    description TEXT,
+    lesson_type VARCHAR(20) DEFAULT 'video', -- video, document, quiz, assignment
     video_url VARCHAR(500),
     video_duration INTEGER, -- in seconds
-    audio_url VARCHAR(500),
-    materials_urls TEXT[],
+    document_url VARCHAR(500), -- for PDF, slides, etc.
     ordering INTEGER DEFAULT 0,
     is_preview BOOLEAN DEFAULT FALSE,
-    transcript TEXT,
     deleted BOOLEAN DEFAULT FALSE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
@@ -163,7 +172,6 @@ CREATE TABLE lesson_notes (
     user_id UUID REFERENCES users(id) ON DELETE CASCADE,
     lesson_id UUID REFERENCES lessons(id) ON DELETE CASCADE,
     content TEXT NOT NULL,
-    timestamp_in_video INTEGER, -- position in video where note was taken
     deleted BOOLEAN DEFAULT FALSE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
@@ -173,16 +181,31 @@ CREATE TABLE user_progress (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id UUID REFERENCES users(id) ON DELETE CASCADE,
     course_id UUID REFERENCES courses(id) ON DELETE CASCADE,
+    section_id UUID REFERENCES sections(id) ON DELETE CASCADE,
     lesson_id UUID REFERENCES lessons(id) ON DELETE CASCADE,
     status VARCHAR(20) DEFAULT 'not_started', -- not_started, in_progress, completed
     progress_percentage DECIMAL(5,2) DEFAULT 0,
-    time_spent INTEGER DEFAULT 0, -- in seconds
-    last_watched_position INTEGER DEFAULT 0, -- for video lessons
     completion_date TIMESTAMP,
     deleted BOOLEAN DEFAULT FALSE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     UNIQUE(user_id, lesson_id)
+);
+
+CREATE TABLE section_progress (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID REFERENCES users(id) ON DELETE CASCADE,
+    section_id UUID REFERENCES sections(id) ON DELETE CASCADE,
+    course_id UUID REFERENCES courses(id) ON DELETE CASCADE,
+    completed_lessons INTEGER DEFAULT 0,
+    total_lessons INTEGER DEFAULT 0,
+    progress_percentage DECIMAL(5,2) DEFAULT 0,
+    started_at TIMESTAMP,
+    completed_at TIMESTAMP,
+    deleted BOOLEAN DEFAULT FALSE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(user_id, section_id)
 );
 
 CREATE TABLE exercise_types (
@@ -220,7 +243,7 @@ CREATE TABLE questions (
     explanation TEXT,
     points DECIMAL(5,2) DEFAULT 1,
     ordering INTEGER DEFAULT 0,
-    difficulty_level VARCHAR(20), -- easy, medium, hard
+    difficulty_level DECIMAL(3,1), -- band (e.g., 5.0, 6.5, 7.0)
     deleted BOOLEAN DEFAULT FALSE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
@@ -465,8 +488,11 @@ CREATE TABLE user_learning_paths (
 CREATE INDEX idx_users_email ON users(email);
 CREATE INDEX idx_courses_teacher ON courses(teacher_id);
 CREATE INDEX idx_courses_category ON courses(category_id);
-CREATE INDEX idx_lessons_course ON lessons(course_id);
+CREATE INDEX idx_sections_course ON sections(course_id);
+CREATE INDEX idx_lessons_section ON lessons(section_id);
 CREATE INDEX idx_user_progress_user_course ON user_progress(user_id, course_id);
+CREATE INDEX idx_user_progress_user_lesson ON user_progress(user_id, lesson_id);
+CREATE INDEX idx_section_progress_user_section ON section_progress(user_id, section_id);
 CREATE INDEX idx_enrollments_user ON enrollments(user_id);
 CREATE INDEX idx_enrollments_course ON enrollments(course_id);
 CREATE INDEX idx_questions_exercise ON questions(exercise_id);
