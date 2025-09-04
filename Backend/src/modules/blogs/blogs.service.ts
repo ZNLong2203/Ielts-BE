@@ -9,7 +9,7 @@ import { UpdateBlogCategoryDto } from './dto/update-blog-category.dto';
 import { MESSAGE } from 'src/common/message';
 import { FilesService } from '../files/files.service';
 import { UploadedFileType } from 'src/interface/file-type.interface';
-import { FileType } from 'src/common/constants';
+import { FileType, USER_ROLE } from 'src/common/constants';
 import { PaginationQueryDto } from 'src/common/dto/pagination-query.dto';
 import { UtilsService } from 'src/utils/utils.service';
 
@@ -453,7 +453,7 @@ export class BlogsService {
   ): Promise<blogs> {
     try {
       const teacherExists = await this.prismaService.users.findUnique({
-        where: { id: teacherId, role: 'TEACHER' },
+        where: { id: teacherId, role: USER_ROLE.TEACHER },
       });
 
       if (!teacherExists) {
