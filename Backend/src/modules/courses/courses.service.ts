@@ -627,4 +627,172 @@ export class CoursesService {
       },
     });
   }
+
+  async getComboCoursesByLevelRange(currentLevel: number, targetLevel: number) {
+    console.log(
+      `Searching for combo courses: ${currentLevel} - ${targetLevel}`,
+    );
+
+    // Get all combo courses
+    const allComboCourses = await this.prisma.combo_courses.findMany({
+      where: {
+        deleted: false,
+      },
+      orderBy: {
+        enrollment_count: 'desc',
+      },
+    });
+
+    // Find the best combination of combo courses to cover the level range
+    const result = this.findOptimalComboCombination(
+      allComboCourses,
+      currentLevel,
+      targetLevel,
+    );
+
+    // Enhance combo courses with course details
+    const enhancedComboCourses = await Promise.all(
+      result.comboCourses.map(async (combo) => {
+        const courses = await this.prisma.courses.findMany({
+          where: {
+            id: { in: combo.course_ids },
+            deleted: false,
+          },
+          select: {
+            id: true,
+            title: true,
+            description: true,
+            thumbnail: true,
+            skill_focus: true,
+            difficulty_level: true,
+            estimated_duration: true,
+            price: true,
+            discount_price: true,
+          },
+        });
+
+        const totalDuration = courses.reduce(
+          (sum, course) => sum + (course.estimated_duration || 0),
+          0,
+        );
+
+        return {
+          ...combo,
+          courses,
+          total_duration: totalDuration,
+          total_lessons: courses.length * 10,
+        };
+      }),
+    );
+
+    // Return the result with pricing information
+    return {
+      comboCourses: enhancedComboCourses,
+      totalOriginalPrice: result.totalOriginalPrice,
+      totalComboPrice: result.totalComboPrice,
+      totalSavings: result.totalSavings,
+      levelRange: `${currentLevel} - ${targetLevel}`,
+      includedLevels: result.includedLevels,
+    };
+  }
+
+  private findOptimalComboCombination(
+    allComboCourses: any[],
+    currentLevel: number,
+    targetLevel: number,
+  ) {
+    // Parse all combo courses to extract level ranges
+    const parsedCombos = allComboCourses
+      .map((combo) => {
+        const nameMatch = combo.name.match(/(\d+\.?\d*)\s*-\s*(\d+\.?\d*)/);
+        if (nameMatch) {
+          return {
+            ...combo,
+            startLevel: parseFloat(nameMatch[1]),
+            endLevel: parseFloat(nameMatch[2]),
+          };
+        }
+        return null;
+      })
+      .filter((combo) => combo !== null);
+
+    // Find combos that can help cover the target range
+    const suitableCombos = parsedCombos.filter((combo: any) => {
+      // Combo should start at or before user's current level
+      // and end at or after user's target level
+      return combo.startLevel <= currentLevel && combo.endLevel >= targetLevel;
+    });
+
+    if (suitableCombos.length === 0) {
+      // If no single combo covers the entire range, find the best combination
+      return this.findBestComboCombination(
+        parsedCombos,
+        currentLevel,
+        targetLevel,
+      );
+    }
+
+    // If we have suitable combos, return the one with the best value (lowest price per level)
+    const bestCombo = suitableCombos.reduce((best: any, current: any) => {
+      const bestValue =
+        Number(best.combo_price) / (best.endLevel - best.startLevel);
+      const currentValue =
+        Number(current.combo_price) / (current.endLevel - current.startLevel);
+      return currentValue < bestValue ? current : best;
+    });
+
+    return {
+      comboCourses: [bestCombo],
+      totalOriginalPrice: Number(bestCombo.original_price),
+      totalComboPrice: Number(bestCombo.combo_price),
+      totalSavings:
+        Number(bestCombo.original_price) - Number(bestCombo.combo_price),
+      includedLevels: [`${bestCombo.startLevel} - ${bestCombo.endLevel}`],
+    };
+  }
+
+  private findBestComboCombination(
+    parsedCombos: any[],
+    currentLevel: number,
+    targetLevel: number,
+  ) {
+    // Sort combos by start level
+    const sortedCombos = parsedCombos.sort(
+      (a, b) => a.startLevel - b.startLevel,
+    );
+
+    // Find the minimum set of combos that cover the range
+    const selectedCombos: any[] = [];
+    let currentCoverage = currentLevel;
+    let totalOriginalPrice = 0;
+    let totalComboPrice = 0;
+    const includedLevels: string[] = [];
+
+    for (const combo of sortedCombos) {
+      // Check if this combo can help extend our coverage
+      if (
+        combo.startLevel <= currentCoverage &&
+        combo.endLevel > currentCoverage
+      ) {
+        selectedCombos.push(combo);
+        totalOriginalPrice += Number(combo.original_price) || 0;
+        totalComboPrice += Number(combo.combo_price) || 0;
+        includedLevels.push(`${combo.startLevel} - ${combo.endLevel}`);
+        currentCoverage = combo.endLevel;
+
+        // If we've reached or exceeded the target, we're done
+        if (currentCoverage >= targetLevel) {
+          break;
+        }
+      }
+    }
+
+    return {
+      comboCourses: selectedCombos,
+      totalOriginalPrice,
+      totalComboPrice,
+      totalSavings: totalOriginalPrice - totalComboPrice,
+      includedLevels,
+    };
+  }
 }

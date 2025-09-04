@@ -38,6 +38,7 @@ import {
   CurrentUser,
   MessageResponse,
   SkipCheckPermission,
+  Public,
 } from 'src/decorator/customize';
 import { UploadedFileType } from 'src/interface/file-type.interface';
 import {
@@ -347,5 +348,22 @@ export class CoursesController {
     file: UploadedFileType,
   ) {
     return this.coursesService.uploadComboThumbnail(id, file);
+  }
+
+  @Get('combo/level-range/:currentLevel/:targetLevel')
+  @Public()
+  @ApiOperation({ summary: 'Get combo courses by level range' })
+  @ApiQuery({ name: 'currentLevel', required: true, type: Number })
+  @ApiQuery({ name: 'targetLevel', required: true, type: Number })
+  @SkipCheckPermission()
+  @MessageResponse(MESSAGE.COURSE.COMBO_COURSE_LIST)
+  async getComboCoursesByLevelRange(
+    @Param('currentLevel') currentLevel: number,
+    @Param('targetLevel') targetLevel: number,
+  ) {
+    return this.coursesService.getComboCoursesByLevelRange(
+      currentLevel,
+      targetLevel,
+    );
   }
 }

@@ -190,8 +190,8 @@ export class FeatureCourseDto {
 
 export class CreateComboCourseDto {
   @ApiProperty({
-    description: 'Combo course title',
-    example: 'IELTS Mastery Combo',
+    description: 'Combo course title (band score range)',
+    example: '3.5 - 5.0',
   })
   @IsString()
   @IsNotEmpty()
