@@ -111,7 +111,7 @@ CREATE TABLE enrollments (
 
 CREATE TABLE combo_courses (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    name VARCHAR(255) NOT NULL,
+    name VARCHAR(255) NOT NULL, --band range: 3.5 - 5.0, 4.0 - 5.0, 5.0 - 6.0, ... 
     description TEXT,
     thumbnail VARCHAR(500),
     original_price DECIMAL(10,2) NOT NULL,
