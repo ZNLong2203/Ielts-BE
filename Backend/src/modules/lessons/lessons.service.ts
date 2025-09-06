@@ -69,14 +69,22 @@ export class LessonsService {
       throw new NotFoundException('Lesson not found');
     }
 
-    let hlsUrl: string | null = 'No video';
+    let hlsUrl: string | null = null;
     if (lesson.video_url) {
       hlsUrl = await this.videoService.getVideoHLSUrl(lesson.video_url);
     }
 
+    const { video_duration, ...rest } = lesson;
+
     return {
       success: true,
-      data: { ...lesson, hlsUrl },
+      data: {
+        ...rest,
+        hlsUrl,
+        videoDuration: video_duration
+          ? this.formatDuration(video_duration)
+          : null,
+      },
     };
   }
 
@@ -184,6 +192,16 @@ export class LessonsService {
     }
 
     try {
+      const lesson = await this.prisma.lessons.findFirst({
+        where: { id, deleted: false },
+      });
+
+      if (!lesson) {
+        throw new NotFoundException('Lesson not found');
+      }
+      const video_name = lesson.video_url;
+
+      // Upload video using VideoService
       const result = await this.videoService.uploadVideo(
         file.buffer,
         file.originalname,
@@ -199,6 +217,11 @@ export class LessonsService {
           updated_at: new Date(),
         },
       });
+
+      // delete old video if exists
+      if (video_name) {
+        await this.videoService.clearVideoData(video_name);
+      }
 
       return {
         success: true,
@@ -312,6 +335,20 @@ export class LessonsService {
       throw new BadRequestException(
         `Failed to get status: ${error instanceof Error ? error.message : 'Unknown error'}`,
       );
+    }
+  }
+
+  private formatDuration(seconds: number): string {
+    if (seconds === 0) return '00:00';
+
+    const hours = Math.floor(seconds / 3600);
+    const minutes = Math.floor((seconds % 3600) / 60);
+    const secs = Math.floor(seconds % 60);
+
+    if (hours > 0) {
+      return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+    } else {
+      return `${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
     }
   }
 

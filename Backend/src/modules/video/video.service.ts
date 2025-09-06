@@ -271,6 +271,56 @@ export class VideoService {
     }
   }
 
+  async clearVideoData(fileName: string): Promise<void> {
+    const bucketName = 'ielts-videos';
+    const originalObjectName = `lessons/original/${fileName}`;
+    const baseName = path.parse(fileName).name;
+    const hlsFolder = `lessons/hls/${baseName}/`;
+
+    // Delete original video
+    try {
+      await this.minioService.deleteFile(bucketName, originalObjectName);
+      this.logger.log(`✅ Deleted original video: ${originalObjectName}`);
+    } catch (error) {
+      this.logger.error(
+        `❌ Failed to delete original video ${originalObjectName}:`,
+        error,
+      );
+    }
+
+    // Delete HLS folder
+    try {
+      const hlsExists = await this.minioService.objectExists(
+        bucketName,
+        `${hlsFolder}playlist.m3u8`,
+      );
+
+      if (hlsExists) {
+        await this.minioService.deleteFolderContents(bucketName, hlsFolder);
+        this.logger.log(`✅ Deleted HLS folder: ${hlsFolder}`);
+      } else {
+        this.logger.log(`ℹ️ HLS folder does not exist: ${hlsFolder}`);
+      }
+    } catch (error) {
+      this.logger.error(`❌ Failed to delete HLS folder ${hlsFolder}:`, error);
+    }
+
+    // Delete Redis keys
+    const durationKey = `video:${fileName}:duration`;
+    const progressKey = `video:${fileName}:progress`;
+
+    try {
+      await this.redisService.del(durationKey);
+      await this.redisService.del(progressKey);
+      this.logger.log(`✅ Deleted Redis keys for video: ${fileName}`);
+    } catch (error) {
+      this.logger.error(
+        `❌ Failed to delete Redis keys for ${fileName}:`,
+        error,
+      );
+    }
+  }
+
   async getProgress(fileName: string): Promise<ProcessingProgress | null> {
     try {
       return await this.redisService.getJSON<ProcessingProgress>(
