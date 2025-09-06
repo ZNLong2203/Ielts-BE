@@ -15,10 +15,14 @@ import {
   IS_PUBLIC_PERMISSION,
   POLICIES_KEY,
 } from 'src/decorator/customize';
+import { BlogsService } from 'src/modules/blogs/blogs.service';
+import { CouponsService } from 'src/modules/coupons/coupons.service';
+import { CoursesService } from 'src/modules/courses/courses.service';
 import { PolicyHandlerCallback, ServiceContext } from 'src/types/ability.types';
 import { StudentsService } from '../../modules/students/students.service';
 import { TeachersService } from '../../modules/teachers/teachers.service';
 import { UsersService } from '../../modules/users/users.service';
+import { BlogCommentsService } from 'src/modules/blog-comments/blog-comments.service';
 
 @Injectable()
 export class PermissionGuard implements CanActivate {
@@ -137,28 +141,60 @@ export class PermissionGuard implements CanActivate {
 
       // Try to get each service and add to context if available
       try {
-        serviceContext.studentsService = this.moduleRef.get<StudentsService>(
-          'StudentsService',
-          { strict: false },
-        );
+        serviceContext.studentsService = this.moduleRef.get(StudentsService, {
+          strict: false,
+        });
       } catch (e) {
         this.logger.debug('StudentsService not available');
       }
 
       try {
-        serviceContext.teachersService = this.moduleRef.get<TeachersService>(
-          'TeachersService',
-          { strict: false },
-        );
+        serviceContext.couponsService = this.moduleRef.get(CouponsService, {
+          strict: false,
+        });
+      } catch (e) {
+        this.logger.debug('CouponsService not available');
+      }
+
+      try {
+        serviceContext.teachersService = this.moduleRef.get(TeachersService, {
+          strict: false,
+        });
       } catch (e) {
         this.logger.debug('TeachersService not available');
       }
 
       try {
-        serviceContext.usersService = this.moduleRef.get<UsersService>(
-          'UsersService',
-          { strict: false },
+        serviceContext.blogsService = this.moduleRef.get(BlogsService, {
+          strict: false,
+        });
+      } catch (e) {
+        this.logger.debug('BlogsService not available');
+      }
+
+      try {
+        serviceContext.coursesService = this.moduleRef.get(CoursesService, {
+          strict: false,
+        });
+      } catch (e) {
+        this.logger.debug('CoursesService not available');
+      }
+
+      try {
+        serviceContext.blogCommentsService = this.moduleRef.get(
+          BlogCommentsService,
+          {
+            strict: false,
+          },
         );
+      } catch (e) {
+        this.logger.debug('BlogCommentsService not available');
+      }
+
+      try {
+        serviceContext.usersService = this.moduleRef.get(UsersService, {
+          strict: false,
+        });
       } catch (e) {
         this.logger.debug('UsersService not available');
       }
