@@ -7,6 +7,7 @@ import * as os from 'os';
 import * as path from 'path';
 import { MinioService } from 'src/modules/files/minio.service';
 import { VIDEO_QUEUE_NAME } from 'src/modules/video/constants';
+import { PrismaService } from 'src/prisma/prisma.service';
 import { RedisService } from 'src/redis/redis.service';
 import { v4 as uuid } from 'uuid';
 import { ProcessingProgress, VideoJobData } from './interfaces';
@@ -18,6 +19,7 @@ export class VideoProcessor extends WorkerHost {
   constructor(
     private readonly minioService: MinioService,
     private readonly redisService: RedisService,
+    private readonly prismaService: PrismaService,
   ) {
     super();
   }
@@ -71,6 +73,31 @@ export class VideoProcessor extends WorkerHost {
         progress: 100,
         message: 'HLS processing completed successfully',
       });
+
+      const cached = await this.redisService.getJSON<number>(
+        `video:${fileName}:duration`,
+      );
+
+      const lesson = await this.prismaService.lessons.findFirst({
+        where: { video_url: fileName },
+      });
+
+      // Update lesson duration if cached value exists
+      if (lesson && cached) {
+        await this.prismaService.lessons.update({
+          where: { id: lesson.id },
+          data: {
+            video_duration: cached,
+            updated_at: new Date(),
+          },
+        });
+        this.logger.log(
+          `✅ Updated lesson ${lesson.id} with video duration: ${cached}s`,
+        );
+
+        // Remove cached duration after updating
+        await this.redisService.del(`video:${fileName}:duration`);
+      }
 
       this.logger.log(`✅ HLS processing completed for: ${fileName}`);
     } catch (error) {

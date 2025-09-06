@@ -7,12 +7,14 @@ import { VideoProcessor } from 'src/modules/video/video.processor';
 import { RedisModule } from 'src/redis/redis.module';
 import { VideoController } from './video.controller';
 import { VideoService } from './video.service';
+import { PrismaModule } from 'src/prisma/prisma.module';
 
 @Module({
   imports: [
     ConfigModule,
     FilesModule,
     RedisModule,
+    PrismaModule,
     BullModule.registerQueue({
       name: VIDEO_QUEUE_NAME,
     }),

@@ -7,6 +7,7 @@ import { JwtAuthGuard } from 'src/modules/auth/guards/jwt-auth.guard';
 import { CouponsModule } from 'src/modules/coupons/coupons.module';
 import { OrdersModule } from 'src/modules/orders/orders.module';
 import { PaymentsModule } from 'src/modules/payments/payments.module';
+import { SectionsModule } from 'src/modules/sections/sections.module';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { CaslModule } from './casl/casl.module';
@@ -65,6 +66,7 @@ import { UtilsModule } from './utils/utils.module';
     OrdersModule,
     LessonsModule,
     VideoModule,
+    SectionsModule,
   ],
   controllers: [AppController, DatabaseController],
   providers: [
