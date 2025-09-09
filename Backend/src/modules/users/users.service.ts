@@ -244,7 +244,7 @@ export class UsersService {
       where: { email_verification_token: token },
     });
 
-    if (!user) throw new BadRequestException('Invalid verification token');
+    if (!user) return null;
 
     // Cập nhật trạng thái đã xác thực
     return await this.prisma.users.update({

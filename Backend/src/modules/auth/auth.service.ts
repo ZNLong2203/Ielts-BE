@@ -68,16 +68,17 @@ export class AuthService {
     };
   }
 
-  async verifyEmail(token: string) {
+  async verifyEmail(token: string, res: Response) {
     const user = await this.usersService.verifyEmail(token);
+    const frontendUrl = this.configService.get<string>('FRONTEND_URL');
 
     if (!user) {
-      throw new BadRequestException('Invalid or expired verification token');
+      return res.redirect(
+        `${frontendUrl}/auth/verify-email?status=failed&message=Invalid or expired verification token`,
+      );
     }
 
-    return {
-      updatedAt: user.updated_at,
-    };
+    return res.redirect(`${frontendUrl}/auth/verify-email?status=success`);
   }
 
   async resetTeacherPassword(token: string, dto: ResetTeacherPasswordDto) {

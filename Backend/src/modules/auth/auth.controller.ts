@@ -118,8 +118,8 @@ export class AuthController {
   @Public()
   @Get('verify')
   @MessageResponse(MESSAGE.AUTH.EMAIL_VERIFICATION_SUCCESS)
-  verifyEmail(@Query('token') token: string) {
-    return this.authService.verifyEmail(token);
+  verifyEmail(@Query('token') token: string, @Res() res: Response) {
+    return this.authService.verifyEmail(token, res);
   }
 
   @ApiOperation({
