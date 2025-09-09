@@ -305,7 +305,11 @@ export class PaymentsService {
       // Update order and payment if necessary
       await tx.payments.update({
         where: { id: paymentId },
-        data: { status: PaymentStatus.COMPLETED },
+        data: {
+          processed_at: new Date(),
+          updated_at: new Date(),
+          status: PaymentStatus.COMPLETED,
+        },
       });
 
       await tx.orders.update({
@@ -313,6 +317,7 @@ export class PaymentsService {
         data: {
           status: OrderStatus.COMPLETED,
           payment_status: PaymentStatus.COMPLETED,
+          updated_at: new Date(),
         },
       });
     });
@@ -350,7 +355,11 @@ export class PaymentsService {
       // Update order and payment if necessary
       await tx.payments.update({
         where: { id: paymentId },
-        data: { status: PaymentStatus.CANCELLED },
+        data: {
+          processed_at: new Date(),
+          updated_at: new Date(),
+          status: PaymentStatus.CANCELLED,
+        },
       });
 
       await tx.orders.update({
