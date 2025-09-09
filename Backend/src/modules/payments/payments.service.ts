@@ -318,7 +318,9 @@ export class PaymentsService {
     });
 
     // Redirect to success URL
-    const successUrl = `${this.config.get<string>('FRONTEND_URL')}/order-success?orderId=${orderId}&paymentId=${paymentId}`;
+    const frontendUrl =
+      this.config.get<string>('FRONTEND_URL') || 'http://localhost:8000';
+    const successUrl = `${frontendUrl}/payment/success?orderId=${orderId}&paymentId=${paymentId}&success=true`;
     // Implement redirection logic here
     res.redirect(successUrl);
   }
@@ -362,7 +364,9 @@ export class PaymentsService {
     });
 
     // Redirect to cancel URL
-    const cancelUrl = `${this.config.get<string>('FRONTEND_URL')}/order-cancelled?orderId=${orderId}&paymentId=${paymentId}`;
+    const frontendUrl =
+      this.config.get<string>('FRONTEND_URL') || 'http://localhost:8000';
+    const cancelUrl = `${frontendUrl}/orders?orderId=${orderId}&paymentId=${paymentId}&cancel=true`;
     res.redirect(cancelUrl);
   }
 
