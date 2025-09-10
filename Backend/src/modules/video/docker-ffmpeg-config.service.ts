@@ -1,9 +1,9 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { exec } from 'child_process';
-import { promisify } from 'util';
 import * as ffmpeg from 'fluent-ffmpeg';
 import * as ffprobe from 'node-ffprobe';
 import * as path from 'path';
+import { promisify } from 'util';
 
 const execAsync = promisify(exec);
 
@@ -82,20 +82,54 @@ export class DockerFFmpegConfigService {
   /**
    * Convert local path to container path
    */
-  convertToContainerPath(localPath: string): string {
-    // Convert absolute path to container path
-    const storagePath = path.resolve(process.cwd(), 'storage');
-    const tmpPath = '/tmp';
+  // src/modules/video/docker-ffmpeg-config.service.ts
 
-    if (localPath.startsWith(storagePath)) {
-      const relativePath = path.relative(storagePath, localPath);
-      return `/data/${relativePath}`;
-    } else if (localPath.startsWith('/tmp')) {
-      return localPath; // Already in container format
-    } else {
-      // For other paths, assume they're in tmp
-      return `/tmp/${path.basename(localPath)}`;
+  convertToContainerPath(localPath: string): string {
+    if (!localPath) {
+      throw new Error('Local path is required');
     }
+
+    const normalizedPath = path.resolve(localPath);
+
+    // ✅ Fix: Storage và tmp paths phải relative to docker-compose.yml location
+    const dockerComposeDir = path.resolve(process.cwd(), '..'); // Parent directory
+    const storagePath = path.resolve(dockerComposeDir, 'storage');
+    const tmpPath = path.resolve(dockerComposeDir, 'tmp/');
+
+    this.logger.debug(`🔄 Converting path: ${normalizedPath}`);
+    this.logger.debug(`📁 Storage: ${storagePath}`);
+    this.logger.debug(`📂 Tmp: ${tmpPath}`);
+    this.logger.debug(`🐳 Docker compose dir: ${dockerComposeDir}`);
+
+    // Storage mapping
+    if (normalizedPath.startsWith(storagePath)) {
+      const relativePath = path.relative(storagePath, normalizedPath);
+      const containerPath = `/data/${relativePath.replace(/\\/g, '/')}`;
+      this.logger.debug(`📦 Storage -> Container: ${containerPath}`);
+      return containerPath;
+    }
+
+    // ✅ Tmp mapping (fixed to match docker volume)
+    else if (normalizedPath.startsWith(tmpPath)) {
+      const relativePath = path.relative(tmpPath, normalizedPath);
+      const containerPath = `/tmp/${relativePath.replace(/\\/g, '/')}`;
+      this.logger.debug(`🗂️ Tmp -> Container: ${containerPath}`);
+      return containerPath;
+    }
+
+    // Already container path
+    if (localPath.startsWith('/tmp/') || localPath.startsWith('/data/')) {
+      this.logger.debug(`📄 Already container path: ${localPath}`);
+      return localPath;
+    }
+
+    // Fallback
+    const fileName = path.basename(normalizedPath);
+    const containerPath = `/tmp/${fileName}`;
+    this.logger.warn(
+      `⚠️ Unmapped path, using fallback: ${normalizedPath} -> ${containerPath}`,
+    );
+    return containerPath;
   }
 
   /**
@@ -116,8 +150,9 @@ export class DockerFFmpegConfigService {
    */
   async getVideoInfo(inputPath: string): Promise<any> {
     await this.ensureContainerRunning();
+    console.log('Input path:', inputPath);
     const containerInputPath = this.convertToContainerPath(inputPath);
-
+    console.log('Getting video info for:', containerInputPath);
     try {
       return await ffprobe(containerInputPath);
     } catch (error) {

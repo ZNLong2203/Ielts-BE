@@ -62,7 +62,7 @@ services:
     container_name: ffmpeg-service
     volumes:
       - ./storage:/data
-      - /tmp:/tmp
+      - ./tmp:/tmp
     networks:
       - ielts-be
 

@@ -2,15 +2,14 @@ import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { Logger } from '@nestjs/common';
 import { Job } from 'bullmq';
 import * as fs from 'fs';
-import * as os from 'os';
 import * as path from 'path';
 import { MinioService } from 'src/modules/files/minio.service';
 import { VIDEO_QUEUE_NAME } from 'src/modules/video/constants';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { RedisService } from 'src/redis/redis.service';
 import { v4 as uuid } from 'uuid';
-import { ProcessingProgress, VideoJobData } from './interfaces';
 import { DockerFFmpegConfigService } from './docker-ffmpeg-config.service';
+import { ProcessingProgress, VideoJobData } from './interfaces';
 
 @Processor(VIDEO_QUEUE_NAME)
 export class VideoProcessor extends WorkerHost {
@@ -27,7 +26,8 @@ export class VideoProcessor extends WorkerHost {
 
   async process(job: Job<VideoJobData>): Promise<void> {
     const { fileName, bucketName, originalObjectName, folder } = job.data;
-    const tempDir = path.join(os.tmpdir(), `video-${uuid()}`);
+    const baseTmpDir = path.resolve(process.cwd(), '../tmp/');
+    const tempDir = path.join(baseTmpDir, `video-${uuid()}`);
     const tempVideoPath = path.join(tempDir, fileName);
     const hlsDir = path.join(tempDir, 'hls');
 

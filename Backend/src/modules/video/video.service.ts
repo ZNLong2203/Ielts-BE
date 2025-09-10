@@ -3,18 +3,17 @@ import { InjectQueue } from '@nestjs/bullmq';
 import { BadRequestException, Injectable, Logger } from '@nestjs/common';
 import { Job, Queue } from 'bullmq';
 import * as fs from 'fs';
-import * as os from 'os';
 import * as path from 'path';
 import { MinioService } from 'src/modules/files/minio.service';
 import { VIDEO_QUEUE_NAME } from 'src/modules/video/constants';
 import { RedisService } from 'src/redis/redis.service';
 import { v4 as uuid } from 'uuid';
+import { DockerFFmpegConfigService } from './docker-ffmpeg-config.service';
 import {
   ProcessingProgress,
   VideoJobData,
   VideoUploadResult,
 } from './interfaces';
-import { DockerFFmpegConfigService } from './docker-ffmpeg-config.service';
 
 @Injectable()
 export class VideoService {
@@ -43,7 +42,8 @@ export class VideoService {
     const fileName = `${uuid()}${fileExtension}`;
     const folder = 'lessons';
     const originalObjectName = `${folder}/original/${fileName}`;
-    const tempDir = path.join(os.tmpdir(), `upload-${uuid()}`);
+    const baseTmpDir = path.resolve(process.cwd(), '../tmp/');
+    const tempDir = path.join(baseTmpDir, `upload-${uuid()}`);
     const tempVideoPath = path.join(tempDir, fileName);
 
     // ✅ Track what needs rollback
@@ -64,6 +64,7 @@ export class VideoService {
 
       // Step 2: Extract duration using Docker FFmpeg
       const info = await this.dockerFFmpegConfig.getVideoInfo(tempVideoPath);
+      console.log(info);
       const duration = Math.round(info.format.duration || 0);
       this.logger.log(`⏱️ Duration: ${duration}s for ${originalName}`);
 
