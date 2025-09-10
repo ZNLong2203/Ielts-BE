@@ -527,7 +527,14 @@ export class CoursesService {
       throw new NotFoundException('Combo course not found');
     }
 
-    return comboCourse;
+    const courses = await this.prisma.courses.findMany({
+      where: {
+        id: { in: comboCourse.course_ids },
+        deleted: false,
+      },
+    });
+
+    return { ...comboCourse, courses };
   }
   async createComboCourse(dto: CreateComboCourseDto) {
     const courseIds = dto.course_ids;
