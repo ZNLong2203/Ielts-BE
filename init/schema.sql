@@ -410,7 +410,7 @@ CREATE TABLE payments (
     transaction_id VARCHAR(255),
     amount DECIMAL(10,2) NOT NULL,
     currency VARCHAR(3) DEFAULT 'VND',
-    status VARCHAR(20) DEFAULT 'pending', -- pending, completed, failed, refunded
+    status VARCHAR(20) DEFAULT 'pending', -- pending, completed, failed, refunded, cancelled
     gateway_response JSONB,
     processed_at TIMESTAMP,
     deleted BOOLEAN DEFAULT FALSE,

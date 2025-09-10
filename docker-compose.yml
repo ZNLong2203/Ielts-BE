@@ -55,6 +55,17 @@ services:
     command: tunnel --url http://host.docker.internal:3000
     restart: unless-stopped
 
+  ffmpeg:
+    build:
+      context: ./ffmpeg
+      dockerfile: Dockerfile
+    container_name: ffmpeg-service
+    volumes:
+      - ./storage:/data
+      - /tmp:/tmp
+    networks:
+      - ielts-be
+
   # zookeeper:
   #   image: confluentinc/cp-zookeeper:latest
   #   environment:
