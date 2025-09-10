@@ -213,7 +213,6 @@ export class LessonsService {
         where: { id },
         data: {
           video_url: result.fileName,
-          video_duration: Math.floor(result.size / (1024 * 1024)), // Dummy duration based on size
           updated_at: new Date(),
         },
       });

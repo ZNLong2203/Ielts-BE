@@ -1,9 +1,8 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { exec } from 'child_process';
 import * as ffmpeg from 'fluent-ffmpeg';
-import * as path from 'path';
 import * as os from 'os';
-import * as fs from 'fs';
+import * as path from 'path';
 import { promisify } from 'util';
 
 const execAsync = promisify(exec);
@@ -22,46 +21,37 @@ export class DockerFFmpegConfigService {
    * Setup FFmpeg paths to use Docker container
    */
   private setupFFmpegPaths(): void {
-    // Get absolute paths to wrapper scripts
-    // process.cwd() returns Backend directory, so we need to go up one level
     const projectRoot = path.resolve(process.cwd(), '..');
     const isWindows = os.platform() === 'win32';
 
-    // Choose wrapper script based on platform with fallback
-    const ffmpegWrapper = this.getWrapperPath(projectRoot, 'ffmpeg', isWindows);
-    const ffprobeWrapper = this.getWrapperPath(projectRoot, 'ffprobe', isWindows);
+    // Get paths
+    const ffmpegPath = this.getWrapperPath(projectRoot, 'ffmpeg', isWindows);
+    const ffprobePath = this.getWrapperPath(projectRoot, 'ffprobe', isWindows);
 
-    // Set FFmpeg binary path to use wrapper scripts
-    ffmpeg.setFfmpegPath(ffmpegWrapper);
-    ffmpeg.setFfprobePath(ffprobeWrapper);
+    // Set FFmpeg paths for fluent-ffmpeg
+    ffmpeg.setFfmpegPath(ffmpegPath);
+    ffmpeg.setFfprobePath(ffprobePath);
 
-    this.logger.log(`FFmpeg paths configured to use Docker wrapper scripts:`);
+    this.logger.log(`FFmpeg paths configured:`);
     this.logger.log(`  Platform: ${os.platform()}`);
-    this.logger.log(`  FFmpeg: ${ffmpegWrapper}`);
-    this.logger.log(`  FFprobe: ${ffprobeWrapper}`);
+    this.logger.log(`  FFmpeg: ${ffmpegPath}`);
+    this.logger.log(`  FFprobe: ${ffprobePath}`);
   }
 
   /**
-   * Get wrapper script path with fallback support
+   * Get FFmpeg / FFprobe path
    */
-  private getWrapperPath(projectRoot: string, tool: string, isWindows: boolean): string {
+  private getWrapperPath(
+    projectRoot: string,
+    tool: string,
+    isWindows: boolean,
+  ): string {
     if (isWindows) {
-      // Windows: try .bat first, then .ps1
-      const batPath = path.join(projectRoot, 'ffmpeg', `${tool}-docker.bat`);
-      const ps1Path = path.join(projectRoot, 'ffmpeg', `${tool}-docker.ps1`);
-      
-      if (fs.existsSync(batPath)) {
-        this.logger.debug(`Using .bat wrapper for ${tool}: ${batPath}`);
-        return batPath;
-      } else if (fs.existsSync(ps1Path)) {
-        this.logger.debug(`Falling back to .ps1 wrapper for ${tool}: ${ps1Path}`);
-        return ps1Path;
-      } else {
-        this.logger.warn(`No Windows wrapper found for ${tool}, using .bat as default`);
-        return batPath; // Return .bat path even if it doesn't exist
-      }
+      // On Windows: just use tool from PATH
+      this.logger.debug(`Using ${tool} from PATH`);
+      return tool; // fluent-ffmpeg sẽ tìm ffmpeg.exe/ffprobe.exe từ PATH
     } else {
-      // Unix/Linux: use shell scripts
+      // Linux/macOS: use shell wrapper
       const shellPath = path.join(projectRoot, 'ffmpeg', `${tool}-docker`);
       this.logger.debug(`Using shell wrapper for ${tool}: ${shellPath}`);
       return shellPath;
@@ -106,14 +96,21 @@ export class DockerFFmpegConfigService {
   /**
    * Convert local path to container path
    */
-  // src/modules/video/docker-ffmpeg-config.service.ts
-
   convertToContainerPath(localPath: string): string {
     if (!localPath) {
       throw new Error('Local path is required');
     }
 
     const normalizedPath = path.resolve(localPath);
+    const isWindows = os.platform() === 'win32';
+
+    if (isWindows) {
+      // Windows: dùng path gốc, không convert
+      this.logger.debug(
+        `Windows detected, using local path: ${normalizedPath}`,
+      );
+      return normalizedPath;
+    }
 
     // ✅ Fix: Storage và tmp paths phải relative to docker-compose.yml location
     const dockerComposeDir = path.resolve(process.cwd(), '..'); // Parent directory
@@ -133,8 +130,8 @@ export class DockerFFmpegConfigService {
       return containerPath;
     }
 
-    // ✅ Tmp mapping (fixed to match docker volume)
-    else if (normalizedPath.startsWith(tmpPath)) {
+    // Tmp mapping
+    if (normalizedPath.startsWith(tmpPath)) {
       const relativePath = path.relative(tmpPath, normalizedPath);
       const containerPath = `/tmp/${relativePath.replace(/\\/g, '/')}`;
       this.logger.debug(`🗂️ Tmp -> Container: ${containerPath}`);
@@ -182,7 +179,8 @@ export class DockerFFmpegConfigService {
       ffmpeg.ffprobe(containerInputPath, (err, data) => {
         if (err) {
           this.logger.error(`FFprobe failed for ${inputPath}:`, err);
-          const errorMessage = err instanceof Error ? err.message : 'FFprobe failed';
+          const errorMessage =
+            err instanceof Error ? err.message : 'FFprobe failed';
           return reject(new Error(errorMessage));
         }
         resolve(data);
