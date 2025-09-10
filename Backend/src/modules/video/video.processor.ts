@@ -2,6 +2,7 @@ import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { Logger } from '@nestjs/common';
 import { Job } from 'bullmq';
 import * as fs from 'fs';
+import * as os from 'os';
 import * as path from 'path';
 import { MinioService } from 'src/modules/files/minio.service';
 import { VIDEO_QUEUE_NAME } from 'src/modules/video/constants';
@@ -26,7 +27,7 @@ export class VideoProcessor extends WorkerHost {
 
   async process(job: Job<VideoJobData>): Promise<void> {
     const { fileName, bucketName, originalObjectName, folder } = job.data;
-    const baseTmpDir = path.resolve(process.cwd(), '../tmp/');
+    const baseTmpDir = path.resolve(process.cwd(), '../temp');
     const tempDir = path.join(baseTmpDir, `video-${uuid()}`);
     const tempVideoPath = path.join(tempDir, fileName);
     const hlsDir = path.join(tempDir, 'hls');

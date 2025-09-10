@@ -3,6 +3,7 @@ import { InjectQueue } from '@nestjs/bullmq';
 import { BadRequestException, Injectable, Logger } from '@nestjs/common';
 import { Job, Queue } from 'bullmq';
 import * as fs from 'fs';
+import * as os from 'os';
 import * as path from 'path';
 import { MinioService } from 'src/modules/files/minio.service';
 import { VIDEO_QUEUE_NAME } from 'src/modules/video/constants';
@@ -42,7 +43,7 @@ export class VideoService {
     const fileName = `${uuid()}${fileExtension}`;
     const folder = 'lessons';
     const originalObjectName = `${folder}/original/${fileName}`;
-    const baseTmpDir = path.resolve(process.cwd(), '../tmp/');
+    const baseTmpDir = path.resolve(process.cwd(), '../temp');
     const tempDir = path.join(baseTmpDir, `upload-${uuid()}`);
     const tempVideoPath = path.join(tempDir, fileName);
 
@@ -64,8 +65,10 @@ export class VideoService {
 
       // Step 2: Extract duration using Docker FFmpeg
       const info = await this.dockerFFmpegConfig.getVideoInfo(tempVideoPath);
-      console.log(info);
-      const duration = Math.round(info.format.duration || 0);
+      console.log('FFprobe info:', JSON.stringify(info, null, 2));
+      
+      // Handle case where format might be undefined
+      const duration = info?.format?.duration ? Math.round(info.format.duration) : 0;
       this.logger.log(`⏱️ Duration: ${duration}s for ${originalName}`);
 
       // Step 3: Upload to MinIO
