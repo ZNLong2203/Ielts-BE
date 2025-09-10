@@ -3,7 +3,6 @@ import { InjectQueue } from '@nestjs/bullmq';
 import { BadRequestException, Injectable, Logger } from '@nestjs/common';
 import { Job, Queue } from 'bullmq';
 import * as fs from 'fs';
-import * as ffprobe from 'node-ffprobe';
 import * as os from 'os';
 import * as path from 'path';
 import { MinioService } from 'src/modules/files/minio.service';
@@ -15,6 +14,7 @@ import {
   VideoJobData,
   VideoUploadResult,
 } from './interfaces';
+import { DockerFFmpegConfigService } from './docker-ffmpeg-config.service';
 
 @Injectable()
 export class VideoService {
@@ -23,6 +23,7 @@ export class VideoService {
   constructor(
     private readonly minioService: MinioService,
     private readonly redisService: RedisService,
+    private readonly dockerFFmpegConfig: DockerFFmpegConfigService,
     @InjectQueue(VIDEO_QUEUE_NAME)
     private readonly videoQueue: Queue<VideoJobData>,
   ) {}
@@ -61,8 +62,8 @@ export class VideoService {
       await fs.promises.mkdir(tempDir, { recursive: true });
       await fs.promises.writeFile(tempVideoPath, buffer);
 
-      // Step 2: Extract duration
-      const info = await ffprobe(tempVideoPath);
+      // Step 2: Extract duration using Docker FFmpeg
+      const info = await this.dockerFFmpegConfig.getVideoInfo(tempVideoPath);
       const duration = Math.round(info.format.duration || 0);
       this.logger.log(`⏱️ Duration: ${duration}s for ${originalName}`);
 

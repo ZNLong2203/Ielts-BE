@@ -1,7 +1,6 @@
 import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { Logger } from '@nestjs/common';
 import { Job } from 'bullmq';
-import * as ffmpeg from 'fluent-ffmpeg';
 import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
@@ -11,6 +10,7 @@ import { PrismaService } from 'src/prisma/prisma.service';
 import { RedisService } from 'src/redis/redis.service';
 import { v4 as uuid } from 'uuid';
 import { ProcessingProgress, VideoJobData } from './interfaces';
+import { DockerFFmpegConfigService } from './docker-ffmpeg-config.service';
 
 @Processor(VIDEO_QUEUE_NAME)
 export class VideoProcessor extends WorkerHost {
@@ -20,6 +20,7 @@ export class VideoProcessor extends WorkerHost {
     private readonly minioService: MinioService,
     private readonly redisService: RedisService,
     private readonly prismaService: PrismaService,
+    private readonly dockerFFmpegConfig: DockerFFmpegConfigService,
   ) {
     super();
   }
@@ -156,86 +157,107 @@ export class VideoProcessor extends WorkerHost {
     outputDir: string,
     fileName: string,
   ): Promise<void> {
-    return new Promise((resolve, reject) => {
+    return new Promise(async (resolve, reject) => {
       const outputPlaylist = path.join(outputDir, 'playlist.m3u8');
       const segmentPattern = path.join(outputDir, 'segment_%04d.ts');
 
-      ffmpeg(inputPath)
-        .outputOptions([
-          '-c:v libx264',
-          '-preset faster',
-          '-profile:v main',
-          '-level 3.1',
-          '-crf 26',
-          '-c:a aac',
-          '-b:a 128k',
-          '-ar 44100',
-          '-sc_threshold 0',
-          '-g 60',
-          '-keyint_min 60',
-          '-hls_time 6',
-          '-hls_playlist_type vod',
-          '-hls_segment_filename',
-          segmentPattern,
-          '-threads 0',
-          '-movflags +faststart',
-          '-tune film',
-          '-vf scale=1280:720:force_original_aspect_ratio=decrease,pad=1280:720:(ow-iw)/2:(oh-ih)/2',
-          '-f hls',
-        ])
-        .output(outputPlaylist)
-        .on('start', () => {
-          this.logger.log(`🎬 FFmpeg started for ${fileName}`);
-          // Fire and forget - không cần await trong event handler
-          this.updateProgress(fileName, {
-            progress: 15,
-            message: 'Video conversion started...',
-          }).catch((error) => {
-            this.logger.error('Failed to update progress on start:', error);
-          });
-        })
-        .on('progress', (progress) => {
-          if (progress.percent) {
-            const convertProgress = Math.min(Math.round(progress.percent), 100);
-            const totalProgress = 15 + Math.round((convertProgress / 100) * 50);
+      try {
+        // Get FFmpeg instance configured for Docker
+        const ffmpegInstance =
+          await this.dockerFFmpegConfig.getFFmpegInstance();
 
+        // Convert paths to container paths
+        const containerInputPath =
+          this.dockerFFmpegConfig.convertToContainerPath(inputPath);
+        const containerOutputPlaylist =
+          this.dockerFFmpegConfig.convertToContainerPath(outputPlaylist);
+        const containerSegmentPattern =
+          this.dockerFFmpegConfig.convertToContainerPath(segmentPattern);
+
+        ffmpegInstance(containerInputPath)
+          .outputOptions([
+            '-c:v libx264',
+            '-preset faster',
+            '-profile:v main',
+            '-level 3.1',
+            '-crf 26',
+            '-c:a aac',
+            '-b:a 128k',
+            '-ar 44100',
+            '-sc_threshold 0',
+            '-g 60',
+            '-keyint_min 60',
+            '-hls_time 6',
+            '-hls_playlist_type vod',
+            '-hls_segment_filename',
+            containerSegmentPattern,
+            '-threads 0',
+            '-movflags +faststart',
+            '-tune film',
+            '-vf scale=1280:720:force_original_aspect_ratio=decrease,pad=1280:720:(ow-iw)/2:(oh-ih)/2',
+            '-f hls',
+          ])
+          .output(containerOutputPlaylist)
+          .on('start', () => {
+            this.logger.log(`🎬 FFmpeg started for ${fileName}`);
             // Fire and forget - không cần await trong event handler
             this.updateProgress(fileName, {
-              progress: totalProgress,
-              message: `Converting video: ${convertProgress}% (${progress.timemark || 'processing...'})`,
+              progress: 15,
+              message: 'Video conversion started...',
             }).catch((error) => {
-              this.logger.error('Failed to update progress:', error);
+              this.logger.error('Failed to update progress on start:', error);
             });
-          }
-        })
-        .on('end', () => {
-          this.logger.log(`✅ HLS conversion completed for ${fileName}`);
-          // Fire and forget - không cần await trong event handler
-          this.updateProgress(fileName, {
-            progress: 65,
-            message: 'Video conversion completed',
-          }).catch((error) => {
-            this.logger.error('Failed to update progress on end:', error);
-          });
-          resolve();
-        })
-        .on('error', (error) => {
-          this.logger.error(`❌ FFmpeg error for ${fileName}:`, error);
-          // Fire and forget - không cần await trong event handler
-          this.updateProgress(fileName, {
-            stage: 'failed',
-            progress: 0,
-            message: 'Video conversion failed',
-            error: error.message,
-          }).catch((updateError) => {
-            this.logger.error(
-              'Failed to update progress on error:',
-              updateError,
-            );
-          });
-          reject(error);
-        })
-        .run();
+          })
+          .on('progress', (progress) => {
+            if (progress.percent) {
+              const convertProgress = Math.min(
+                Math.round(progress.percent),
+                100,
+              );
+              const totalProgress =
+                15 + Math.round((convertProgress / 100) * 50);
+
+              // Fire and forget - không cần await trong event handler
+              this.updateProgress(fileName, {
+                progress: totalProgress,
+                message: `Converting video: ${convertProgress}% (${progress.timemark || 'processing...'})`,
+              }).catch((error) => {
+                this.logger.error('Failed to update progress:', error);
+              });
+            }
+          })
+          .on('end', () => {
+            this.logger.log(`✅ HLS conversion completed for ${fileName}`);
+            // Fire and forget - không cần await trong event handler
+            this.updateProgress(fileName, {
+              progress: 65,
+              message: 'Video conversion completed',
+            }).catch((error) => {
+              this.logger.error('Failed to update progress on end:', error);
+            });
+            resolve();
+          })
+          .on('error', (error) => {
+            this.logger.error(`❌ FFmpeg error for ${fileName}:`, error);
+            // Fire and forget - không cần await trong event handler
+            this.updateProgress(fileName, {
+              stage: 'failed',
+              progress: 0,
+              message: 'Video conversion failed',
+              error: error.message,
+            }).catch((updateError) => {
+              this.logger.error(
+                'Failed to update progress on error:',
+                updateError,
+              );
+            });
+            reject(error);
+          })
+          .run();
+      } catch (error) {
+        this.logger.error(`Failed to setup FFmpeg for ${fileName}:`, error);
+        reject(error);
+      }
     });
   }
 

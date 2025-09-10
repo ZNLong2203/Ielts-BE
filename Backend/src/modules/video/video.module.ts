@@ -8,6 +8,7 @@ import { RedisModule } from 'src/redis/redis.module';
 import { VideoController } from './video.controller';
 import { VideoService } from './video.service';
 import { PrismaModule } from 'src/prisma/prisma.module';
+import { DockerFFmpegConfigService } from './docker-ffmpeg-config.service';
 
 @Module({
   imports: [
@@ -20,7 +21,7 @@ import { PrismaModule } from 'src/prisma/prisma.module';
     }),
   ],
   controllers: [VideoController],
-  providers: [VideoService, VideoProcessor],
+  providers: [VideoService, VideoProcessor, DockerFFmpegConfigService],
   exports: [VideoService],
 })
 export class VideoModule {}
