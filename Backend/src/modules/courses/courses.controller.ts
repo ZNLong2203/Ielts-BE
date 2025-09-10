@@ -164,7 +164,7 @@ export class CoursesController {
   @Patch('combo/:id')
   @ApiOperation({ summary: 'Update a combo course' })
   @ApiBearerAuth()
-  @CheckPolicies(canUpdateCourse)
+  @SkipCheckPermission()
   @MessageResponse(MESSAGE.COURSE.COMBO_COURSE_UPDATED)
   async updateComboCourse(
     @Param('id') id: string,
@@ -176,7 +176,7 @@ export class CoursesController {
   @Delete('combo/:id')
   @ApiOperation({ summary: 'Delete a combo course' })
   @ApiBearerAuth()
-  @CheckPolicies(canUpdateCourse)
+  @SkipCheckPermission()
   @MessageResponse(MESSAGE.COURSE.COMBO_COURSE_DELETED)
   async removeComboCourse(@Param('id') id: string) {
     return this.coursesService.removeComboCourse(id);
@@ -185,7 +185,7 @@ export class CoursesController {
   @Post('combo/:id/thumbnail')
   @ApiOperation({ summary: 'Upload combo course thumbnail' })
   @ApiBearerAuth()
-  @CheckPolicies(canUpdateCourse)
+  @SkipCheckPermission()
   @UseInterceptors(FileInterceptor('file'))
   @ApiConsumes('multipart/form-data')
   @ApiBody({
