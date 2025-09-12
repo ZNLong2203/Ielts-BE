@@ -3,7 +3,6 @@ import { InjectQueue } from '@nestjs/bullmq';
 import { BadRequestException, Injectable, Logger } from '@nestjs/common';
 import { Job, Queue } from 'bullmq';
 import * as fs from 'fs';
-import * as os from 'os';
 import * as path from 'path';
 import { MinioService } from 'src/modules/files/minio.service';
 import { VIDEO_QUEUE_NAME } from 'src/modules/video/constants';
@@ -11,9 +10,12 @@ import { RedisService } from 'src/redis/redis.service';
 import { v4 as uuid } from 'uuid';
 import { DockerFFmpegConfigService } from './docker-ffmpeg-config.service';
 import {
+  PresignedUploadResponse,
   ProcessingProgress,
   VideoJobData,
+  VideoUploadRequest,
   VideoUploadResult,
+  VideoUploadSession,
 } from './interfaces';
 
 @Injectable()
@@ -27,6 +29,266 @@ export class VideoService {
     @InjectQueue(VIDEO_QUEUE_NAME)
     private readonly videoQueue: Queue<VideoJobData>,
   ) {}
+
+  /**
+   * Generate presigned URL for FE to upload directly to MinIO
+   */
+  async generatePresignedUploadUrl(
+    request: VideoUploadRequest,
+  ): Promise<PresignedUploadResponse> {
+    const { originalName, fileSize, mimetype } = request;
+
+    // Validate using existing method
+    this.validateVideoFile(Buffer.alloc(0), mimetype); // Use empty buffer for validation
+
+    // Additional file size validation
+    const maxSize = 2 * 1024 * 1024 * 1024; // 2GB
+    if (fileSize > maxSize) {
+      throw new BadRequestException('File too large. Maximum size: 2GB');
+    }
+
+    const bucketName = 'ielts-videos';
+    const fileExtension = path.extname(originalName);
+    const fileName = `${uuid()}${fileExtension}`;
+    const folder = 'lessons';
+    const originalObjectName = `${folder}/original/${fileName}`;
+
+    try {
+      // Generate presigned URL for upload (expires in 15 minutes)
+      const presignedUrl = await this.minioService.generatePresignedPutUrl(
+        bucketName,
+        originalObjectName,
+        60 * 60, // 1 hour
+      );
+
+      // Store upload session info in Redis (expires in 20 minutes)
+      const uploadSession = {
+        fileName,
+        originalName,
+        fileSize,
+        mimetype,
+        bucketName,
+        originalObjectName,
+        folder,
+        status: 'pending',
+        createdAt: new Date(),
+        expiresAt: new Date(Date.now() + 60 * 60 * 1000), // 1 hour
+        instructions: {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'mimetype',
+            'Content-Length': 'fileSize.toString()',
+          },
+          note: 'Upload the file directly to presignedUrl using PUT method with specified headers',
+        },
+      };
+
+      const sessionKey = `upload-session:${fileName}`;
+      await this.redisService.setJSON(sessionKey, uploadSession, 60 * 60); // 1 hour
+
+      this.logger.log(
+        `✅ Generated presigned URL for: ${originalName} → ${fileName}`,
+      );
+
+      return {
+        fileName,
+        originalName,
+        presignedUrl,
+        uploadUrl: presignedUrl,
+        fields: {},
+        bucketName,
+        objectName: originalObjectName,
+        expiresAt: uploadSession.expiresAt,
+        maxFileSize: fileSize,
+      };
+    } catch (error) {
+      const e = error as Error;
+      this.logger.error(
+        `❌ Failed to generate presigned URL for ${originalName}:`,
+        e,
+      );
+      throw new BadRequestException(
+        `Failed to generate upload URL: ${e.message}`,
+      );
+    }
+  }
+
+  /**
+   * ✅ NEW: Confirm upload and start processing after FE completes upload
+   */
+  async confirmUpload(
+    fileName: string,
+  ): Promise<
+    VideoUploadResult & { duration: number; durationFormatted: string }
+  > {
+    const sessionKey = `upload-session:${fileName}`;
+
+    // ✅ Track rollback context (reuse existing logic)
+    const rollbackContext = {
+      tempDir: null as string | null,
+      minioObject: null as string | null,
+      redisKeys: [] as string[],
+      queueJob: null as Job | null,
+    };
+
+    try {
+      // Get upload session
+      const uploadSession =
+        await this.redisService.getJSON<VideoUploadSession>(sessionKey);
+      if (!uploadSession) {
+        throw new BadRequestException('Upload session not found or expired');
+      }
+
+      if (uploadSession.status !== 'pending') {
+        throw new BadRequestException(`Upload already ${uploadSession.status}`);
+      }
+
+      const {
+        bucketName,
+        originalObjectName,
+        originalName,
+        fileSize,
+        mimetype,
+        folder,
+      } = uploadSession;
+      rollbackContext.minioObject = originalObjectName; // Track for rollback
+
+      // Verify file exists in MinIO
+      const fileExists = await this.minioService.objectExists(
+        bucketName,
+        originalObjectName,
+      );
+      if (!fileExists) {
+        throw new BadRequestException(
+          'File not found in storage. Upload may have failed.',
+        );
+      }
+
+      // Get file from MinIO for processing
+      const fileBuffer = await this.minioService.getFileBuffer(
+        bucketName,
+        originalObjectName,
+      );
+
+      // ✅ Extract duration using existing logic (create temp file)
+      const baseTmpDir = path.resolve(process.cwd(), '../temp');
+      const tempDir = path.join(baseTmpDir, `confirm-${uuid()}`);
+      const tempVideoPath = path.join(tempDir, fileName);
+      rollbackContext.tempDir = tempDir; // Track for rollback
+
+      await fs.promises.mkdir(tempDir, { recursive: true });
+      await fs.promises.writeFile(tempVideoPath, fileBuffer);
+
+      // Extract duration using Docker FFmpeg (existing logic)
+      const info: { format?: { duration?: number } } =
+        (await this.dockerFFmpegConfig.getVideoInfo(tempVideoPath)) as {
+          format?: { duration?: number };
+        };
+      const duration = info?.format?.duration
+        ? Math.round(info.format.duration)
+        : 0;
+      this.logger.log(`⏱️ Duration: ${duration}s for ${originalName}`);
+
+      // ✅ Cache duration (existing logic)
+      if (duration > 0) {
+        const durationKey = `video:${fileName}:duration`;
+        rollbackContext.redisKeys.push(durationKey);
+        await this.redisService.setJSON(durationKey, duration, 24 * 60 * 60);
+      }
+
+      // ✅ Set progress (existing logic)
+      const progressKey = `video:${fileName}:progress`;
+      rollbackContext.redisKeys.push(progressKey);
+      const progress: ProcessingProgress = {
+        fileName,
+        stage: 'converting',
+        progress: 0,
+        message: `Video uploaded (${this.formatDuration(duration)}), starting HLS processing...`,
+        startTime: new Date(),
+      };
+      await this.redisService.setJSON(progressKey, progress, 2 * 60 * 60);
+
+      // ✅ Enqueue HLS processing job (existing logic)
+      const jobData: VideoJobData = {
+        fileName,
+        bucketName,
+        folder,
+        originalObjectName,
+        mimetype,
+        fileSize,
+        originalName,
+      };
+
+      const job = await this.videoQueue.add('process-hls', jobData, {
+        attempts: 3,
+        backoff: { type: 'exponential', delay: 10000 },
+        removeOnComplete: 5,
+        removeOnFail: 10,
+      });
+      rollbackContext.queueJob = job;
+
+      // Update upload session status
+      uploadSession.status = 'confirmed';
+      uploadSession.confirmedAt = new Date();
+      uploadSession.duration = duration;
+      await this.redisService.setJSON(sessionKey, uploadSession, 24 * 60 * 60); // Keep for 24h
+
+      // Get file URL
+      const originalUrl = await this.minioService.getFileUrl(
+        bucketName,
+        originalObjectName,
+      );
+
+      // ✅ Cleanup temp file (existing logic)
+      await fs.promises.rm(tempDir, { recursive: true, force: true });
+      rollbackContext.tempDir = null; // Mark as cleaned
+
+      const result = {
+        fileName,
+        originalName,
+        size: fileSize,
+        mimeType: mimetype,
+        url: originalUrl,
+        etag: '', // Will be populated by MinIO
+        isProcessing: true,
+        duration,
+        durationFormatted: this.formatDuration(duration),
+      };
+
+      this.logger.log(
+        `✅ Upload confirmed and processing started: ${fileName} (${this.formatDuration(duration)})`,
+      );
+      return result;
+    } catch (error) {
+      const e = error as Error;
+      // ✅ Use existing rollback logic
+      this.logger.error(
+        `❌ Upload confirmation failed for ${fileName}, initiating rollback:`,
+        e,
+      );
+      await this.performCompleteRollback(rollbackContext);
+
+      // Mark session as failed
+      try {
+        const uploadSession =
+          await this.redisService.getJSON<VideoUploadSession>(sessionKey);
+        if (uploadSession) {
+          uploadSession.status = 'failed';
+          uploadSession.error = e.message;
+          uploadSession.failedAt = new Date();
+          await this.redisService.setJSON(
+            sessionKey,
+            uploadSession,
+            24 * 60 * 60,
+          );
+        }
+      } catch (sessionError) {
+        this.logger.error(`Failed to update session status:`, sessionError);
+      }
+
+      throw new BadRequestException(`Upload confirmation failed: ${e.message}`);
+    }
+  }
 
   /**
    * Upload video, save original to MinIO, enqueue HLS processing
@@ -64,11 +326,16 @@ export class VideoService {
       await fs.promises.writeFile(tempVideoPath, buffer);
 
       // Step 2: Extract duration using Docker FFmpeg
-      const info = await this.dockerFFmpegConfig.getVideoInfo(tempVideoPath);
+      const info: { format?: { duration?: number } } =
+        (await this.dockerFFmpegConfig.getVideoInfo(tempVideoPath)) as {
+          format?: { duration?: number };
+        };
       console.log('FFprobe info:', JSON.stringify(info, null, 2));
-      
+
       // Handle case where format might be undefined
-      const duration = info?.format?.duration ? Math.round(info.format.duration) : 0;
+      const duration = info?.format?.duration
+        ? Math.round(info.format.duration)
+        : 0;
       this.logger.log(`⏱️ Duration: ${duration}s for ${originalName}`);
 
       // Step 3: Upload to MinIO
@@ -237,6 +504,12 @@ export class VideoService {
         for (const key of context.redisKeys) {
           await this.redisService.del(key);
         }
+        // clear upload session if exists
+        if (context.minioObject) {
+          const fileName = path.basename(context.minioObject);
+          const sessionKey = `upload-session:${fileName}`;
+          await this.redisService.del(sessionKey);
+        }
         rollbackResults.redisKeys = true;
         this.logger.log(
           `✅ Rollback: Redis keys cleaned: ${context.redisKeys.join(', ')}`,
@@ -363,14 +636,35 @@ export class VideoService {
     }
   }
 
-  private validateVideoFile(buffer: Buffer, mimetype: string): void {
+  private validateVideoFile(
+    buffer: Buffer,
+    mimetype: string,
+    skipSizeCheck = false,
+  ): void {
     if (!mimetype.startsWith('video/')) {
       throw new BadRequestException('Only video files are allowed');
     }
 
-    const maxSize = 2 * 1024 * 1024 * 1024; // 2GB
-    if (buffer.length > maxSize) {
-      throw new BadRequestException('File too large. Maximum size: 2GB');
+    // ✅ Only check buffer size if not skipping and buffer is provided
+    if (!skipSizeCheck && buffer && buffer.length > 0) {
+      const maxSize = 2 * 1024 * 1024 * 1024; // 2GB
+      if (buffer.length > maxSize) {
+        throw new BadRequestException('File too large. Maximum size: 2GB');
+      }
+    }
+
+    // ✅ Additional mimetype validation
+    const supportedTypes = [
+      'video/mp4',
+      'video/avi',
+      'video/quicktime',
+      'video/x-msvideo',
+      'video/webm',
+      'video/x-matroska',
+    ];
+
+    if (!supportedTypes.includes(mimetype.toLowerCase())) {
+      this.logger.warn(`Unsupported video type: ${mimetype}, but allowing...`);
     }
   }
 

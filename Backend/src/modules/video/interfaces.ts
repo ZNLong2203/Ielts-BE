@@ -32,14 +32,44 @@ export interface ProcessingProgress {
   error?: string;
 }
 
-export interface SimpleVideoInfo {
+export interface VideoUploadRequest {
+  originalName: string;
+  fileSize: number;
+  mimetype: string;
+}
+
+export interface PresignedUploadResponse {
   fileName: string;
-  status: 'processing' | 'ready' | 'failed';
-  duration: number; // seconds
-  durationFormatted: string; // "12:34"
-  hlsUrl: string | null;
-  originalUrl: string | null;
-  isProcessing: boolean;
-  progress: number; // 0-100
-  message: string;
+  originalName: string;
+  presignedUrl: string;
+  uploadUrl: string; // For compatibility
+  fields: Record<string, string>; // For form data (empty for MinIO PUT)
+  bucketName: string;
+  objectName: string;
+  expiresAt: Date;
+  maxFileSize: number;
+  instructions?: {
+    method: string;
+    headers: Record<string, string>;
+    note: string;
+  };
+}
+
+export interface VideoUploadSession {
+  sessionId: string;
+  fileName: string;
+  originalName: string;
+  originalObjectName: string;
+  bucketName: string;
+  objectName: string;
+  folder: string;
+  mimetype: string;
+  fileSize: number;
+  duration?: number;
+  status: 'pending' | 'processing' | 'confirmed' | 'failed';
+  confirmedAt?: Date;
+  failedAt?: Date;
+  error?: Error | string;
+  createdAt: Date;
+  updatedAt: Date;
 }

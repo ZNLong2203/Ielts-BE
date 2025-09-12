@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  Body,
   Controller,
   Get,
   Param,
@@ -9,11 +10,48 @@ import {
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { Public } from 'src/decorator/customize';
+import { VideoUploadRequest } from 'src/modules/video/interfaces';
 import { VideoService } from './video.service';
 
 @Controller('videos')
 export class VideoController {
   constructor(private readonly videoService: VideoService) {}
+
+  @Post('upload/presigned')
+  @Public()
+  async generatePresignedUrl(@Body() request: VideoUploadRequest) {
+    return await this.videoService.generatePresignedUploadUrl(request);
+  }
+
+  @Post('upload/confirm/:fileName')
+  @Public()
+  async confirmUpload(@Param('fileName') fileName: string) {
+    try {
+      const result = await this.videoService.confirmUpload(fileName);
+
+      return {
+        success: true,
+        message: 'Video uploaded successfully. HLS processing started.',
+        data: {
+          fileName: result.fileName,
+          originalName: result.originalName,
+          size: result.size,
+          sizeFormatted: this.formatFileSize(result.size),
+          mimeType: result.mimeType,
+          originalUrl: result.url,
+          isProcessing: result.isProcessing,
+          estimatedProcessingTime: this.estimateProcessingTime(result.size),
+          uploadedAt: new Date().toISOString(),
+          statusUrl: `/api/v1/videos/${result.fileName}/status`,
+          playerUrl: `/api/v1/videos/${result.fileName}/player`,
+        },
+      };
+    } catch (error) {
+      throw new BadRequestException(
+        `Upload failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      );
+    }
+  }
 
   @Post('upload')
   @Public()

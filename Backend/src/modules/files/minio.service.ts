@@ -390,4 +390,50 @@ export class MinioService {
       throw new Error(`Failed to delete folder contents: ${error.message}`);
     }
   }
+
+  /**
+   * ✅ Generate presigned PUT URL for direct upload
+   */
+  async generatePresignedPutUrl(
+    bucketName: string,
+    objectName: string,
+    expiresIn: number = 60 * 60, // 1 hour
+  ): Promise<string> {
+    try {
+      const presignedUrl = await this.minioClient.presignedPutObject(
+        bucketName,
+        objectName,
+        expiresIn,
+      );
+
+      this.logger.log(`✅ Generated presigned PUT URL: ${objectName}`);
+      return presignedUrl;
+    } catch (error) {
+      const e = error as Error;
+      this.logger.error(
+        `❌ Failed to generate presigned PUT URL: ${e.message}`,
+      );
+      throw new Error(`Failed to generate presigned URL: ${e.message}`);
+    }
+  }
+
+  /**
+   * ✅ Get file as buffer
+   */
+  async getFileBuffer(bucketName: string, objectName: string): Promise<Buffer> {
+    try {
+      const stream = await this.minioClient.getObject(bucketName, objectName);
+      const chunks: Buffer[] = [];
+
+      return new Promise((resolve, reject) => {
+        stream.on('data', (chunk) => chunks.push(chunk));
+        stream.on('end', () => resolve(Buffer.concat(chunks)));
+        stream.on('error', reject);
+      });
+    } catch (error) {
+      const e = error as Error;
+      this.logger.error(`❌ Failed to get file buffer: ${e.message}`);
+      throw new Error(`Failed to get file: ${e.message}`);
+    }
+  }
 }

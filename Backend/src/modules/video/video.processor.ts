@@ -1,8 +1,8 @@
 import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { Logger } from '@nestjs/common';
 import { Job } from 'bullmq';
+import { execSync } from 'child_process';
 import * as fs from 'fs';
-import * as os from 'os';
 import * as path from 'path';
 import { MinioService } from 'src/modules/files/minio.service';
 import { VIDEO_QUEUE_NAME } from 'src/modules/video/constants';
@@ -158,23 +158,23 @@ export class VideoProcessor extends WorkerHost {
     outputDir: string,
     fileName: string,
   ): Promise<void> {
-    return new Promise(async (resolve, reject) => {
-      const outputPlaylist = path.join(outputDir, 'playlist.m3u8');
-      const segmentPattern = path.join(outputDir, 'segment_%04d.ts');
+    const outputPlaylist = path.join(outputDir, 'playlist.m3u8');
+    const segmentPattern = path.join(outputDir, 'segment_%04d.ts');
 
-      try {
-        // Get FFmpeg instance configured for Docker
-        const ffmpegInstance =
-          await this.dockerFFmpegConfig.getFFmpegInstance();
+    // ✅ Handle async setup BEFORE Promise constructor
+    try {
+      const ffmpegInstance = await this.dockerFFmpegConfig.getFFmpegInstance();
 
-        // Convert paths to container paths
-        const containerInputPath =
-          this.dockerFFmpegConfig.convertToContainerPath(inputPath);
-        const containerOutputPlaylist =
-          this.dockerFFmpegConfig.convertToContainerPath(outputPlaylist);
-        const containerSegmentPattern =
-          this.dockerFFmpegConfig.convertToContainerPath(segmentPattern);
+      // Convert paths to container paths
+      const containerInputPath =
+        this.dockerFFmpegConfig.convertToContainerPath(inputPath);
+      const containerOutputPlaylist =
+        this.dockerFFmpegConfig.convertToContainerPath(outputPlaylist);
+      const containerSegmentPattern =
+        this.dockerFFmpegConfig.convertToContainerPath(segmentPattern);
 
+      // ✅ Now use synchronous Promise constructor
+      return new Promise((resolve, reject) => {
         ffmpegInstance(containerInputPath)
           .outputOptions([
             '-c:v libx264',
@@ -201,8 +201,7 @@ export class VideoProcessor extends WorkerHost {
           .output(containerOutputPlaylist)
           .on('start', () => {
             this.logger.log(`🎬 FFmpeg started for ${fileName}`);
-            // Fire and forget - không cần await trong event handler
-            this.updateProgress(fileName, {
+            void this.updateProgress(fileName, {
               progress: 15,
               message: 'Video conversion started...',
             }).catch((error) => {
@@ -218,8 +217,7 @@ export class VideoProcessor extends WorkerHost {
               const totalProgress =
                 15 + Math.round((convertProgress / 100) * 50);
 
-              // Fire and forget - không cần await trong event handler
-              this.updateProgress(fileName, {
+              void this.updateProgress(fileName, {
                 progress: totalProgress,
                 message: `Converting video: ${convertProgress}% (${progress.timemark || 'processing...'})`,
               }).catch((error) => {
@@ -229,8 +227,7 @@ export class VideoProcessor extends WorkerHost {
           })
           .on('end', () => {
             this.logger.log(`✅ HLS conversion completed for ${fileName}`);
-            // Fire and forget - không cần await trong event handler
-            this.updateProgress(fileName, {
+            void this.updateProgress(fileName, {
               progress: 65,
               message: 'Video conversion completed',
             }).catch((error) => {
@@ -240,8 +237,7 @@ export class VideoProcessor extends WorkerHost {
           })
           .on('error', (error) => {
             this.logger.error(`❌ FFmpeg error for ${fileName}:`, error);
-            // Fire and forget - không cần await trong event handler
-            this.updateProgress(fileName, {
+            void this.updateProgress(fileName, {
               stage: 'failed',
               progress: 0,
               message: 'Video conversion failed',
@@ -255,11 +251,11 @@ export class VideoProcessor extends WorkerHost {
             reject(error);
           })
           .run();
-      } catch (error) {
-        this.logger.error(`Failed to setup FFmpeg for ${fileName}:`, error);
-        reject(error);
-      }
-    });
+      });
+    } catch (error) {
+      this.logger.error(`Failed to setup FFmpeg for ${fileName}:`, error);
+      throw error;
+    }
   }
 
   private async uploadHLSFiles(
@@ -389,11 +385,86 @@ export class VideoProcessor extends WorkerHost {
   }
 
   private async cleanupTempDir(tempDir: string): Promise<void> {
+    const maxRetries = 3;
+    const retryDelay = 2000; // 2 seconds
+
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        // ✅ Add delay before cleanup to allow file handles to release
+        if (attempt === 1) {
+          await new Promise((resolve) => setTimeout(resolve, 1000));
+        }
+
+        // ✅ Check if directory exists
+        const exists = await fs.promises
+          .access(tempDir)
+          .then(() => true)
+          .catch(() => false);
+        if (!exists) {
+          this.logger.log(`✅ Temp directory already cleaned: ${tempDir}`);
+          return;
+        }
+
+        // ✅ Try standard recursive deletion with enhanced options
+        await fs.promises.rm(tempDir, {
+          recursive: true,
+          force: true,
+          maxRetries: 3,
+          retryDelay: 1000,
+        });
+
+        this.logger.log(`✅ Cleaned up temp directory: ${tempDir}`);
+        return;
+      } catch (error) {
+        this.logger.warn(
+          `Cleanup attempt ${attempt}/${maxRetries} failed for ${tempDir}:`,
+          error,
+        );
+
+        if (attempt < maxRetries) {
+          // Wait before retry
+          await new Promise((resolve) =>
+            setTimeout(resolve, retryDelay * attempt),
+          );
+        } else {
+          // ✅ Last resort: Force cleanup using system command
+          try {
+            this.forceCleanupDirectory(tempDir);
+            this.logger.log(`✅ Force cleanup successful: ${tempDir}`);
+            return;
+          } catch (forceError) {
+            this.logger.error(
+              `❌ All cleanup methods failed for ${tempDir}:`,
+              forceError,
+            );
+            // Don't throw - allow job to complete
+          }
+        }
+      }
+    }
+  }
+
+  /**
+   * ✅ Force cleanup using system commands
+   */
+  private forceCleanupDirectory(dirPath: string) {
     try {
-      await fs.promises.rm(tempDir, { recursive: true, force: true });
-      this.logger.log(`Cleaned up temp directory: ${tempDir}`);
+      if (process.platform === 'win32') {
+        // Windows: Use rmdir with force flags
+        execSync(`rmdir /s /q "${dirPath}"`, {
+          stdio: 'ignore',
+          timeout: 10000, // 10 second timeout
+        });
+      } else {
+        // Unix/Linux: Use rm -rf
+        execSync(`rm -rf "${dirPath}"`, {
+          stdio: 'ignore',
+          timeout: 10000,
+        });
+      }
     } catch (error) {
-      this.logger.warn(`Failed to cleanup temp directory: ${error}`);
+      const e = error as Error;
+      throw new Error(`System command cleanup failed: ${e.message}`);
     }
   }
 }
