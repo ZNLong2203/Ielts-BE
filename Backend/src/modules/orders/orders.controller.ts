@@ -34,24 +34,28 @@ export class OrdersController {
 
   @Get()
   @ApiOperation({ summary: 'List orders' })
+  @SkipCheckPermission()
   async list(@Query() query: PaginationQueryDto, @Req() req: Request) {
     return this.ordersService.listOrders(query, req.query);
   }
 
   @Get(':id')
   @ApiOperation({ summary: 'Get order details' })
+  @SkipCheckPermission()
   async get(@Param('id') id: string) {
     return this.ordersService.getOrder(id);
   }
 
   @Patch(':id/cancel')
   @ApiOperation({ summary: 'Cancel order' })
+  @SkipCheckPermission()
   async cancel(@Param('id') id: string) {
     return this.ordersService.cancelOrder(id);
   }
 
   @Patch(':id/status')
   @ApiOperation({ summary: 'Update order status (admin)' })
+  @SkipCheckPermission()
   async updateStatus(
     @Param('id') id: string,
     @Body() dto: UpdateOrderStatusDto,
@@ -62,6 +66,7 @@ export class OrdersController {
   @Delete(':id')
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({ summary: 'Soft delete order' })
+  @SkipCheckPermission()
   async remove(@Param('id') id: string) {
     await this.ordersService.softDelete(id);
     return;
