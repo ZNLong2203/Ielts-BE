@@ -1,5 +1,39 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
+export class AuthorDto {
+  @ApiProperty({
+    description: 'Author ID',
+    example: '123e4567-e89b-12d3-a456-426614174000',
+    format: 'uuid',
+  })
+  id: string;
+
+  @ApiProperty({
+    description: 'Author full name',
+    example: 'John Doe',
+  })
+  full_name: string;
+
+  @ApiPropertyOptional({
+    description: 'Author avatar URL',
+    example:
+      'https://res.cloudinary.com/demo/image/upload/v1234567890/avatar.jpg',
+  })
+  avatar?: string;
+
+  @ApiProperty({
+    description: 'Author email',
+    example: 'john.doe@example.com',
+  })
+  email: string;
+
+  @ApiProperty({
+    description: 'Author role',
+    example: 'teacher',
+  })
+  role: string;
+}
+
 export class BlogResponseDto {
   @ApiProperty({
     description: 'Blog ID',
@@ -59,6 +93,12 @@ export class BlogResponseDto {
     format: 'uuid',
   })
   author_id: string;
+
+  @ApiPropertyOptional({
+    description: 'Author information',
+    type: AuthorDto,
+  })
+  users?: AuthorDto;
 
   @ApiProperty({
     description: 'Category ID',
@@ -145,4 +185,50 @@ export class ApiResponseDto<T> {
     description: 'Response data',
   })
   data: T;
+}
+
+export class PaginationMetaDto {
+  @ApiProperty({
+    description: 'Current page number',
+    example: 1,
+  })
+  current: number;
+
+  @ApiProperty({
+    description: 'Number of items on current page',
+    example: 10,
+  })
+  currentSize: number;
+
+  @ApiProperty({
+    description: 'Number of items per page',
+    example: 10,
+  })
+  pageSize: number;
+
+  @ApiProperty({
+    description: 'Total number of items',
+    example: 100,
+  })
+  total: number;
+
+  @ApiProperty({
+    description: 'Total number of pages',
+    example: 10,
+  })
+  pages: number;
+}
+
+export class PaginatedResponseDto<T> {
+  @ApiProperty({
+    description: 'Pagination metadata',
+    type: PaginationMetaDto,
+  })
+  meta: PaginationMetaDto;
+
+  @ApiProperty({
+    description: 'Array of items',
+    isArray: true,
+  })
+  result: T[];
 }

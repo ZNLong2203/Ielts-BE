@@ -105,7 +105,19 @@ export class BlogsController {
   @ApiResponse({
     status: 200,
     description: 'Blog categories retrieved successfully',
-    type: ApiResponseDto<BlogCategoryResponseDto[]>,
+    schema: {
+      allOf: [
+        { $ref: '#/components/schemas/PaginatedResponseDto' },
+        {
+          properties: {
+            result: {
+              type: 'array',
+              items: { $ref: '#/components/schemas/BlogCategoryResponseDto' },
+            },
+          },
+        },
+      ],
+    },
   })
   @MessageResponse(MESSAGE.BLOG.BLOG_CATEGORIES_FETCHED)
   async findAllBlogCategories(
@@ -161,7 +173,19 @@ export class BlogsController {
   @ApiResponse({
     status: 200,
     description: 'Blogs retrieved successfully',
-    type: ApiResponseDto<BlogResponseDto[]>,
+    schema: {
+      allOf: [
+        { $ref: '#/components/schemas/PaginatedResponseDto' },
+        {
+          properties: {
+            result: {
+              type: 'array',
+              items: { $ref: '#/components/schemas/BlogResponseDto' },
+            },
+          },
+        },
+      ],
+    },
   })
   @MessageResponse(MESSAGE.BLOG.BLOG_FETCHED)
   async findBlogByCategoryId(
@@ -222,7 +246,19 @@ export class BlogsController {
   @ApiResponse({
     status: 200,
     description: 'Published blogs retrieved successfully',
-    type: ApiResponseDto<BlogResponseDto[]>,
+    schema: {
+      allOf: [
+        { $ref: '#/components/schemas/PaginatedResponseDto' },
+        {
+          properties: {
+            result: {
+              type: 'array',
+              items: { $ref: '#/components/schemas/BlogResponseDto' },
+            },
+          },
+        },
+      ],
+    },
   })
   @MessageResponse(MESSAGE.BLOG.BLOGS_FETCHED)
   async findAllPublishedBlogs(
@@ -902,8 +938,18 @@ export class BlogsController {
     summary: 'Publish blog (Admin)',
     description: 'Publish a draft blog for public viewing',
   })
-  @ApiParam({ name: 'id', description: 'Blog ID', type: 'string' })
-  @ApiResponse({ status: 200, description: 'Blog published successfully' })
+  @ApiParam({
+    name: 'id',
+    description: 'Blog ID',
+    type: 'string',
+    format: 'uuid',
+    example: '123e4567-e89b-12d3-a456-426614174000',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Blog published successfully',
+    type: ApiResponseDto<BlogResponseDto>,
+  })
   @MessageResponse(MESSAGE.BLOG.BLOG_UPDATED)
   async publishBlog(@Param('id') id: string) {
     return this.blogsService.updateBlogStatus(id, 'published');
@@ -947,14 +993,41 @@ export class BlogsController {
     summary: 'Update blog (Admin)',
     description: 'Update any blog content as admin',
   })
-  @ApiParam({ name: 'id', description: 'Blog ID', type: 'string' })
-  @ApiResponse({ status: 200, description: 'Blog updated successfully' })
+  @ApiParam({
+    name: 'id',
+    description: 'Blog ID',
+    type: 'string',
+    format: 'uuid',
+    example: '123e4567-e89b-12d3-a456-426614174000',
+  })
+  @ApiBody({ type: UpdateBlogWithFileDto })
+  @ApiResponse({
+    status: 200,
+    description: 'Blog updated successfully',
+    type: ApiResponseDto<BlogResponseDto>,
+  })
+  @UseInterceptors(FileInterceptor('file'))
+  @ApiConsumes('multipart/form-data')
   @MessageResponse(MESSAGE.BLOG.BLOG_UPDATED)
   async updateBlogByAdmin(
     @Param('id') id: string,
     @Body() updateBlogDto: UpdateBlogDto,
+    @UploadedFile(
+      new ParseFilePipeBuilder()
+        .addFileTypeValidator({
+          fileType: 'image/jpeg|image/png|image/jpg|image/webp',
+        })
+        .addMaxSizeValidator({
+          maxSize: 3 * 1024 * 1024, // 3MB
+        })
+        .build({
+          errorHttpStatusCode: HttpStatus.UNPROCESSABLE_ENTITY,
+          fileIsRequired: false,
+        }),
+    )
+    file: UploadedFileType,
   ) {
-    return this.blogsService.updateBlogByAdmin(id, updateBlogDto);
+    return this.blogsService.updateBlogByAdmin(id, updateBlogDto, file);
   }
 
   @ApiBearerAuth()

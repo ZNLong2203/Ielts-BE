@@ -31,6 +31,46 @@ export class BlogsService {
   }
 
   // CATEGORY METHODS
+  private async generateUniqueSlug(
+    name: string,
+    excludeId?: string,
+  ): Promise<string> {
+    let baseSlug = name
+      .toLowerCase()
+      .trim()
+      .replace(/[^a-z0-9\s-]/g, '')
+      .replace(/\s+/g, '-')
+      .replace(/-+/g, '-');
+
+    baseSlug = baseSlug.replace(/^-+|-+$/g, '');
+
+    let slug = baseSlug;
+    let counter = 1;
+
+    while (true) {
+      const whereClause: Prisma.blog_categoriesWhereInput = { slug };
+
+      if (excludeId) {
+        whereClause.NOT = { id: excludeId };
+      }
+
+      const existingCategory =
+        await this.prismaService.blog_categories.findFirst({
+          where: whereClause,
+          select: { id: true },
+        });
+
+      if (!existingCategory) {
+        break;
+      }
+
+      slug = `${baseSlug}-${counter}`;
+      counter++;
+    }
+
+    return slug;
+  }
+
   async createBlogCategory(
     createBlogCategoryDto: CreateBlogCategoryDto,
   ): Promise<blog_categories> {
@@ -44,10 +84,13 @@ export class BlogsService {
         ? lastCategory.ordering + 1
         : 1;
 
+      // Generate unique slug
+      const slug = await this.generateUniqueSlug(createBlogCategoryDto.name);
+
       const blogCategory = await this.prismaService.blog_categories.create({
         data: {
           ...createBlogCategoryDto,
-          slug: createBlogCategoryDto.name.toLowerCase().replace(/\s+/g, '-'),
+          slug,
           ordering: nextOrdering,
         },
       });
@@ -203,12 +246,36 @@ export class BlogsService {
 
       await this.redisService.del('allBlogCategories');
 
+      // Prepare update data
+      const updateData: Partial<blog_categories> = { ...updateBlogCategoryDto };
+
+      // If name is being updated, regenerate slug
+      if (updateBlogCategoryDto.name) {
+        // Get current category to check if slug needs to be updated
+        const currentCategory =
+          await this.prismaService.blog_categories.findUnique({
+            where: { id },
+            select: { slug: true },
+          });
+
+        if (currentCategory) {
+          // Generate new slug and ensure it's different from current slug
+          const newSlug = await this.generateUniqueSlug(
+            updateBlogCategoryDto.name,
+            id, // Exclude current category from slug check
+          );
+
+          // Only update slug if it's different from current slug
+          if (newSlug !== currentCategory.slug) {
+            updateData.slug = newSlug;
+          }
+        }
+      }
+
       const updatedBlogCategory =
         await this.prismaService.blog_categories.update({
           where: { id },
-          data: {
-            ...updateBlogCategoryDto,
-          },
+          data: updateData,
         });
 
       return updatedBlogCategory;
@@ -941,6 +1008,7 @@ export class BlogsService {
   async updateBlogByAdmin(
     id: string,
     updateBlogDto: UpdateBlogDto,
+    file: UploadedFileType,
   ): Promise<blogs> {
     try {
       const existingBlog = await this.prismaService.blogs.findUnique({
@@ -952,8 +1020,14 @@ export class BlogsService {
         throw new Error(MESSAGE.BLOG.BLOG_NOT_FOUND);
       }
 
-      if (updateBlogDto.image && !this.isValidImageUrl(updateBlogDto.image)) {
-        throw new Error(MESSAGE.BLOG.INVALID_IMAGE_URL);
+      if (file) {
+        const imageUrl = await this.filesService.uploadFile(
+          file.buffer,
+          file.originalname,
+          FileType.BLOG_IMAGE,
+        );
+
+        updateBlogDto.image = imageUrl.url;
       }
 
       const updatedBlog = await this.prismaService.blogs.update({
