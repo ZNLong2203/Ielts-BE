@@ -303,6 +303,7 @@ export class RegisterTeacherDto extends PickType(CreateUserDto, [
     description: 'Certificate file (PDF or image, max 5MB)',
     required: false,
   })
+  @IsOptional()
   file?: any;
 }
 

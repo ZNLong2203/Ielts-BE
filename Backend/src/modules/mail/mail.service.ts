@@ -33,7 +33,7 @@ export class MailService {
     fullName: string,
   ) {
     try {
-      const resetUrl = `http://localhost:3000/api/v1/auth/reset-teacher-password?token=${token}`;
+      const resetUrl = `http://localhost:8000/auth/teacher/reset-password?token=${token}`;
 
       if (!fullName) {
         fullName = 'New Teacher';

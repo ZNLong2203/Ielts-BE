@@ -30,6 +30,25 @@ export class BlogsService {
     return cloudinaryPattern.test(url) || generalUrlPattern.test(url);
   }
 
+  // Helper method to clear all teacher blogs cache including pagination
+  private async clearTeacherBlogsCache(teacherId: string): Promise<void> {
+    try {
+      // Get all keys matching the pattern
+      const pattern = `teacherBlogs:${teacherId}:*`;
+      const keys = await this.redisService.getClient().keys(pattern);
+
+      if (keys.length > 0) {
+        await this.redisService.getClient().del(...keys);
+      }
+
+      // Also clear the base cache key
+      await this.redisService.del(`teacherBlogs:${teacherId}`);
+    } catch (error) {
+      // Log error but don't throw to avoid breaking the main operation
+      console.error('Error clearing teacher blogs cache:', error);
+    }
+  }
+
   // CATEGORY METHODS
   private async generateUniqueSlug(
     name: string,
@@ -555,7 +574,8 @@ export class BlogsService {
         },
       });
 
-      await this.redisService.del(`teacherBlogs:${teacherId}`);
+      // Clear all teacher blogs cache (including pagination)
+      await this.clearTeacherBlogsCache(teacherId);
       await this.redisService.del('allBlogsAdmin');
       await this.redisService.del('blogsByStatus:draft');
 
@@ -696,7 +716,7 @@ export class BlogsService {
         data: { ...updateBlogDto },
       });
 
-      await this.redisService.del(`teacherBlogs:${teacherId}`);
+      await this.clearTeacherBlogsCache(teacherId);
       await this.redisService.del(`blog:${blogId}`);
       await this.redisService.del('allBlogsAdmin');
       await this.redisService.del(`blogsByStatus:${existingBlog.status}`);
@@ -738,7 +758,7 @@ export class BlogsService {
         where: { id: blogId },
       });
 
-      await this.redisService.del(`teacherBlogs:${teacherId}`);
+      await this.clearTeacherBlogsCache(teacherId);
       await this.redisService.del(`blog:${blogId}`);
       await this.redisService.del('allBlogsAdmin');
       await this.redisService.del(`blogsByStatus:${existingBlog.status}`);
@@ -1039,7 +1059,7 @@ export class BlogsService {
       await this.redisService.del(`blog:${id}`);
       await this.redisService.del(`blogsByStatus:${existingBlog.status}`);
       if (existingBlog.author_id) {
-        await this.redisService.del(`teacherBlogs:${existingBlog.author_id}`);
+        await this.clearTeacherBlogsCache(existingBlog.author_id);
       }
 
       if (existingBlog.status === 'published') {
@@ -1088,7 +1108,7 @@ export class BlogsService {
       await this.redisService.del(`blogsByStatus:${existingBlog.status}`);
 
       if (existingBlog.author_id) {
-        await this.redisService.del(`teacherBlogs:${existingBlog.author_id}`);
+        await this.clearTeacherBlogsCache(existingBlog.author_id);
       }
 
       if (existingBlog.status === 'published') {
