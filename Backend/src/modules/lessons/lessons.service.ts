@@ -3,6 +3,9 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
+import { PaginationQueryDto } from 'src/common/dto/pagination-query.dto';
+import { UtilsService } from 'src/utils/utils.service';
 import {
   CreateLessonDto,
   ReorderLessonsDto,
@@ -16,6 +19,7 @@ export class LessonsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly videoService: VideoService,
+    private readonly utilsService: UtilsService,
   ) {}
 
   async create(createLessonDto: CreateLessonDto) {
@@ -362,5 +366,52 @@ export class LessonsService {
   private estimateProcessingTime(fileSize: number): string {
     const minutes = Math.ceil(fileSize / (50 * 1024 * 1024));
     return `${minutes} minute(s)`;
+  }
+
+  async findAllBySection(
+    sectionId: string,
+    query: PaginationQueryDto,
+    rawQuery: Record<string, any>,
+  ) {
+    // Verify section exists
+    const section = await this.prisma.sections.findFirst({
+      where: { id: sectionId, deleted: false },
+    });
+
+    if (!section) {
+      throw new NotFoundException('Section not found');
+    }
+
+    const whereCondition: Prisma.lessonsWhereInput = {
+      section_id: sectionId,
+      deleted: false,
+      ...this.utilsService.buildWhereFromQuery(rawQuery),
+    };
+
+    return this.utilsService.paginate<
+      Prisma.lessonsWhereInput,
+      Prisma.lessonsInclude,
+      Prisma.lessonsSelect,
+      Prisma.lessonsOrderByWithRelationInput
+    >({
+      model: this.prisma.lessons,
+      query,
+      defaultOrderBy: { ordering: 'asc' },
+      select: {
+        id: true,
+        title: true,
+        description: true,
+        lesson_type: true,
+        video_url: true,
+        video_duration: true,
+        document_url: true,
+        ordering: true,
+        is_preview: true,
+        section_id: true,
+        created_at: true,
+        updated_at: true,
+      },
+      where: whereCondition,
+    });
   }
 }

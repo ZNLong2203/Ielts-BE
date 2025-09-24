@@ -4,13 +4,19 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
+import { PaginationQueryDto } from 'src/common/dto/pagination-query.dto';
+import { UtilsService } from 'src/utils/utils.service';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { CreateSectionDto, ReorderSectionsDto } from './dto/create-section.dto';
 import { UpdateSectionDto } from './dto/update-section.dto';
 
 @Injectable()
 export class SectionsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly utilsService: UtilsService,
+  ) {}
 
   async create(createSectionDto: CreateSectionDto) {
     const { courseId, ...sectionData } = createSectionDto;
@@ -171,5 +177,47 @@ export class SectionsService {
     return {
       success: true,
     };
+  }
+
+  async findAllByCourse(
+    courseId: string,
+    query: PaginationQueryDto,
+    rawQuery: Record<string, any>,
+  ) {
+    // Verify course exists
+    const course = await this.prisma.courses.findFirst({
+      where: { id: courseId, deleted: false },
+    });
+
+    if (!course) {
+      throw new NotFoundException('Course not found');
+    }
+
+    const whereCondition: Prisma.sectionsWhereInput = {
+      course_id: courseId,
+      deleted: false,
+      ...this.utilsService.buildWhereFromQuery(rawQuery),
+    };
+
+    return this.utilsService.paginate<
+      Prisma.sectionsWhereInput,
+      Prisma.sectionsInclude,
+      Prisma.sectionsSelect,
+      Prisma.sectionsOrderByWithRelationInput
+    >({
+      model: this.prisma.sections,
+      query,
+      defaultOrderBy: { ordering: 'asc' },
+      select: {
+        id: true,
+        title: true,
+        description: true,
+        ordering: true,
+        course_id: true,
+        created_at: true,
+        updated_at: true,
+      },
+      where: whereCondition,
+    });
   }
 }
