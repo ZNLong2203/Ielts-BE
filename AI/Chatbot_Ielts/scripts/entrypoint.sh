@@ -8,7 +8,7 @@ until ollama list >/dev/null 2>&1; do
 done
 
 echo "Pulling model..."
-ollama pull hf.co/Zkare/Chatbot_Ielts_Assistant:F16
+ollama pull hf.co/Zkare/Chatbot_Ielts_Assistant:Q4_K_M
 
 # Giữ container sống
 wait

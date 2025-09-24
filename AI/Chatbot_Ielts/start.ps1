@@ -7,7 +7,7 @@ Write-Host "Waiting for services to start" -ForegroundColor Yellow
 Start-Sleep -Seconds 15
 
 Write-Host "Ensuring IELTS model is available" -ForegroundColor Blue
-docker exec ollama-test ollama pull hf.co/Zkare/Chatbot_Ielts_Assistant:F16
+docker exec ollama-ielts ollama pull hf.co/Zkare/Chatbot_Ielts_Assistant:Q4_K_M
 
 Write-Host "IELTS AI Assistant is ready!" -ForegroundColor Green
 Write-Host ""

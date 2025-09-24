@@ -5,7 +5,7 @@ import asyncio
 from fastapi import HTTPException
 
 API_URL = os.getenv("OLLAMA_API_URL", "http://ollama:11434/api/generate")
-MODEL_NAME = "hf.co/Zkare/Chatbot_Ielts_Assistant:F16"
+MODEL_NAME = "hf.co/Zkare/Chatbot_Ielts_Assistant:Q4_K_M"
 
 _http_client = httpx.AsyncClient(
     timeout=httpx.Timeout(180.0), 
@@ -16,11 +16,6 @@ _response_cache = {}
 _cache_max_size = 50
 
 async def query_ollama(prompt: str) -> str:
-    """
-    Send prompt to Ollama REST API and return the generated response.
-    Requires `ollama serve` to be running (default port 11434).
-    """
-
     payload = {
         "model": MODEL_NAME, 
         "prompt": prompt, 
