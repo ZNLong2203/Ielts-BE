@@ -29,6 +29,8 @@ import { VideoModule } from './modules/video/video.module';
 import { PrismaModule } from './prisma/prisma.module';
 import { RedisModule } from './redis/redis.module';
 import { UtilsModule } from './utils/utils.module';
+import { GeminiModule } from './integrations/gemini/gemini.module';
+import { WritingModule } from './modules/writing/writing.module';
 
 @Module({
   imports: [
@@ -67,6 +69,8 @@ import { UtilsModule } from './utils/utils.module';
     LessonsModule,
     VideoModule,
     SectionsModule,
+    GeminiModule,
+    WritingModule,
   ],
   controllers: [AppController, DatabaseController],
   providers: [

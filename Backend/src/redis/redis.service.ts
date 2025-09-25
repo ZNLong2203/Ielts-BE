@@ -15,11 +15,11 @@ export class RedisService {
     });
 
     this.redis.on('connect', () => {
-      this.logger.log('✅ Connected to Redis via RedisService');
+      this.logger.log('Connected to Redis via RedisService');
     });
 
     this.redis.on('error', (err) => {
-      this.logger.error('❌ Redis connection error:', err);
+      this.logger.error('Redis connection error:', err);
     });
   }
 

@@ -17,7 +17,6 @@ export class MinioConfigService {
     });
   }
 
-  // Bucket configurations
   getBucketConfig() {
     return {
       images: 'ielts-images',
@@ -27,7 +26,6 @@ export class MinioConfigService {
     };
   }
 
-  // File type configurations
   getFileTypeConfig() {
     return {
       images: {
