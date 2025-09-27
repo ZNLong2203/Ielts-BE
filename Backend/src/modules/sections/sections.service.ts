@@ -18,9 +18,7 @@ export class SectionsService {
     private readonly utilsService: UtilsService,
   ) {}
 
-  async create(createSectionDto: CreateSectionDto) {
-    const { courseId, ...sectionData } = createSectionDto;
-
+  async create(createSectionDto: CreateSectionDto, courseId: string) {
     // Verify course exists
     const course = await this.prisma.courses.findFirst({
       where: { id: courseId, deleted: false },
@@ -31,17 +29,17 @@ export class SectionsService {
     }
 
     // Get next ordering if not provided
-    if (sectionData.ordering === undefined) {
+    if (createSectionDto.ordering === undefined) {
       const lastSection = await this.prisma.sections.findFirst({
         where: { course_id: courseId, deleted: false },
         orderBy: { ordering: 'desc' },
       });
-      sectionData.ordering = (lastSection?.ordering || 0) + 1;
+      createSectionDto.ordering = (lastSection?.ordering || 0) + 1;
     }
 
     const section = await this.prisma.sections.create({
       data: {
-        ...sectionData,
+        ...createSectionDto,
         course_id: courseId,
       },
     });

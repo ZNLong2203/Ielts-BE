@@ -144,10 +144,7 @@ export class SectionsController {
     @Param('courseId', ParseUUIDPipe) courseId: string,
     @Body() createSectionDto: CreateSectionDto,
   ) {
-    return this.sectionsService.create({
-      ...createSectionDto,
-      courseId,
-    });
+    return this.sectionsService.create(createSectionDto, courseId);
   }
 
   @Get(':id')

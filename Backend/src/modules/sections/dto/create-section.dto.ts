@@ -1,3 +1,4 @@
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import {
   IsArray,
@@ -8,21 +9,8 @@ import {
   Min,
   ValidateNested,
 } from 'class-validator';
-import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
 export class CreateSectionDto {
-  @ApiProperty({
-    description: 'Course ID this section belongs to',
-    example: '123e4567-e89b-12d3-a456-426614174000',
-    format: 'uuid',
-  })
-  @IsUUID()
-  courseId: string;
-
-  @ApiProperty({
-    description: 'Section title',
-    example: 'IELTS Speaking Fundamentals',
-  })
   @IsString()
   title: string;
 
