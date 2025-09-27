@@ -11,6 +11,10 @@ import {
 } from 'class-validator';
 
 export class CreateSectionDto {
+  @ApiProperty({
+    description: 'Section title',
+    example: 'IELTS Speaking Fundamentals',
+  })
   @IsString()
   title: string;
 
