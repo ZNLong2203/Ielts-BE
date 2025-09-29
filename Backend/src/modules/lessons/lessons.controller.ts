@@ -26,8 +26,8 @@ import {
   ApiTags,
 } from '@nestjs/swagger';
 import { Request } from 'express';
-import { Public } from 'src/decorator/customize';
 import { PaginationQueryDto } from 'src/common/dto/pagination-query.dto';
+import { Public } from 'src/decorator/customize';
 import {
   CreateLessonDto,
   ReorderLessonsDto,
@@ -165,10 +165,7 @@ export class LessonsController {
     @Param('sectionId', ParseUUIDPipe) sectionId: string,
     @Body() createLessonDto: CreateLessonDto,
   ) {
-    return this.lessonsService.create({
-      ...createLessonDto,
-      sectionId,
-    });
+    return this.lessonsService.create(createLessonDto, sectionId);
   }
 
   @Get(':id')

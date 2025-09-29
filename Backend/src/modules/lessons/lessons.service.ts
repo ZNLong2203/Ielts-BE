@@ -5,7 +5,6 @@ import {
 } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { PaginationQueryDto } from 'src/common/dto/pagination-query.dto';
-import { UtilsService } from 'src/utils/utils.service';
 import {
   CreateLessonDto,
   ReorderLessonsDto,
@@ -13,6 +12,7 @@ import {
 import { UpdateLessonDto } from 'src/modules/lessons/dto/update-lesson.dto';
 import { VideoService } from 'src/modules/video/video.service';
 import { PrismaService } from 'src/prisma/prisma.service';
+import { UtilsService } from 'src/utils/utils.service';
 
 @Injectable()
 export class LessonsService {
@@ -22,9 +22,7 @@ export class LessonsService {
     private readonly utilsService: UtilsService,
   ) {}
 
-  async create(createLessonDto: CreateLessonDto) {
-    const { sectionId, ...lessonData } = createLessonDto;
-
+  async create(createLessonDto: CreateLessonDto, sectionId: string) {
     // Verify section exists
     const section = await this.prisma.sections.findFirst({
       where: { id: sectionId, deleted: false },
@@ -35,17 +33,17 @@ export class LessonsService {
     }
 
     // Get next ordering if not provided
-    if (lessonData.ordering === undefined) {
+    if (createLessonDto.ordering === undefined) {
       const lastLesson = await this.prisma.lessons.findFirst({
         where: { section_id: sectionId, deleted: false },
         orderBy: { ordering: 'desc' },
       });
-      lessonData.ordering = (lastLesson?.ordering || 0) + 1;
+      createLessonDto.ordering = (lastLesson?.ordering || 0) + 1;
     }
 
     const lesson = await this.prisma.lessons.create({
       data: {
-        ...lessonData,
+        ...createLessonDto,
         section_id: sectionId,
       },
     });
