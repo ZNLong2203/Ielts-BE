@@ -37,7 +37,7 @@ export class CreateLessonDto {
   })
   @IsOptional()
   @IsIn(['video', 'document', 'quiz', 'assignment'])
-  lessonType?: string = 'video';
+  lesson_type?: string = 'video';
 
   @ApiPropertyOptional({
     description: 'Video URL',
@@ -45,7 +45,7 @@ export class CreateLessonDto {
   })
   @IsOptional()
   @IsString()
-  videoUrl?: string;
+  video_url?: string;
 
   @ApiPropertyOptional({
     description: 'Video duration in seconds',
@@ -55,7 +55,7 @@ export class CreateLessonDto {
   @IsOptional()
   @IsInt()
   @Min(0)
-  videoDuration?: number;
+  video_duration?: number;
 
   @ApiPropertyOptional({
     description: 'Document URL',
@@ -63,7 +63,7 @@ export class CreateLessonDto {
   })
   @IsOptional()
   @IsString()
-  documentUrl?: string;
+  document_url?: string;
 
   @ApiPropertyOptional({
     description: 'Lesson ordering within section',
@@ -82,7 +82,7 @@ export class CreateLessonDto {
   })
   @IsOptional()
   @IsBoolean()
-  isPreview?: boolean = false;
+  is_preview?: boolean = false;
 }
 
 class LessonOrderDto {
