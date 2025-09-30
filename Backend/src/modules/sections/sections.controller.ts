@@ -19,8 +19,8 @@ import {
   ApiTags,
 } from '@nestjs/swagger';
 import { Request } from 'express';
-import { Public } from 'src/decorator/customize';
 import { PaginationQueryDto } from 'src/common/dto/pagination-query.dto';
+import { Public } from 'src/decorator/customize';
 import { CreateSectionDto, ReorderSectionsDto } from './dto/create-section.dto';
 import { ApiResponseDto, SectionResponseDto } from './dto/section-response.dto';
 import { UpdateSectionDto } from './dto/update-section.dto';
@@ -180,6 +180,40 @@ export class SectionsController {
     return this.sectionsService.findOne(id);
   }
 
+  @Patch('reorder')
+  @ApiOperation({
+    summary: 'Reorder sections',
+    description: 'Change the order of sections within a course',
+  })
+  @ApiParam({
+    name: 'courseId',
+    description: 'Course ID',
+    type: 'string',
+    format: 'uuid',
+    example: '123e4567-e89b-12d3-a456-426614174000',
+  })
+  @ApiBody({ type: ReorderSectionsDto })
+  @ApiResponse({
+    status: 200,
+    description: 'Sections reordered successfully',
+    type: ApiResponseDto<SectionResponseDto[]>,
+  })
+  @ApiResponse({
+    status: 400,
+    description: 'Bad request - Invalid ordering data',
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'Course not found',
+  })
+  @Public()
+  reorder(
+    @Param('courseId', ParseUUIDPipe) courseId: string,
+    @Body() reorderDto: ReorderSectionsDto,
+  ) {
+    return this.sectionsService.reorder(courseId, reorderDto);
+  }
+
   @Patch(':id')
   @ApiOperation({
     summary: 'Update section',
@@ -219,40 +253,6 @@ export class SectionsController {
     @Body() updateSectionDto: UpdateSectionDto,
   ) {
     return this.sectionsService.update(id, updateSectionDto);
-  }
-
-  @Patch('reorder')
-  @ApiOperation({
-    summary: 'Reorder sections',
-    description: 'Change the order of sections within a course',
-  })
-  @ApiParam({
-    name: 'courseId',
-    description: 'Course ID',
-    type: 'string',
-    format: 'uuid',
-    example: '123e4567-e89b-12d3-a456-426614174000',
-  })
-  @ApiBody({ type: ReorderSectionsDto })
-  @ApiResponse({
-    status: 200,
-    description: 'Sections reordered successfully',
-    type: ApiResponseDto<SectionResponseDto[]>,
-  })
-  @ApiResponse({
-    status: 400,
-    description: 'Bad request - Invalid ordering data',
-  })
-  @ApiResponse({
-    status: 404,
-    description: 'Course not found',
-  })
-  @Public()
-  reorder(
-    @Param('courseId', ParseUUIDPipe) courseId: string,
-    @Body() reorderDto: ReorderSectionsDto,
-  ) {
-    return this.sectionsService.reorder(courseId, reorderDto);
   }
 
   @Delete(':id')

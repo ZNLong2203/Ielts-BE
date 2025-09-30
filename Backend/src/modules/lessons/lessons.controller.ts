@@ -201,6 +201,40 @@ export class LessonsController {
     return this.lessonsService.findOne(id);
   }
 
+  @Patch('reorder')
+  @ApiOperation({
+    summary: 'Reorder lessons',
+    description: 'Change the order of lessons within a section',
+  })
+  @ApiParam({
+    name: 'sectionId',
+    description: 'Section ID',
+    type: 'string',
+    format: 'uuid',
+    example: '123e4567-e89b-12d3-a456-426614174000',
+  })
+  @ApiBody({ type: ReorderLessonsDto })
+  @ApiResponse({
+    status: 200,
+    description: 'Lessons reordered successfully',
+    type: ApiResponseDto<LessonResponseDto[]>,
+  })
+  @ApiResponse({
+    status: 400,
+    description: 'Bad request - Invalid ordering data',
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'Section not found',
+  })
+  @Public()
+  reorder(
+    @Param('sectionId', ParseUUIDPipe) sectionId: string,
+    @Body() reorderDto: ReorderLessonsDto,
+  ) {
+    return this.lessonsService.reorder(sectionId, reorderDto);
+  }
+
   @Patch(':id')
   @ApiOperation({
     summary: 'Update lesson',
@@ -240,40 +274,6 @@ export class LessonsController {
     @Body() updateLessonDto: UpdateLessonDto,
   ) {
     return this.lessonsService.update(id, updateLessonDto);
-  }
-
-  @Patch('reorder')
-  @ApiOperation({
-    summary: 'Reorder lessons',
-    description: 'Change the order of lessons within a section',
-  })
-  @ApiParam({
-    name: 'sectionId',
-    description: 'Section ID',
-    type: 'string',
-    format: 'uuid',
-    example: '123e4567-e89b-12d3-a456-426614174000',
-  })
-  @ApiBody({ type: ReorderLessonsDto })
-  @ApiResponse({
-    status: 200,
-    description: 'Lessons reordered successfully',
-    type: ApiResponseDto<LessonResponseDto[]>,
-  })
-  @ApiResponse({
-    status: 400,
-    description: 'Bad request - Invalid ordering data',
-  })
-  @ApiResponse({
-    status: 404,
-    description: 'Section not found',
-  })
-  @Public()
-  reorder(
-    @Param('sectionId', ParseUUIDPipe) sectionId: string,
-    @Body() reorderDto: ReorderLessonsDto,
-  ) {
-    return this.lessonsService.reorder(sectionId, reorderDto);
   }
 
   @Delete(':id')
