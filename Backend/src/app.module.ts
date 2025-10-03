@@ -31,6 +31,7 @@ import { RedisModule } from './redis/redis.module';
 import { UtilsModule } from './utils/utils.module';
 import { GeminiModule } from './integrations/gemini/gemini.module';
 import { WritingModule } from './modules/writing/writing.module';
+import { SpeakingModule } from './modules/speaking/speaking.module';
 
 @Module({
   imports: [
@@ -71,6 +72,7 @@ import { WritingModule } from './modules/writing/writing.module';
     SectionsModule,
     GeminiModule,
     WritingModule,
+    SpeakingModule,
   ],
   controllers: [AppController, DatabaseController],
   providers: [
