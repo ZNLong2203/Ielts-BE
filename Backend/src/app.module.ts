@@ -14,6 +14,7 @@ import { CaslModule } from './casl/casl.module';
 import { DatabaseController } from './database/database.controller';
 import { DatabaseModule } from './database/database.module';
 import { DatabaseService } from './database/database.service';
+import { GeminiModule } from './integrations/gemini/gemini.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { BlogCommentsModule } from './modules/blog-comments/blog-comments.module';
 import { BlogsModule } from './modules/blogs/blogs.module';
@@ -21,17 +22,18 @@ import { CartsModule } from './modules/carts/carts.module';
 import { CoursesModule } from './modules/courses/courses.module';
 import { FilesModule } from './modules/files/files.module';
 import { LessonsModule } from './modules/lessons/lessons.module';
+import { ListeningModule } from './modules/listening/listening.module';
 import { MailModule } from './modules/mail/mail.module';
+import { ReadingModule } from './modules/reading/reading.module';
+import { SpeakingModule } from './modules/speaking/speaking.module';
 import { StudentsModule } from './modules/students/students.module';
 import { TeachersModule } from './modules/teachers/teachers.module';
 import { UsersModule } from './modules/users/users.module';
 import { VideoModule } from './modules/video/video.module';
+import { WritingModule } from './modules/writing/writing.module';
 import { PrismaModule } from './prisma/prisma.module';
 import { RedisModule } from './redis/redis.module';
 import { UtilsModule } from './utils/utils.module';
-import { GeminiModule } from './integrations/gemini/gemini.module';
-import { WritingModule } from './modules/writing/writing.module';
-import { SpeakingModule } from './modules/speaking/speaking.module';
 
 @Module({
   imports: [
@@ -73,6 +75,8 @@ import { SpeakingModule } from './modules/speaking/speaking.module';
     GeminiModule,
     WritingModule,
     SpeakingModule,
+    ListeningModule,
+    ReadingModule,
   ],
   controllers: [AppController, DatabaseController],
   providers: [
