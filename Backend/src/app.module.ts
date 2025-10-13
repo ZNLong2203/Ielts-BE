@@ -20,7 +20,9 @@ import { BlogCommentsModule } from './modules/blog-comments/blog-comments.module
 import { BlogsModule } from './modules/blogs/blogs.module';
 import { CartsModule } from './modules/carts/carts.module';
 import { CoursesModule } from './modules/courses/courses.module';
+import { ExercisesModule } from './modules/exercises/exercises.module';
 import { FilesModule } from './modules/files/files.module';
+import { LearningModule } from './modules/learning/learning.module';
 import { LessonsModule } from './modules/lessons/lessons.module';
 import { ListeningModule } from './modules/listening/listening.module';
 import { MailModule } from './modules/mail/mail.module';
@@ -77,6 +79,8 @@ import { UtilsModule } from './utils/utils.module';
     SpeakingModule,
     ListeningModule,
     ReadingModule,
+    ExercisesModule,
+    LearningModule,
   ],
   controllers: [AppController, DatabaseController],
   providers: [
