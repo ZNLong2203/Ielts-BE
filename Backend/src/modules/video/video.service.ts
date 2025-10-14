@@ -30,6 +30,10 @@ export class VideoService {
     private readonly videoQueue: Queue<VideoJobData>,
   ) {}
 
+  // ----------------------------------------------------------------------
+  // Video upload service
+  // ----------------------------------------------------------------------
+
   /**
    * Generate presigned URL for FE to upload directly to MinIO
    */
@@ -39,7 +43,7 @@ export class VideoService {
     const { originalName, fileSize, mimetype } = request;
 
     // Validate using existing method
-    this.validateVideoFile(Buffer.alloc(0), mimetype); // Use empty buffer for validation
+    this.validateMediaFile(Buffer.alloc(0), mimetype); // Use empty buffer for validation
 
     // Additional file size validation
     const maxSize = 2 * 1024 * 1024 * 1024; // 2GB
@@ -47,7 +51,8 @@ export class VideoService {
       throw new BadRequestException('File too large. Maximum size: 2GB');
     }
 
-    const bucketName = 'ielts-videos';
+    const isAudio = mimetype.startsWith('audio/');
+    const bucketName = isAudio ? 'ielts-audio' : 'ielts-videos';
     const fileExtension = path.extname(originalName);
     const fileName = `${uuid()}${fileExtension}`;
     const folder = 'lessons';
@@ -153,6 +158,8 @@ export class VideoService {
       } = uploadSession;
       rollbackContext.minioObject = originalObjectName; // Track for rollback
 
+      const isAudio = mimetype.startsWith('audio/');
+
       // Verify file exists in MinIO
       const fileExists = await this.minioService.objectExists(
         bucketName,
@@ -191,13 +198,13 @@ export class VideoService {
 
       // ✅ Cache duration (existing logic)
       if (duration > 0) {
-        const durationKey = `video:${fileName}:duration`;
+        const durationKey = `${isAudio ? 'audio' : 'video'}:${fileName}:duration`;
         rollbackContext.redisKeys.push(durationKey);
         await this.redisService.setJSON(durationKey, duration, 24 * 60 * 60);
       }
 
       // ✅ Set progress (existing logic)
-      const progressKey = `video:${fileName}:progress`;
+      const progressKey = `${isAudio ? 'audio' : 'video'}:${fileName}:progress`;
       rollbackContext.redisKeys.push(progressKey);
       const progress: ProcessingProgress = {
         fileName,
@@ -300,9 +307,10 @@ export class VideoService {
   ): Promise<
     VideoUploadResult & { duration: number; durationFormatted: string }
   > {
-    const bucketName = 'ielts-videos';
+    const isAudio = mimetype.startsWith('audio/');
+    const bucketName = isAudio ? 'ielts-audio' : 'ielts-videos';
     const fileExtension = path.extname(originalName);
-    const fileName = `${uuid()}${fileExtension}`;
+    const fileName = `${isAudio ? 'audio' : 'video'}-${uuid()}${fileExtension}`;
     const folder = 'lessons';
     const originalObjectName = `${folder}/original/${fileName}`;
     const baseTmpDir = path.resolve(process.cwd(), '../temp');
@@ -318,7 +326,7 @@ export class VideoService {
     };
 
     try {
-      this.validateVideoFile(buffer, mimetype);
+      this.validateMediaFile(buffer, mimetype);
 
       // Step 1: Create temp file
       rollbackContext.tempDir = tempDir;
@@ -352,13 +360,13 @@ export class VideoService {
 
       // Step 4: Cache duration
       if (duration > 0) {
-        const durationKey = `video:${fileName}:duration`;
+        const durationKey = `${isAudio ? 'audio' : 'video'}:${fileName}:duration`;
         rollbackContext.redisKeys.push(durationKey);
         await this.redisService.setJSON(durationKey, duration, 24 * 60 * 60);
       }
 
       // Step 5: Set progress
-      const progressKey = `video:${fileName}:progress`;
+      const progressKey = `${isAudio ? 'audio' : 'video'}:${fileName}:progress`;
       rollbackContext.redisKeys.push(progressKey);
       const progress: ProcessingProgress = {
         fileName,
@@ -550,7 +558,8 @@ export class VideoService {
   }
 
   async clearVideoData(fileName: string): Promise<void> {
-    const bucketName = 'ielts-videos';
+    const isAudio = this.isAudioFile(fileName);
+    const bucketName = isAudio ? 'ielts-audio' : 'ielts-videos';
     const originalObjectName = `lessons/original/${fileName}`;
     const baseName = path.parse(fileName).name;
     const hlsFolder = `lessons/hls/${baseName}/`;
@@ -584,8 +593,8 @@ export class VideoService {
     }
 
     // Delete Redis keys
-    const durationKey = `video:${fileName}:duration`;
-    const progressKey = `video:${fileName}:progress`;
+    const durationKey = `${isAudio ? 'audio' : 'video'}:${fileName}:duration`;
+    const progressKey = `${isAudio ? 'audio' : 'video'}:${fileName}:progress`;
 
     try {
       await this.redisService.del(durationKey);
@@ -601,8 +610,9 @@ export class VideoService {
 
   async getProgress(fileName: string): Promise<ProcessingProgress | null> {
     try {
+      const isAudio = this.isAudioFile(fileName);
       return await this.redisService.getJSON<ProcessingProgress>(
-        `video:${fileName}:progress`,
+        `${isAudio ? 'audio' : 'video'}:${fileName}:progress`,
       );
     } catch (error) {
       this.logger.error(`Failed to get progress for ${fileName}:`, error);
@@ -612,8 +622,9 @@ export class VideoService {
 
   async getVideoDuration(fileName: string): Promise<number> {
     try {
+      const isAudio = this.isAudioFile(fileName);
       const cached = await this.redisService.getJSON<number>(
-        `video:${fileName}:duration`,
+        `${isAudio ? 'audio' : 'video'}:${fileName}:duration`,
       );
       return cached || 0; // Should be available from upload
     } catch (error) {
@@ -636,13 +647,16 @@ export class VideoService {
     }
   }
 
-  private validateVideoFile(
+  private validateMediaFile(
     buffer: Buffer,
     mimetype: string,
     skipSizeCheck = false,
   ): void {
-    if (!mimetype.startsWith('video/')) {
-      throw new BadRequestException('Only video files are allowed');
+    const isVideo = mimetype.startsWith('video/');
+    const isAudio = mimetype.startsWith('audio/');
+
+    if (!isVideo && !isAudio) {
+      throw new BadRequestException('Only video or audio files are allowed');
     }
 
     // ✅ Only check buffer size if not skipping and buffer is provided
@@ -654,7 +668,7 @@ export class VideoService {
     }
 
     // ✅ Additional mimetype validation
-    const supportedTypes = [
+    const supportedVideo = [
       'video/mp4',
       'video/avi',
       'video/quicktime',
@@ -662,8 +676,19 @@ export class VideoService {
       'video/webm',
       'video/x-matroska',
     ];
+    const supportedAudio = [
+      'audio/mpeg',
+      'audio/mp3',
+      'audio/wav',
+      'audio/x-wav',
+      'audio/aac',
+      'audio/mp4',
+      'audio/x-m4a',
+      'audio/ogg',
+    ];
+    const supported = [...supportedVideo, ...supportedAudio];
 
-    if (!supportedTypes.includes(mimetype.toLowerCase())) {
+    if (!supported.includes(mimetype.toLowerCase())) {
       this.logger.warn(`Unsupported video type: ${mimetype}, but allowing...`);
     }
   }
@@ -671,7 +696,8 @@ export class VideoService {
   // Get HLS URL, return null if not processed yet
   async getVideoHLSUrl(fileName: string): Promise<string | null> {
     try {
-      const bucketName = 'ielts-videos';
+      const isAudio = this.isAudioFile(fileName);
+      const bucketName = isAudio ? 'ielts-audio' : 'ielts-videos';
       const baseName = path.parse(fileName).name;
       const hlsObjectName = `lessons/hls/${baseName}/playlist.m3u8`;
 
@@ -694,8 +720,9 @@ export class VideoService {
   async getOriginalVideoInfo(
     fileName: string,
   ): Promise<{ url: string } | null> {
+    const isAudio = this.isAudioFile(fileName);
     try {
-      const bucketName = 'ielts-videos';
+      const bucketName = isAudio ? 'ielts-audio' : 'ielts-videos';
       const originalObjectName = `lessons/original/${fileName}`;
 
       const exists = await this.minioService.objectExists(
@@ -712,8 +739,16 @@ export class VideoService {
       );
       return { url };
     } catch (error) {
-      this.logger.warn(`Original video not found for ${fileName}:`, error);
+      this.logger.warn(
+        `Original ${isAudio ? 'audio' : 'video'} not found for ${fileName}:`,
+        error,
+      );
       return null;
     }
+  }
+
+  private isAudioFile(fileName: string): boolean {
+    // File: audio/video - uuid.extension
+    return fileName.startsWith('audio-');
   }
 }

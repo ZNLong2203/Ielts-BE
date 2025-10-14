@@ -2,7 +2,7 @@
 <html lang="en">
   <head>
     <meta charset="utf-8" />
-    <title>HLS Quick Test</title>
+    <title>HLS Audio/Video Test</title>
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
     <style>
@@ -78,7 +78,8 @@
         border-color: #f5c2c7;
         color: #842029;
       }
-      video {
+      video,
+      audio {
         width: 100%;
         max-width: 900px;
         margin: 16px 0;
@@ -102,7 +103,7 @@
   </head>
   <body>
     <div class="wrap">
-      <h1>HLS Quick Test</h1>
+      <h1>HLS Audio/Video Test</h1>
 
       <div class="row">
         <input
@@ -113,14 +114,20 @@
         <button id="loadBtn">Load</button>
       </div>
       <div class="hint">
-        Tip: có thể truyền sẵn bằng query: <code>?src=https://...</code>
+        Tip: bạn có thể truyền URL trực tiếp bằng query:
+        <code>?src=https://...</code>
       </div>
 
       <div class="badges" id="badges"></div>
 
-      <video id="video" controls muted playsinline preload="auto">
-        Your browser does not support the video tag.
-      </video>
+      <video
+        id="video"
+        controls
+        playsinline
+        preload="auto"
+        style="display: none"
+      ></video>
+      <audio id="audio" controls preload="auto" style="display: none"></audio>
 
       <details open>
         <summary><strong>Logs</strong></summary>
@@ -133,10 +140,10 @@
       const badges = $('badges');
       const logEl = $('log');
       const video = $('video');
+      const audio = $('audio');
       const srcInput = $('src');
       const loadBtn = $('loadBtn');
 
-      // Helpers
       const log = (...args) => {
         const line = args
           .map((a) => (typeof a === 'object' ? JSON.stringify(a) : String(a)))
@@ -145,29 +152,26 @@
         logEl.textContent += line + '\n';
         logEl.scrollTop = logEl.scrollHeight;
       };
+
       const addBadge = (txt, cls = 'badge') => {
         const b = document.createElement('span');
         b.className = `badge ${cls}`;
         b.textContent = txt;
         badges.appendChild(b);
       };
+
       const clearBadges = () => badges.replaceChildren();
 
-      // Prefill from ?src= or hash
+      // Lấy src từ query string nếu có
       const params = new URLSearchParams(location.search);
-      const preset =
-        params.get('src') ||
-        (location.hash.startsWith('#src=')
-          ? decodeURIComponent(location.hash.slice(5))
-          : '');
+      const preset = params.get('src') || '';
       if (preset) srcInput.value = preset;
 
-      // Basic HEAD check for playlist availability
       async function headOk(url) {
         try {
           const res = await fetch(url, { method: 'HEAD' });
           return res.ok;
-        } catch (e) {
+        } catch {
           return false;
         }
       }
@@ -176,7 +180,6 @@
         const src = srcInput.value.trim();
         logEl.textContent = '';
         clearBadges();
-
         if (!src) {
           addBadge('Missing .m3u8 URL', 'err');
           log('❌ No src provided');
@@ -184,21 +187,26 @@
         }
 
         loadBtn.disabled = true;
-
-        addBadge(`SRC set`, 'badge');
+        addBadge('SRC set', 'badge');
         log('🎯 Source:', src);
 
-        // HEAD check
         const headOkRes = await headOk(src);
         if (headOkRes) {
           addBadge('Playlist reachable (HEAD 200)', 'ok');
-          log('✅ HEAD 200 for playlist');
         } else {
           addBadge('Playlist not reachable', 'warn');
-          log('⚠️ HEAD failed or non-200 for playlist');
         }
 
-        // Try to play
+        // Xác định loại media
+        const isAudio =
+          src.includes('audio') || src.endsWith('.m3u8?type=audio');
+
+        video.style.display = 'none';
+        audio.style.display = 'none';
+
+        const target = isAudio ? audio : video;
+        target.style.display = 'block';
+
         if (window.Hls && Hls.isSupported()) {
           addBadge('Hls.js supported', 'ok');
           const hls = new Hls({ enableWorker: true });
@@ -206,8 +214,7 @@
           hls.on(Hls.Events.MANIFEST_PARSED, (_, data) => {
             addBadge(`Levels: ${data.levels?.length ?? 0}`, 'badge');
             log('✅ MANIFEST_PARSED levels=', data.levels?.length ?? 0);
-            // Autoplay when allowed
-            video
+            target
               .play()
               .catch((err) =>
                 log('⚠️ Autoplay prevented:', err?.message || err),
@@ -224,72 +231,33 @@
             if (data.fatal) {
               switch (data.type) {
                 case Hls.ErrorTypes.NETWORK_ERROR:
-                  log('🔄 Recover: startLoad()');
                   hls.startLoad();
                   break;
                 case Hls.ErrorTypes.MEDIA_ERROR:
-                  log('🔄 Recover: recoverMediaError()');
                   hls.recoverMediaError();
                   break;
                 default:
-                  log('💥 Destroy Hls instance');
                   hls.destroy();
               }
             }
           });
 
           hls.loadSource(src);
-          hls.attachMedia(video);
-        } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+          hls.attachMedia(target);
+        } else if (target.canPlayType('application/vnd.apple.mpegurl')) {
           addBadge('Native HLS (Safari)', 'ok');
-          video.src = src;
-          video
+          target.src = src;
+          target
             .play()
             .catch((err) => log('⚠️ Autoplay prevented:', err?.message || err));
         } else {
           addBadge('HLS not supported in this browser', 'err');
-          log('❌ HLS not supported');
         }
-
-        // Video event hooks (quick diagnostics)
-        const evts = [
-          'loadstart',
-          'loadedmetadata',
-          'canplay',
-          'playing',
-          'pause',
-          'stalled',
-          'waiting',
-          'ended',
-          'error',
-          'seeked',
-          'seeking',
-        ];
-        evts.forEach((e) =>
-          video.addEventListener(
-            e,
-            (evt) => {
-              if (e === 'error') {
-                const err = video.error;
-                addBadge('VIDEO ERROR', 'err');
-                log(
-                  '❌ VIDEO ERROR:',
-                  err && { code: err.code, message: err.message },
-                );
-              } else {
-                log(`🎬 video event: ${e}`);
-              }
-            },
-            { once: false },
-          ),
-        );
 
         loadBtn.disabled = false;
       }
 
       loadBtn.addEventListener('click', load);
-
-      // Auto-load if preset exists
       if (srcInput.value) load();
     </script>
   </body>

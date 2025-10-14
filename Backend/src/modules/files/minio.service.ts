@@ -41,28 +41,29 @@ export class MinioService {
         if (!exists) {
           await this.minioClient.makeBucket(bucketName, 'us-east-1');
           this.logger.log(`Created bucket: ${bucketName}`);
+        }
 
-          // Set public read policy for images and videos
-          if (
-            bucketName === this.buckets.images ||
-            bucketName === this.buckets.videos
-          ) {
-            const policy = {
-              Version: '2012-10-17',
-              Statement: [
-                {
-                  Effect: 'Allow',
-                  Principal: '*',
-                  Action: ['s3:GetObject'],
-                  Resource: [`arn:aws:s3:::${bucketName}/*`],
-                },
-              ],
-            };
-            await this.minioClient.setBucketPolicy(
-              bucketName,
-              JSON.stringify(policy),
-            );
-          }
+        // Set public read policy for images and videos
+        if (
+          bucketName === this.buckets.images ||
+          bucketName === this.buckets.videos ||
+          bucketName === this.buckets.audio
+        ) {
+          const policy = {
+            Version: '2012-10-17',
+            Statement: [
+              {
+                Effect: 'Allow',
+                Principal: '*',
+                Action: ['s3:GetObject'],
+                Resource: [`arn:aws:s3:::${bucketName}/*`],
+              },
+            ],
+          };
+          await this.minioClient.setBucketPolicy(
+            bucketName,
+            JSON.stringify(policy),
+          );
         }
       }
     } catch (error) {
@@ -295,7 +296,8 @@ export class MinioService {
     try {
       if (
         bucketName === this.buckets.images ||
-        bucketName === this.buckets.videos
+        bucketName === this.buckets.videos ||
+        bucketName === this.buckets.audio
       ) {
         return `http://localhost:9000/${bucketName}/${objectName}`;
       }

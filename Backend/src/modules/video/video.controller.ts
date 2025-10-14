@@ -13,7 +13,7 @@ import { Public } from 'src/decorator/customize';
 import { VideoUploadRequest } from 'src/modules/video/interfaces';
 import { VideoService } from './video.service';
 
-@Controller('videos')
+@Controller('media')
 export class VideoController {
   constructor(private readonly videoService: VideoService) {}
 
@@ -56,7 +56,7 @@ export class VideoController {
   @Post('upload')
   @Public()
   @UseInterceptors(
-    FileInterceptor('video', {
+    FileInterceptor('media', {
       limits: {
         fileSize: 2 * 1024 * 1024 * 1024, // 2GB
       },
@@ -67,8 +67,11 @@ export class VideoController {
       throw new BadRequestException('Video file is required');
     }
 
-    if (!file.mimetype.startsWith('video/')) {
-      throw new BadRequestException('Only video files are allowed');
+    const isVideo = file.mimetype.startsWith('video/');
+    const isAudio = file.mimetype.startsWith('audio/');
+
+    if (!isVideo && !isAudio) {
+      throw new BadRequestException('Only video or audio files are allowed');
     }
 
     try {
@@ -78,9 +81,11 @@ export class VideoController {
         file.mimetype,
       );
 
+      const typeLabel = isAudio ? 'Audio' : 'Video';
+
       return {
         success: true,
-        message: 'Video uploaded successfully. HLS processing started.',
+        message: `${typeLabel} uploaded successfully. HLS processing started.`,
         data: {
           fileName: result.fileName,
           originalName: result.originalName,
@@ -91,8 +96,8 @@ export class VideoController {
           isProcessing: result.isProcessing,
           estimatedProcessingTime: this.estimateProcessingTime(result.size),
           uploadedAt: new Date().toISOString(),
-          statusUrl: `/api/v1/videos/${result.fileName}/status`,
-          playerUrl: `/api/v1/videos/${result.fileName}/player`,
+          statusUrl: `/api/v1/media/${result.fileName}/status`,
+          playerUrl: `/api/v1/media/${result.fileName}/player`,
         },
       };
     } catch (error) {

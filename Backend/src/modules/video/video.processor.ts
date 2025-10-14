@@ -26,18 +26,29 @@ export class VideoProcessor extends WorkerHost {
   }
 
   async process(job: Job<VideoJobData>): Promise<void> {
-    const { fileName, bucketName, originalObjectName, folder } = job.data;
+    const { fileName, bucketName, originalObjectName, folder, mimetype } =
+      job.data;
+
+    const isAudio =
+      mimetype?.startsWith('audio/') || /\.(mp3|wav|aac)$/i.test(fileName); // 🟩 detect audio
     const baseTmpDir = path.resolve(process.cwd(), '../temp');
-    const tempDir = path.join(baseTmpDir, `video-${uuid()}`);
-    const tempVideoPath = path.join(tempDir, fileName);
+    const tempDir = path.join(
+      baseTmpDir,
+      `${isAudio ? 'audio' : 'video'}-${uuid()}`,
+    );
+    const tempFilePath = path.join(tempDir, fileName);
     const hlsDir = path.join(tempDir, 'hls');
 
     try {
-      await this.updateProgress(fileName, {
-        stage: 'converting',
-        progress: 5,
-        message: 'Downloading video from storage...',
-      });
+      await this.updateProgress(
+        fileName,
+        {
+          stage: 'converting',
+          progress: 5,
+          message: 'Downloading video from storage...',
+        },
+        isAudio,
+      );
 
       // Create temp directories
       await fs.promises.mkdir(tempDir, { recursive: true });
@@ -47,69 +58,93 @@ export class VideoProcessor extends WorkerHost {
       await this.downloadVideoFromMinIO(
         bucketName,
         originalObjectName,
-        tempVideoPath,
+        tempFilePath,
         fileName,
       );
 
-      await this.updateProgress(fileName, {
-        progress: 15,
-        message: 'Starting video conversion to HLS...',
-      });
+      await this.updateProgress(
+        fileName,
+        {
+          progress: 15,
+          message: 'Starting video conversion to HLS...',
+        },
+        isAudio,
+      );
 
       // Convert to HLS
-      await this.convertToHLS(tempVideoPath, hlsDir, fileName);
+      await this.convertToHLS(tempFilePath, hlsDir, fileName, isAudio);
 
-      await this.updateProgress(fileName, {
-        stage: 'uploading',
-        progress: 70,
-        message: 'Conversion completed, uploading HLS files...',
-      });
+      await this.updateProgress(
+        fileName,
+        {
+          stage: 'uploading',
+          progress: 70,
+          message: 'Conversion completed, uploading HLS files...',
+        },
+        isAudio,
+      );
 
       // Upload HLS files
       const baseName = path.parse(fileName).name;
       const hlsObjectPrefix = `${folder}/hls/${baseName}`;
-      await this.uploadHLSFiles(hlsDir, bucketName, hlsObjectPrefix, fileName);
-
-      await this.updateProgress(fileName, {
-        stage: 'completed',
-        progress: 100,
-        message: 'HLS processing completed successfully',
-      });
-
-      const cached = await this.redisService.getJSON<number>(
-        `video:${fileName}:duration`,
+      await this.uploadHLSFiles(
+        hlsDir,
+        bucketName,
+        hlsObjectPrefix,
+        fileName,
+        isAudio,
       );
 
-      const lesson = await this.prismaService.lessons.findFirst({
-        where: { video_url: fileName },
-      });
+      await this.updateProgress(
+        fileName,
+        {
+          stage: 'completed',
+          progress: 100,
+          message: 'HLS processing completed successfully',
+        },
+        isAudio,
+      );
 
-      // Update lesson duration if cached value exists
-      if (lesson && cached) {
-        await this.prismaService.lessons.update({
-          where: { id: lesson.id },
-          data: {
-            video_duration: cached,
-            updated_at: new Date(),
-          },
+      const cached = await this.redisService.getJSON<number>(
+        `${isAudio ? 'audio' : 'video'}:${fileName}:duration`,
+      );
+
+      if (!isAudio) {
+        const lesson = await this.prismaService.lessons.findFirst({
+          where: { video_url: fileName },
         });
-        this.logger.log(
-          `✅ Updated lesson ${lesson.id} with video duration: ${cached}s`,
-        );
 
-        // Remove cached duration after updating
-        await this.redisService.del(`video:${fileName}:duration`);
+        // Update lesson duration if cached value exists
+        if (lesson && cached) {
+          await this.prismaService.lessons.update({
+            where: { id: lesson.id },
+            data: {
+              video_duration: cached,
+              updated_at: new Date(),
+            },
+          });
+          this.logger.log(
+            `✅ Updated lesson ${lesson.id} with video duration: ${cached}s`,
+          );
+
+          // Remove cached duration after updating
+          await this.redisService.del(`video:${fileName}:duration`);
+        }
       }
 
       this.logger.log(`✅ HLS processing completed for: ${fileName}`);
     } catch (error) {
       this.logger.error(`❌ HLS processing failed for: ${fileName}`, error);
-      await this.updateProgress(fileName, {
-        stage: 'failed',
-        progress: 0,
-        message: 'HLS processing failed',
-        error: error instanceof Error ? error.message : 'Unknown error',
-      });
+      await this.updateProgress(
+        fileName,
+        {
+          stage: 'failed',
+          progress: 0,
+          message: 'HLS processing failed',
+          error: error instanceof Error ? error.message : 'Unknown error',
+        },
+        isAudio,
+      );
       throw error;
     } finally {
       await this.cleanupTempDir(tempDir);
@@ -157,9 +192,13 @@ export class VideoProcessor extends WorkerHost {
     inputPath: string,
     outputDir: string,
     fileName: string,
+    isAudio: boolean = false,
   ): Promise<void> {
     const outputPlaylist = path.join(outputDir, 'playlist.m3u8');
-    const segmentPattern = path.join(outputDir, 'segment_%04d.ts');
+    const segmentPattern = path.join(
+      outputDir,
+      isAudio ? 'segment_%04d.aac' : 'segment_%04d.ts',
+    );
 
     // ✅ Handle async setup BEFORE Promise constructor
     try {
@@ -175,8 +214,23 @@ export class VideoProcessor extends WorkerHost {
 
       // ✅ Now use synchronous Promise constructor
       return new Promise((resolve, reject) => {
-        ffmpegInstance(containerInputPath)
-          .outputOptions([
+        const ff = ffmpegInstance(containerInputPath);
+        if (isAudio) {
+          // 🟩 Audio-only HLS config
+          ff.outputOptions([
+            '-vn',
+            '-acodec aac',
+            '-b:a 128k',
+            '-ar 44100',
+            '-ac 2',
+            '-hls_time 6',
+            '-hls_playlist_type vod',
+            '-hls_segment_filename',
+            containerSegmentPattern,
+            '-f hls',
+          ]);
+        } else {
+          ff.outputOptions([
             '-c:v libx264',
             '-preset faster',
             '-profile:v main',
@@ -197,16 +251,23 @@ export class VideoProcessor extends WorkerHost {
             '-tune film',
             '-vf scale=1280:720:force_original_aspect_ratio=decrease,pad=1280:720:(ow-iw)/2:(oh-ih)/2',
             '-f hls',
-          ])
-          .output(containerOutputPlaylist)
+          ]);
+        }
+        ff.output(containerOutputPlaylist)
           .on('start', () => {
-            this.logger.log(`🎬 FFmpeg started for ${fileName}`);
-            void this.updateProgress(fileName, {
-              progress: 15,
-              message: 'Video conversion started...',
-            }).catch((error) => {
-              this.logger.error('Failed to update progress on start:', error);
-            });
+            this.logger.log(
+              `🎬 FFmpeg started for ${fileName} (${isAudio ? 'audio' : 'video'})`,
+            );
+            void this.updateProgress(
+              fileName,
+              {
+                progress: 15,
+                message: `${isAudio ? 'Audio' : 'Video'} conversion started...`,
+              },
+              isAudio,
+            ).catch((error) =>
+              this.logger.error('Failed to update progress on start:', error),
+            );
           })
           .on('progress', (progress) => {
             if (progress.percent) {
@@ -216,38 +277,49 @@ export class VideoProcessor extends WorkerHost {
               );
               const totalProgress =
                 15 + Math.round((convertProgress / 100) * 50);
-
-              void this.updateProgress(fileName, {
-                progress: totalProgress,
-                message: `Converting video: ${convertProgress}% (${progress.timemark || 'processing...'})`,
-              }).catch((error) => {
-                this.logger.error('Failed to update progress:', error);
-              });
+              void this.updateProgress(
+                fileName,
+                {
+                  progress: totalProgress,
+                  message: `Converting ${isAudio ? 'audio' : 'video'}: ${convertProgress}% (${progress.timemark || 'processing...'})`,
+                },
+                isAudio,
+              ).catch((error) =>
+                this.logger.error('Failed to update progress:', error),
+              );
             }
           })
           .on('end', () => {
             this.logger.log(`✅ HLS conversion completed for ${fileName}`);
-            void this.updateProgress(fileName, {
-              progress: 65,
-              message: 'Video conversion completed',
-            }).catch((error) => {
-              this.logger.error('Failed to update progress on end:', error);
-            });
+            void this.updateProgress(
+              fileName,
+              {
+                progress: 65,
+                message: `${isAudio ? 'Audio' : 'Video'} conversion completed`,
+              },
+              isAudio,
+            ).catch((error) =>
+              this.logger.error('Failed to update progress on end:', error),
+            );
             resolve();
           })
           .on('error', (error) => {
             this.logger.error(`❌ FFmpeg error for ${fileName}:`, error);
-            void this.updateProgress(fileName, {
-              stage: 'failed',
-              progress: 0,
-              message: 'Video conversion failed',
-              error: error.message,
-            }).catch((updateError) => {
+            void this.updateProgress(
+              fileName,
+              {
+                stage: 'failed',
+                progress: 0,
+                message: `${isAudio ? 'Audio' : 'Video'} conversion failed`,
+                error: error.message,
+              },
+              isAudio,
+            ).catch((updateError) =>
               this.logger.error(
                 'Failed to update progress on error:',
                 updateError,
-              );
-            });
+              ),
+            );
             reject(error);
           })
           .run();
@@ -263,6 +335,7 @@ export class VideoProcessor extends WorkerHost {
     bucketName: string,
     objectPrefix: string,
     fileName: string,
+    isAudio: boolean = false,
   ): Promise<void> {
     const files = await fs.promises.readdir(hlsDir);
     const totalFiles = files.length;
@@ -280,6 +353,12 @@ export class VideoProcessor extends WorkerHost {
           contentType = 'application/vnd.apple.mpegurl';
         } else if (file.endsWith('.ts')) {
           contentType = 'video/mp2t';
+        } else if (file.endsWith('.aac')) {
+          contentType = 'audio/aac';
+        } else if (file.endsWith('.mp3')) {
+          contentType = 'audio/mpeg';
+        } else if (file.endsWith('.m4a')) {
+          contentType = 'audio/mp4';
         }
 
         // const fileBuffer = await fs.promises.readFile(filePath);
@@ -304,12 +383,16 @@ export class VideoProcessor extends WorkerHost {
         uploadedCount++;
         const uploadProgress =
           70 + Math.round((uploadedCount / totalFiles) * 25);
-        await this.updateProgress(fileName, {
-          progress: uploadProgress,
-          uploadedSegments: uploadedCount,
-          totalSegments: totalFiles,
-          message: `Uploaded ${uploadedCount}/${totalFiles} HLS files (${file})`,
-        });
+        await this.updateProgress(
+          fileName,
+          {
+            progress: uploadProgress,
+            uploadedSegments: uploadedCount,
+            totalSegments: totalFiles,
+            message: `Uploaded ${uploadedCount}/${totalFiles} HLS files (${file})`,
+          },
+          isAudio,
+        );
 
         this.logger.debug(
           `📤 Uploaded HLS file ${uploadedCount}/${totalFiles}: ${file}`,
@@ -321,10 +404,11 @@ export class VideoProcessor extends WorkerHost {
   private async updateProgress(
     fileName: string,
     updates: Partial<ProcessingProgress>,
+    isAudio: boolean = false,
   ): Promise<void> {
     try {
       const current = await this.redisService.getJSON<ProcessingProgress>(
-        `video:${fileName}:progress`,
+        `${isAudio ? 'audio' : 'video'}:${fileName}:progress`,
       );
 
       // ✅ Handle startTime properly - convert string to Date if needed
@@ -370,7 +454,7 @@ export class VideoProcessor extends WorkerHost {
       }
 
       await this.redisService.setJSON(
-        `video:${fileName}:progress`,
+        `${isAudio ? 'audio' : 'video'}:${fileName}:progress`,
         updated,
         2 * 60 * 60, // 2 hours TTL
       );
