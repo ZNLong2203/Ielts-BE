@@ -110,6 +110,38 @@ export const MESSAGE = {
     COMBO_COURSE_LIST: 'Combo courses retrieved successfully',
   },
 
+  WRITING: {
+    CREATE_SUCCESS: 'Writing exercise created successfully',
+    UPDATE_SUCCESS: 'Writing exercise updated successfully',
+    DELETE_SUCCESS: 'Writing exercise deleted successfully',
+    RETRIEVE_SUCCESS: 'Writing exercise retrieved successfully',
+    RETRIEVE_ALL_SUCCESS: 'Writing exercises retrieved successfully',
+    SUBMIT_SUCCESS: 'Writing exercise submitted successfully',
+    GRADE_SUCCESS: 'Writing submission graded successfully',
+    GRADE_AI_SUCCESS: 'Writing graded by AI successfully',
+    SUBMISSIONS_RETRIEVE_SUCCESS: 'Writing submissions retrieved successfully',
+    EXERCISE_SUBMISSIONS_RETRIEVE_SUCCESS:
+      'Writing exercise submissions retrieved successfully',
+    NOT_FOUND: 'Writing exercise not found',
+    MAX_ATTEMPTS_EXCEEDED: 'Maximum attempts exceeded for this exercise',
+  },
+
+  SPEAKING: {
+    CREATE_SUCCESS: 'Speaking exercise created successfully',
+    UPDATE_SUCCESS: 'Speaking exercise updated successfully',
+    DELETE_SUCCESS: 'Speaking exercise deleted successfully',
+    RETRIEVE_SUCCESS: 'Speaking exercise retrieved successfully',
+    RETRIEVE_ALL_SUCCESS: 'Speaking exercises retrieved successfully',
+    SUBMIT_SUCCESS: 'Speaking exercise submitted successfully',
+    GRADE_SUCCESS: 'Speaking submission graded successfully',
+    GRADE_AI_SUCCESS: 'Speaking graded by AI successfully',
+    SUBMISSIONS_RETRIEVE_SUCCESS: 'Speaking submissions retrieved successfully',
+    EXERCISE_SUBMISSIONS_RETRIEVE_SUCCESS:
+      'Speaking exercise submissions retrieved successfully',
+    NOT_FOUND: 'Speaking exercise not found',
+    MAX_ATTEMPTS_EXCEEDED: 'Maximum attempts exceeded for this exercise',
+  },
+
   FILES: {
     FILE_USER_AVATAR_UPLOADED: 'User avatar uploaded successfully',
     FILE_CERTIFICATE_UPLOADED: 'Certificate uploaded successfully',

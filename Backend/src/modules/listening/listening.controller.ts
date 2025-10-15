@@ -1,4 +1,12 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Patch,
+  Param,
+  Delete,
+} from '@nestjs/common';
 import { ListeningService } from './listening.service';
 import { CreateListeningDto } from './dto/create-listening.dto';
 import { UpdateListeningDto } from './dto/update-listening.dto';
@@ -23,7 +31,10 @@ export class ListeningController {
   }
 
   @Patch(':id')
-  update(@Param('id') id: string, @Body() updateListeningDto: UpdateListeningDto) {
+  update(
+    @Param('id') id: string,
+    @Body() updateListeningDto: UpdateListeningDto,
+  ) {
     return this.listeningService.update(+id, updateListeningDto);
   }
 

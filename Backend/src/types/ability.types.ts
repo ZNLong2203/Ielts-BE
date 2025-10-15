@@ -128,6 +128,7 @@ export interface ServiceContext {
   blogsService?: BlogsService;
   coursesService?: CoursesService;
   couponsService?: CouponsService;
+  writingService?: any; // WritingService type
   [key: string]: any;
 }
 

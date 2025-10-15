@@ -23,6 +23,7 @@ import { StudentsService } from '../../modules/students/students.service';
 import { TeachersService } from '../../modules/teachers/teachers.service';
 import { UsersService } from '../../modules/users/users.service';
 import { BlogCommentsService } from 'src/modules/blog-comments/blog-comments.service';
+import { WritingService } from 'src/modules/writing/writing.service';
 
 @Injectable()
 export class PermissionGuard implements CanActivate {
@@ -197,6 +198,14 @@ export class PermissionGuard implements CanActivate {
         });
       } catch (e) {
         this.logger.debug('UsersService not available');
+      }
+
+      try {
+        serviceContext.writingService = this.moduleRef.get(WritingService, {
+          strict: false,
+        });
+      } catch (e) {
+        this.logger.debug('WritingService not available');
       }
 
       return serviceContext;

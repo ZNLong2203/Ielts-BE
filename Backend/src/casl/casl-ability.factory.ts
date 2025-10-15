@@ -12,9 +12,11 @@ import {
   BlogCategory,
   BlogComment,
   Course,
+  Exercise,
   Student,
   Teacher,
   User,
+  UserSubmission,
 } from 'src/casl/entities';
 import { Action } from 'src/casl/enums/action.enum';
 import { USER_ROLE } from 'src/common/constants';
@@ -114,6 +116,16 @@ export class CaslAbilityFactory {
     can(Action.Update, Course, { teacherId: user.id } as MongoQuery); // Own courses
     can(Action.Delete, Course, { teacherId: user.id } as MongoQuery); // Own courses
     can(Action.Publish, Course, { teacherId: user.id } as MongoQuery); // Own courses
+
+    // Exercise permissions for Teacher
+    can(Action.Create, Exercise);
+    can(Action.Read, Exercise);
+    can(Action.Update, Exercise);
+    can(Action.Delete, Exercise);
+
+    // UserSubmission permissions for Teacher
+    can(Action.Read, UserSubmission);
+    can(Action.Update, UserSubmission); // For grading
   }
 
   /**
@@ -154,6 +166,13 @@ export class CaslAbilityFactory {
     can(Action.Read, Course, { isPopular: true } as MongoQuery); // Popular courses
     can(Action.Read, Course, { isNewest: true } as MongoQuery); // Newest courses
     can(Action.Read, Course, { isPublished: true } as MongoQuery); // Published courses
+
+    // Exercise permissions for Student
+    can(Action.Read, Exercise);
+
+    // UserSubmission permissions for Student
+    can(Action.Create, UserSubmission); // For submitting answers
+    can(Action.Read, UserSubmission, { userId: user.id } as MongoQuery); // Own submissions only
   }
 
   /**
