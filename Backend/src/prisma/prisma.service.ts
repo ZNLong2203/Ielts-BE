@@ -17,7 +17,6 @@ function createExtendedPrisma(base: PrismaClient) {
         course_categories: true,
         courses: true,
         enrollments: true,
-        exercise_types: true,
         exercises: true,
         learning_paths: true,
         lesson_notes: true,

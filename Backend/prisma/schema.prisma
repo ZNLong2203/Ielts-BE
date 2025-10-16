@@ -218,20 +218,9 @@ model enrollments {
   @@index([user_id], map: "idx_enrollments_user")
 }
 
-model exercise_types {
-  id          String      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  name        String      @db.VarChar(50)
-  description String?
-  deleted     Boolean?    @default(false)
-  created_at  DateTime?   @default(now()) @db.Timestamp(6)
-  updated_at  DateTime?   @default(now()) @db.Timestamp(6)
-  exercises   exercises[]
-}
-
 model exercises {
   id               String             @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   lesson_id        String?            @db.Uuid
-  exercise_type_id String?            @db.Uuid
   title            String             @db.VarChar(255)
   instruction      String?
   content          Json?
@@ -243,7 +232,6 @@ model exercises {
   deleted          Boolean?           @default(false)
   created_at       DateTime?          @default(now()) @db.Timestamp(6)
   updated_at       DateTime?          @default(now()) @db.Timestamp(6)
-  exercise_types   exercise_types?    @relation(fields: [exercise_type_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
   lessons          lessons?           @relation(fields: [lesson_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
   questions        questions[]
   user_submissions user_submissions[]
@@ -419,8 +407,6 @@ model questions {
   question_answers question_answers[]
   question_options question_options[]
   exercises        exercises?         @relation(fields: [exercise_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
-
-  @@index([exercise_id], map: "idx_questions_exercise")
 }
 
 model teachers {

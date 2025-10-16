@@ -208,19 +208,9 @@ CREATE TABLE section_progress (
     UNIQUE(user_id, section_id)
 );
 
-CREATE TABLE exercise_types (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    name VARCHAR(50) NOT NULL, -- quiz, essay, speaking, listening
-    description TEXT,
-    deleted BOOLEAN DEFAULT FALSE,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-
 CREATE TABLE exercises (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     lesson_id UUID REFERENCES lessons(id) ON DELETE CASCADE,
-    exercise_type_id UUID REFERENCES exercise_types(id),
     title VARCHAR(255) NOT NULL,
     instruction TEXT,
     content JSONB, -- flexible structure for different exercise types
@@ -495,7 +485,6 @@ CREATE INDEX idx_user_progress_user_lesson ON user_progress(user_id, lesson_id);
 CREATE INDEX idx_section_progress_user_section ON section_progress(user_id, section_id);
 CREATE INDEX idx_enrollments_user ON enrollments(user_id);
 CREATE INDEX idx_enrollments_course ON enrollments(course_id);
-CREATE INDEX idx_questions_exercise ON questions(exercise_id);
 CREATE INDEX idx_blogs_status_published ON blogs(status, published_at);
 CREATE INDEX idx_combo_enrollments_user ON combo_enrollments(user_id);
 CREATE INDEX idx_combo_enrollments_combo ON combo_enrollments(combo_id);

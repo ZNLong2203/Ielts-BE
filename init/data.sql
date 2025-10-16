@@ -117,23 +117,14 @@ INSERT INTO section_progress (id, user_id, section_id, course_id, completed_less
 ('560e8400-e29b-41d4-a716-446655440005', '550e8400-e29b-41d4-a716-446655440006', 'c50e8400-e29b-41d4-a716-446655440005', '950e8400-e29b-41d4-a716-446655440003', 1, 1, 100.00, NOW() - INTERVAL '15 days', NOW() - INTERVAL '2 days'),
 ('560e8400-e29b-41d4-a716-446655440006', '550e8400-e29b-41d4-a716-446655440006', 'c50e8400-e29b-41d4-a716-446655440007', '950e8400-e29b-41d4-a716-446655440004', 0, 1, 0.00, NOW() - INTERVAL '5 days', NULL);
 
--- Insert sample exercise types
-INSERT INTO exercise_types (id, name, description) VALUES
-('120e8400-e29b-41d4-a716-446655440001', 'multiple_choice', 'Multiple choice questions with single or multiple correct answers'),
-('120e8400-e29b-41d4-a716-446655440002', 'essay', 'Written essay responses for writing practice'),
-('120e8400-e29b-41d4-a716-446655440003', 'speaking', 'Speaking exercises with audio recording'),
-('120e8400-e29b-41d4-a716-446655440004', 'listening', 'Listening comprehension exercises'),
-('120e8400-e29b-41d4-a716-446655440005', 'true_false', 'True or false questions'),
-('120e8400-e29b-41d4-a716-446655440006', 'gap_fill', 'Fill in the blanks exercises');
-
 -- Insert sample exercises
-INSERT INTO exercises (id, lesson_id, exercise_type_id, title, instruction, content, time_limit, max_attempts, passing_score, ordering, is_active) VALUES
-('130e8400-e29b-41d4-a716-446655440001', 'd50e8400-e29b-41d4-a716-446655440001', '120e8400-e29b-41d4-a716-446655440001', 'Reading Comprehension Quiz', 'Read the passage and answer the questions', '{"passage": "IELTS reading passage...", "questions": []}', 30, 3, 70.00, 1, TRUE),
-('130e8400-e29b-41d4-a716-446655440002', 'd50e8400-e29b-41d4-a716-446655440002', '120e8400-e29b-41d4-a716-446655440005', 'Skimming Practice', 'Practice skimming techniques with these statements', '{"statements": [], "passage": ""}', 15, 2, 75.00, 1, TRUE),
-('130e8400-e29b-41d4-a716-446655440003', 'd50e8400-e29b-41d4-a716-446655440003', '120e8400-e29b-41d4-a716-446655440003', 'Part 1 Speaking Practice', 'Record your answers to these personal questions', '{"questions": ["Tell me about your hometown", "What do you do?"]}', 10, 1, 0.00, 1, TRUE),
-('130e8400-e29b-41d4-a716-446655440004', 'd50e8400-e29b-41d4-a716-446655440004', '120e8400-e29b-41d4-a716-446655440003', 'Cue Card Practice', 'Practice with this cue card topic', '{"topic": "Describe a memorable journey", "points": []}', 5, 2, 0.00, 1, TRUE),
-('130e8400-e29b-41d4-a716-446655440005', 'd50e8400-e29b-41d4-a716-446655440005', '120e8400-e29b-41d4-a716-446655440002', 'Task 1 Writing Practice', 'Write a 150-word description of the chart', '{"chart_url": "https://example.com/chart1.png"}', 60, 1, 0.00, 1, TRUE),
-('130e8400-e29b-41d4-a716-446655440006', 'd50e8400-e29b-41d4-a716-446655440006', '120e8400-e29b-41d4-a716-446655440004', 'Listening Comprehension', 'Listen and answer the questions', '{"audio_url": "https://example.com/audio.mp3"}', 25, 2, 65.00, 1, TRUE);
+INSERT INTO exercises (id, lesson_id, title, instruction, content, time_limit, max_attempts, passing_score, ordering, is_active) VALUES
+('130e8400-e29b-41d4-a716-446655440001', 'd50e8400-e29b-41d4-a716-446655440001', 'Reading Comprehension Quiz', 'Read the passage and answer the questions', '{"passage": "IELTS reading passage...", "questions": []}', 30, 3, 70.00, 1, TRUE),
+('130e8400-e29b-41d4-a716-446655440002', 'd50e8400-e29b-41d4-a716-446655440002', 'Skimming Practice', 'Practice skimming techniques with these statements', '{"statements": [], "passage": ""}', 15, 2, 75.00, 1, TRUE),
+('130e8400-e29b-41d4-a716-446655440003', 'd50e8400-e29b-41d4-a716-446655440003', 'Part 1 Speaking Practice', 'Record your answers to these personal questions', '{"questions": ["Tell me about your hometown", "What do you do?"]}', 10, 1, 0.00, 1, TRUE),
+('130e8400-e29b-41d4-a716-446655440004', 'd50e8400-e29b-41d4-a716-446655440004', 'Cue Card Practice', 'Practice with this cue card topic', '{"topic": "Describe a memorable journey", "points": []}', 5, 2, 0.00, 1, TRUE),
+('130e8400-e29b-41d4-a716-446655440005', 'd50e8400-e29b-41d4-a716-446655440005', 'Task 1 Writing Practice', 'Write a 150-word description of the chart', '{"chart_url": "https://example.com/chart1.png"}', 60, 1, 0.00, 1, TRUE),
+('130e8400-e29b-41d4-a716-446655440006', 'd50e8400-e29b-41d4-a716-446655440006', 'Listening Comprehension', 'Listen and answer the questions', '{"audio_url": "https://example.com/audio.mp3"}', 25, 2, 65.00, 1, TRUE);
 
 -- Insert sample questions
 INSERT INTO questions (id, exercise_id, question_text, question_type, media_url, explanation, points, ordering, difficulty_level) VALUES

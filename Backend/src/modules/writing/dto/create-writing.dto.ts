@@ -26,10 +26,6 @@ export class CreateWritingDto {
   @IsNotEmpty()
   lessonId: string;
 
-  @IsUUID()
-  @IsNotEmpty()
-  exerciseTypeId: string;
-
   @IsString()
   @IsNotEmpty()
   title: string;

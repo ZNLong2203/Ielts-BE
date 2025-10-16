@@ -20,10 +20,6 @@ export class QueryWritingDto {
   lessonId?: string;
 
   @IsOptional()
-  @IsUUID()
-  exerciseTypeId?: string;
-
-  @IsOptional()
   @IsEnum(WritingSkillFocus)
   skillFocus?: WritingSkillFocus;
 

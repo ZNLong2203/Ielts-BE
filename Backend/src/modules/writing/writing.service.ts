@@ -54,7 +54,6 @@ export class WritingService {
     const writing = await this.prisma.prisma.exercises.create({
       data: {
         lesson_id: createWritingDto.lessonId,
-        exercise_type_id: createWritingDto.exerciseTypeId,
         title: createWritingDto.title,
         instruction: createWritingDto.instruction,
         content,
@@ -69,7 +68,6 @@ export class WritingService {
       },
       include: {
         lessons: true,
-        exercise_types: true,
       },
     });
 
@@ -88,9 +86,6 @@ export class WritingService {
     const where: Record<string, any> = {
       deleted: false,
       ...(filters.lessonId && { lesson_id: filters.lessonId }),
-      ...(filters.exerciseTypeId && {
-        exercise_type_id: filters.exerciseTypeId,
-      }),
       ...(filters.search && {
         title: {
           contains: filters.search,
@@ -104,7 +99,6 @@ export class WritingService {
         where,
         include: {
           lessons: true,
-          exercise_types: true,
         },
         orderBy: { [sortBy]: sortOrder },
         skip: (page - 1) * limit,
@@ -121,7 +115,6 @@ export class WritingService {
       where: { id, deleted: false },
       include: {
         lessons: true,
-        exercise_types: true,
         user_submissions: {
           include: {
             question_answers: true,
@@ -178,7 +171,6 @@ export class WritingService {
       data: updateData,
       include: {
         lessons: true,
-        exercise_types: true,
       },
     });
 
