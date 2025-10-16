@@ -64,6 +64,7 @@ export class LessonsService {
             title: true,
           },
         },
+        exercises: { include: { questions: true } },
       },
     });
 

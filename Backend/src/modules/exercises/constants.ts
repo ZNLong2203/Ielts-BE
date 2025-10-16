@@ -1,4 +1,4 @@
-export const QuestionType = {
+export const QUESTION_TYPE = {
   // Listening types
   MULTIPLE_CHOICE: 'multiple_choice',
   DROPLIST: 'droplist',
@@ -11,3 +11,5 @@ export const QuestionType = {
   // Writing types
   ESSAY: 'essay',
 };
+
+export type QuestionType = (typeof QUESTION_TYPE)[keyof typeof QUESTION_TYPE];
