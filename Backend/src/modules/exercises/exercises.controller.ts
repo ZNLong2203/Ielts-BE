@@ -7,16 +7,16 @@ import {
   HttpCode,
   HttpStatus,
   Param,
+  ParseFilePipeBuilder,
   ParseUUIDPipe,
   Post,
   Put,
-  Query,
+  UploadedFile,
 } from '@nestjs/common';
 import {
   ApiBody,
   ApiOperation,
   ApiParam,
-  ApiQuery,
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
@@ -28,7 +28,6 @@ import {
 } from 'src/modules/exercises/dto/update-exercise.dto';
 import { ExerciseService } from 'src/modules/exercises/exercises.service';
 import { ApiResponseDto } from 'src/modules/sections/dto/section-response.dto';
-import { PaginationQueryDto } from '../../common/dto/pagination-query.dto';
 
 @ApiTags('Lesson Exercises')
 @Controller('lessons/:lessonId/exercises')
@@ -77,56 +76,6 @@ export class ExerciseController {
     return {
       success: true,
       data: exercise,
-    };
-  }
-
-  /**
-   * 📋 Get all exercises for lesson
-   */
-  @Get()
-  @ApiOperation({
-    summary: 'Get all exercises for lesson',
-    description: 'Retrieve all exercises for a specific lesson with pagination',
-  })
-  @ApiParam({
-    name: 'lessonId',
-    description: 'Lesson ID',
-    type: 'string',
-    format: 'uuid',
-  })
-  @ApiQuery({
-    name: 'page',
-    required: false,
-    type: Number,
-    description: 'Page number',
-    example: 1,
-  })
-  @ApiQuery({
-    name: 'limit',
-    required: false,
-    type: Number,
-    description: 'Items per page',
-    example: 10,
-  })
-  @ApiResponse({
-    status: 200,
-    description: 'Exercises retrieved successfully',
-  })
-  @Public()
-  @MessageResponse('Exercises retrieved successfully')
-  async getExercises(
-    @Param('lessonId', ParseUUIDPipe) lessonId: string,
-    @Query() query: PaginationQueryDto,
-  ) {
-    const result = await this.exerciseService.getExercisesByLesson(
-      lessonId,
-      query,
-    );
-
-    return {
-      success: true,
-      data: result.data,
-      meta: result.meta,
     };
   }
 
@@ -333,6 +282,120 @@ export class ExerciseController {
     return {
       success: true,
       data: types,
+    };
+  }
+
+  // upload exercise image
+  @Post(':exerciseId/image')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Upload exercise image',
+    description: 'Upload an image for the exercise',
+  })
+  @ApiParam({
+    name: 'lessonId',
+    description: 'Lesson ID',
+    type: 'string',
+    format: 'uuid',
+  })
+  @ApiParam({
+    name: 'exerciseId',
+    description: 'Exercise ID',
+    type: 'string',
+    format: 'uuid',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Exercise image uploaded successfully',
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'Exercise not found',
+  })
+  @Public()
+  @MessageResponse('Exercise image uploaded successfully')
+  async uploadExerciseImage(
+    @Param('lessonId', ParseUUIDPipe) lessonId: string,
+    @Param('exerciseId', ParseUUIDPipe) exerciseId: string,
+    @UploadedFile(
+      new ParseFilePipeBuilder()
+        .addFileTypeValidator({
+          fileType: 'image/jpeg|image/png|image/jpg|image/gif|image/webp',
+        })
+        .addMaxSizeValidator({
+          maxSize: 2 * 1024 * 1024, // 2MB
+        })
+        .build({
+          errorHttpStatusCode: HttpStatus.UNPROCESSABLE_ENTITY,
+        }),
+    )
+    file: Express.Multer.File,
+  ) {
+    const exercise = await this.exerciseService.uploadQuestionImage(
+      exerciseId,
+      file,
+    );
+
+    return {
+      success: true,
+      data: exercise,
+    };
+  }
+
+  // upload exercise audio max 10min
+  @Post(':exerciseId/audio')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Upload exercise audio',
+    description: 'Upload an audio file for the exercise',
+  })
+  @ApiParam({
+    name: 'lessonId',
+    description: 'Lesson ID',
+    type: 'string',
+    format: 'uuid',
+  })
+  @ApiParam({
+    name: 'exerciseId',
+    description: 'Exercise ID',
+    type: 'string',
+    format: 'uuid',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Exercise audio uploaded successfully',
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'Exercise not found',
+  })
+  @Public()
+  @MessageResponse('Exercise audio uploaded successfully')
+  async uploadExerciseAudio(
+    @Param('lessonId', ParseUUIDPipe) lessonId: string,
+    @Param('exerciseId', ParseUUIDPipe) exerciseId: string,
+    @UploadedFile(
+      new ParseFilePipeBuilder()
+        .addFileTypeValidator({
+          fileType: 'audio/mpeg|audio/wav|audio/ogg|audio/mp3',
+        })
+        .addMaxSizeValidator({
+          maxSize: 10 * 1024 * 1024, // 10MB
+        })
+        .build({
+          errorHttpStatusCode: HttpStatus.UNPROCESSABLE_ENTITY,
+        }),
+    )
+    file: Express.Multer.File,
+  ) {
+    const exercise = await this.exerciseService.uploadQuestionAudio(
+      exerciseId,
+      file,
+    );
+
+    return {
+      success: true,
+      data: exercise,
     };
   }
 }

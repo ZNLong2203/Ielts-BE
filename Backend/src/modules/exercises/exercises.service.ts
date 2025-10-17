@@ -5,11 +5,13 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { Decimal } from '@prisma/client/runtime/library';
-import { QUESTION_TYPE } from 'src/modules/exercises/constants';
+import { FileType } from 'src/common/constants';
 import { CreateExerciseDto } from 'src/modules/exercises/dto/create-exercise.dto';
 import { UpdateExerciseDto } from 'src/modules/exercises/dto/update-exercise.dto';
-import { PaginationQueryDto } from '../../common/dto/pagination-query.dto';
+import { FilesService } from 'src/modules/files/files.service';
+import { VideoService } from 'src/modules/video/video.service';
 import { PrismaService } from '../../prisma/prisma.service';
+import { QUESTION_TYPE } from './constants';
 
 // ✅ Export interfaces to make them available to controller
 export interface QuestionOption {
@@ -99,7 +101,11 @@ export interface ExerciseStats {
 export class ExerciseService {
   private readonly logger = new Logger(ExerciseService.name);
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly fileService: FilesService,
+    private readonly videoService: VideoService,
+  ) {}
 
   /**
    * ✅ Create exercise with questions
@@ -238,69 +244,6 @@ export class ExerciseService {
   }
 
   /**
-   * 📋 Get all exercises for a lesson
-   */
-  async getExercisesByLesson(
-    lessonId: string,
-    query?: PaginationQueryDto,
-  ): Promise<PaginatedExerciseResponse> {
-    const { page = 1, limit = 10 } = query || {};
-    const skip = (page - 1) * limit;
-
-    const [exercises, total] = await Promise.all([
-      this.prisma.exercises.findMany({
-        where: {
-          lesson_id: lessonId,
-          deleted: false,
-        },
-        include: {
-          questions: {
-            where: { deleted: false },
-            include: {
-              question_options: {
-                where: { deleted: false },
-                orderBy: { ordering: 'asc' },
-              },
-            },
-            orderBy: { ordering: 'asc' },
-          },
-        },
-        orderBy: { ordering: 'asc' },
-        skip,
-        take: limit,
-      }),
-      this.prisma.exercises.count({
-        where: {
-          lesson_id: lessonId,
-          deleted: false,
-        },
-      }),
-    ]);
-
-    const processedExercises = exercises.map((exercise) => ({
-      ...exercise,
-      questions: exercise.questions.map((question) => ({
-        ...question,
-        // Parse stored answer data
-        ...(this.requiresCorrectAnswer(question.question_type) &&
-        question.explanation
-          ? this.parseAnswerData(question.explanation)
-          : {}),
-      })),
-    }));
-
-    return {
-      data: processedExercises,
-      meta: {
-        total,
-        page,
-        limit,
-        totalPages: Math.ceil(total / limit),
-      },
-    };
-  }
-
-  /**
    * 🔍 Get exercise by ID
    */
   async getExerciseById(exerciseId: string): Promise<any> {
@@ -343,6 +286,19 @@ export class ExerciseService {
 
     if (!exercise) {
       throw new NotFoundException('Exercise not found');
+    }
+
+    // check media urls in questions is audio will return hls url
+    for (const question of exercise.questions) {
+      if (question.media_url) {
+        const mediaType = this.fileService.getMediaType(question.media_url);
+        if (mediaType === 'audio') {
+          const hlsUrl = await this.videoService.getVideoHLSUrl(
+            question.media_url,
+          );
+          question.media_url = hlsUrl;
+        }
+      }
     }
 
     return {
@@ -582,6 +538,70 @@ export class ExerciseService {
   }
 
   /**
+   * Upload image for question
+   */
+  async uploadQuestionImage(id: string, file: Express.Multer.File) {
+    try {
+      const question = await this.prisma.questions.findFirst({
+        where: { id, deleted: false },
+      });
+
+      if (!question) {
+        throw new NotFoundException('Question not found');
+      }
+
+      const uploadResult = await this.fileService.uploadFile(
+        file.buffer,
+        file.originalname,
+        FileType.EXERCISE_IMAGE,
+      );
+
+      // check previous media is audio or image and delete it
+      if (question.media_url) await this.deleteMediaFile(question.media_url);
+
+      return await this.prisma.questions.update({
+        where: { id },
+        data: { media_url: uploadResult.url, updated_at: new Date() },
+      });
+    } catch (error) {
+      this.logger.error('Error uploading question image', error);
+      throw new BadRequestException('Failed to upload image');
+    }
+  }
+
+  /**
+   * Upload audio for question
+   */
+  async uploadQuestionAudio(id: string, file: Express.Multer.File) {
+    try {
+      const question = await this.prisma.questions.findFirst({
+        where: { id, deleted: false },
+      });
+
+      if (!question) {
+        throw new NotFoundException('Question not found');
+      }
+
+      const uploadResult = await this.videoService.uploadVideo(
+        file.buffer,
+        file.originalname,
+        file.mimetype,
+      );
+
+      // check previous media is audio or image and delete it
+      if (question.media_url) await this.deleteMediaFile(question.media_url);
+
+      return await this.prisma.questions.update({
+        where: { id },
+        data: { media_url: uploadResult.fileName, updated_at: new Date() },
+      });
+    } catch (error) {
+      this.logger.error('Error uploading question audio', error);
+      throw new BadRequestException('Failed to upload audio');
+    }
+  }
+
+  /**
    * 🔧 Helper methods
    */
   private requiresOptions(questionType: string): boolean {
@@ -611,4 +631,15 @@ export class ExerciseService {
       return { explanation };
     }
   }
+
+  private deleteMediaFile = async (mediaUrl: string) => {
+    if (!mediaUrl) return;
+
+    const mediaType = this.fileService.getMediaType(mediaUrl);
+    if (mediaType === 'image') {
+      await this.fileService.deleteFiles(mediaUrl);
+    } else if (mediaType === 'audio') {
+      await this.videoService.clearVideoData(mediaUrl);
+    }
+  };
 }

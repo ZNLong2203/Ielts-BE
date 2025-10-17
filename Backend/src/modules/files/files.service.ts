@@ -237,4 +237,27 @@ export class FilesService {
     };
     return mimeTypes[ext] || 'application/octet-stream';
   }
+
+  getMediaType(mediaUrl: string): 'audio' | 'image' | 'video' | 'unknown' {
+    if (!mediaUrl) return 'unknown';
+
+    const url = mediaUrl.toLowerCase();
+
+    // Audio formats
+    if (url.match(/\.(mp3|wav|ogg|aac|flac|m4a)(\?.*)?$/)) {
+      return 'audio';
+    }
+
+    // Image formats
+    if (url.match(/\.(jpg|jpeg|png|gif|bmp|webp|svg)(\?.*)?$/)) {
+      return 'image';
+    }
+
+    // Video formats
+    if (url.match(/\.(mp4|avi|mov|wmv|flv|webm|mkv)(\?.*)?$/)) {
+      return 'video';
+    }
+
+    return 'unknown';
+  }
 }
