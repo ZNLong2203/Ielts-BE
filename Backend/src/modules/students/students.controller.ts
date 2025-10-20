@@ -42,6 +42,41 @@ export class StudentsController {
   }
 
   @ApiOperation({
+    summary: 'Get student dashboard data including combo enrollments',
+    description:
+      'Retrieve student dashboard with combo courses and enrolled courses.',
+  })
+  @Public()
+  @MessageResponse(MESSAGE.STUDENT.STUDENT_DASHBOARD)
+  @Get(':id/dashboard')
+  getStudentDashboard(@Param('id') id: string) {
+    return this.studentsService.getStudentDashboard(id);
+  }
+
+  @ApiOperation({
+    summary: 'Get student enrolled combo courses',
+    description: 'Retrieve all combo courses that the student has enrolled in.',
+  })
+  @Public()
+  @MessageResponse(MESSAGE.STUDENT.STUDENT_COMBO_ENROLLMENTS)
+  @Get(':id/combo-enrollments')
+  getStudentComboEnrollments(@Param('id') id: string) {
+    return this.studentsService.getStudentComboEnrollments(id);
+  }
+
+  @ApiOperation({
+    summary: 'Get student individual course enrollments',
+    description:
+      'Retrieve all individual courses that the student has enrolled in.',
+  })
+  @Public()
+  @MessageResponse(MESSAGE.STUDENT.STUDENT_COURSE_ENROLLMENTS)
+  @Get(':id/course-enrollments')
+  getStudentCourseEnrollments(@Param('id') id: string) {
+    return this.studentsService.getStudentCourseEnrollments(id);
+  }
+
+  @ApiOperation({
     summary: 'Update a detail of a student',
     description: 'Update student information by their unique ID (user id).',
   })

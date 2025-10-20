@@ -56,6 +56,7 @@ export class StudentsService {
     if (!student) {
       throw new Error('Student not found');
     }
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { password, ...dataFormat } = student;
     return dataFormat;
   }
@@ -73,5 +74,349 @@ export class StudentsService {
       where: { user_id: id },
       data: updatedData,
     });
+  }
+
+  async getStudentDashboard(userId: string) {
+    // Verify student exists
+    const student = await this.prisma.students.findFirst({
+      where: { user_id: userId, deleted: false },
+      include: {
+        users: {
+          select: {
+            id: true,
+            email: true,
+            full_name: true,
+            avatar: true,
+          },
+        },
+      },
+    });
+
+    if (!student) {
+      throw new Error('Student not found');
+    }
+
+    // Get combo enrollments with progress
+    const comboEnrollments = await this.getStudentComboEnrollments(userId);
+
+    // Get individual course enrollments (for tracking progress only, not sold separately)
+    const courseEnrollments = await this.getStudentCourseEnrollments(userId);
+
+    // Calculate statistics - only count courses from combo enrollments
+    // Use Set to deduplicate in case a course appears in multiple combos
+    const uniqueCourses = new Set<string>();
+    comboEnrollments?.forEach((combo) => {
+      combo.courses?.forEach((course) => {
+        uniqueCourses.add(course.id);
+      });
+    });
+    const totalCourses = uniqueCourses.size;
+
+    // Calculate completed courses (only from combos)
+    const completedCoursesSet = new Set<string>();
+    comboEnrollments?.forEach((combo) => {
+      combo.courses
+        ?.filter((c) => c.progress === 100)
+        .forEach((course) => {
+          completedCoursesSet.add(course.id);
+        });
+    });
+    const completedCourses = completedCoursesSet.size;
+
+    const inProgressCourses = totalCourses - completedCourses;
+
+    const avgProgress =
+      totalCourses > 0
+        ? Math.round(
+            ((comboEnrollments?.reduce(
+              (acc: number, combo) =>
+                acc + Number(combo.overall_progress_percentage || 0),
+              0,
+            ) || 0) +
+              (courseEnrollments?.reduce(
+                (acc: number, course) =>
+                  acc + Number(course.progress_percentage || 0),
+                0,
+              ) || 0)) /
+              (comboEnrollments.length + courseEnrollments.length),
+          )
+        : 0;
+
+    return {
+      student: {
+        id: student.users?.id,
+        full_name: student.users?.full_name,
+        email: student.users?.email,
+        avatar: student.users?.avatar,
+        current_level: student.current_level,
+        target_ielts_score: student.target_ielts_score,
+        learning_goals: student.learning_goals,
+      },
+      stats: {
+        totalCourses,
+        completedCourses,
+        inProgressCourses,
+        averageProgress: avgProgress,
+      },
+      comboEnrollments,
+      courseEnrollments,
+    };
+  }
+
+  async getStudentComboEnrollments(userId: string) {
+    const comboEnrollments = await this.prisma.combo_enrollments.findMany({
+      where: {
+        user_id: userId,
+        deleted: false,
+        is_active: true,
+      },
+      include: {
+        combo_courses: {
+          select: {
+            id: true,
+            name: true,
+            description: true,
+            thumbnail: true,
+            original_price: true,
+            combo_price: true,
+            discount_percentage: true,
+            course_ids: true,
+            enrollment_count: true,
+            tags: true,
+            created_at: true,
+          },
+        },
+      },
+      orderBy: {
+        enrollment_date: 'desc',
+      },
+    });
+
+    // Enhance with course details and progress
+    const enhancedEnrollments = await Promise.all(
+      comboEnrollments.map(async (enrollment) => {
+        if (!enrollment.combo_courses) {
+          return null;
+        }
+
+        const combo = enrollment.combo_courses;
+
+        // Get all courses in this combo
+        const courses = await this.prisma.courses.findMany({
+          where: {
+            id: { in: combo.course_ids },
+            deleted: false,
+          },
+          include: {
+            course_categories: {
+              select: {
+                name: true,
+                icon: true,
+              },
+            },
+            teachers: {
+              select: {
+                users: {
+                  select: {
+                    full_name: true,
+                    avatar: true,
+                  },
+                },
+              },
+            },
+          },
+        });
+
+        // Get progress for each course
+        const coursesWithProgress = await Promise.all(
+          courses.map(async (course) => {
+            const enrollment = await this.prisma.enrollments.findFirst({
+              where: {
+                user_id: userId,
+                course_id: course.id,
+                deleted: false,
+              },
+            });
+
+            // Count total and completed lessons
+            const sections = await this.prisma.sections.findMany({
+              where: {
+                course_id: course.id,
+                deleted: false,
+              },
+              include: {
+                lessons: {
+                  where: {
+                    deleted: false,
+                  },
+                },
+              },
+            });
+
+            const totalLessons = sections.reduce(
+              (acc, section) => acc + section.lessons.length,
+              0,
+            );
+
+            const completedLessons = await this.prisma.user_progress.count({
+              where: {
+                user_id: userId,
+                course_id: course.id,
+                status: 'completed',
+                deleted: false,
+              },
+            });
+
+            return {
+              id: course.id,
+              title: course.title,
+              description: course.description,
+              thumbnail: course.thumbnail,
+              skill_focus: course.skill_focus,
+              difficulty_level: course.difficulty_level,
+              estimated_duration: course.estimated_duration,
+              price: course.price,
+              discount_price: course.discount_price,
+              rating: course.rating,
+              enrollment_count: course.enrollment_count,
+              teacher: course.teachers?.users?.full_name,
+              teacher_avatar: course.teachers?.users?.avatar,
+              category: course.course_categories?.name,
+              category_icon: course.course_categories?.icon,
+              progress: enrollment ? Number(enrollment.progress_percentage) : 0,
+              total_lessons: totalLessons,
+              completed_lessons: completedLessons,
+              is_completed: enrollment?.completion_date ? true : false,
+            };
+          }),
+        );
+
+        return {
+          id: enrollment.id,
+          enrollment_date: enrollment.enrollment_date,
+          overall_progress_percentage: enrollment.overall_progress_percentage,
+          is_active: enrollment.is_active,
+          combo: {
+            id: combo.id,
+            name: combo.name,
+            description: combo.description,
+            thumbnail: combo.thumbnail,
+            original_price: combo.original_price,
+            combo_price: combo.combo_price,
+            discount_percentage: combo.discount_percentage,
+            enrollment_count: combo.enrollment_count,
+            tags: combo.tags,
+            total_courses: courses.length,
+            completed_courses: coursesWithProgress.filter((c) => c.is_completed)
+              .length,
+          },
+          courses: coursesWithProgress,
+        };
+      }),
+    );
+
+    return enhancedEnrollments.filter((e) => e !== null);
+  }
+
+  async getStudentCourseEnrollments(userId: string) {
+    const enrollments = await this.prisma.enrollments.findMany({
+      where: {
+        user_id: userId,
+        deleted: false,
+        is_active: true,
+      },
+      include: {
+        courses: {
+          include: {
+            course_categories: {
+              select: {
+                name: true,
+                icon: true,
+              },
+            },
+            teachers: {
+              select: {
+                users: {
+                  select: {
+                    full_name: true,
+                    avatar: true,
+                  },
+                },
+              },
+            },
+            sections: {
+              where: {
+                deleted: false,
+              },
+              include: {
+                lessons: {
+                  where: {
+                    deleted: false,
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+      orderBy: {
+        enrollment_date: 'desc',
+      },
+    });
+
+    // Enhance with progress details
+    const enhancedEnrollments = await Promise.all(
+      enrollments.map(async (enrollment) => {
+        const course = enrollment.courses;
+
+        if (!course) {
+          return null;
+        }
+
+        const totalLessons = course.sections.reduce(
+          (acc, section) => acc + section.lessons.length,
+          0,
+        );
+
+        const completedLessons = await this.prisma.user_progress.count({
+          where: {
+            user_id: userId,
+            course_id: course.id,
+            status: 'completed',
+            deleted: false,
+          },
+        });
+
+        return {
+          id: enrollment.id,
+          enrollment_date: enrollment.enrollment_date,
+          progress_percentage: enrollment.progress_percentage,
+          completion_date: enrollment.completion_date,
+          is_active: enrollment.is_active,
+          course: {
+            id: course.id,
+            title: course.title,
+            description: course.description,
+            thumbnail: course.thumbnail,
+            skill_focus: course.skill_focus,
+            difficulty_level: course.difficulty_level,
+            estimated_duration: course.estimated_duration,
+            price: course.price,
+            discount_price: course.discount_price,
+            rating: course.rating,
+            rating_count: course.rating_count,
+            enrollment_count: course.enrollment_count,
+            teacher: course.teachers?.users?.full_name,
+            teacher_avatar: course.teachers?.users?.avatar,
+            category: course.course_categories?.name,
+            category_icon: course.course_categories?.icon,
+            total_lessons: totalLessons,
+            completed_lessons: completedLessons,
+          },
+        };
+      }),
+    );
+
+    return enhancedEnrollments.filter((e) => e !== null);
   }
 }

@@ -27,6 +27,11 @@ export const MESSAGE = {
     STUDENT_LIST: 'All students retrieved successfully',
     STUDENT_INFO: 'Student information retrieved successfully',
     STUDENT_UPDATE: 'Student information updated successfully',
+    STUDENT_DASHBOARD: 'Student dashboard data retrieved successfully',
+    STUDENT_COMBO_ENROLLMENTS:
+      'Student combo enrollments retrieved successfully',
+    STUDENT_COURSE_ENROLLMENTS:
+      'Student course enrollments retrieved successfully',
   },
 
   TEACHER: {
