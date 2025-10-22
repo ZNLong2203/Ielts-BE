@@ -113,6 +113,22 @@ export class CreateQuestionDto {
   @IsOptional()
   @IsString()
   content?: string;
+
+  @ApiProperty({
+    description: 'Reading passage text',
+    required: false,
+  })
+  @IsOptional()
+  @IsString()
+  reading_passage?: string;
+
+  @ApiProperty({
+    description: 'Question group identifier (e.g., "Passage 1", "Task 1")',
+    required: false,
+  })
+  @IsOptional()
+  @IsString()
+  question_group?: string;
 }
 
 export class CreateExerciseDto {

@@ -208,12 +208,86 @@ CREATE TABLE section_progress (
     UNIQUE(user_id, section_id)
 );
 
+CREATE TABLE mock_tests (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    title VARCHAR(255) NOT NULL,
+    description TEXT,
+    test_type VARCHAR(20), -- reading, writing, listening, speaking, full_test
+    duration INTEGER, -- in minutes
+    total_questions INTEGER,
+    difficulty_level VARCHAR(20), -- beginner, intermediate, advanced
+    target_band_score DECIMAL(2,1), -- target IELTS band score
+    instructions TEXT, -- general instructions for the test
+    created_by UUID REFERENCES users(id),
+    deleted BOOLEAN DEFAULT FALSE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE test_sections (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    mock_test_id UUID REFERENCES mock_tests(id) ON DELETE CASCADE,
+    section_name VARCHAR(100) NOT NULL, -- "Listening Section 1", "Reading Passage 1", etc.
+    section_type VARCHAR(20) NOT NULL, -- listening, reading, writing, speaking
+    description TEXT,
+    duration INTEGER, -- in minutes
+    ordering INTEGER DEFAULT 0,
+    deleted BOOLEAN DEFAULT FALSE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE test_results (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID REFERENCES users(id) ON DELETE CASCADE,
+    mock_test_id UUID REFERENCES mock_tests(id) ON DELETE CASCADE,
+    overall_score DECIMAL(5,2),
+    band_score DECIMAL(2,1),
+    reading_score DECIMAL(5,2),
+    writing_score DECIMAL(5,2),
+    listening_score DECIMAL(5,2),
+    speaking_score DECIMAL(5,2),
+    time_taken INTEGER,
+    detailed_results JSONB,
+    recommendations TEXT,
+    strengths TEXT[],
+    weaknesses TEXT[],
+    status VARCHAR(20) DEFAULT 'completed', -- completed, in_progress, abandoned
+    deleted BOOLEAN DEFAULT FALSE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE section_results (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    test_result_id UUID REFERENCES test_results(id) ON DELETE CASCADE,
+    test_section_id UUID REFERENCES test_sections(id) ON DELETE CASCADE,
+    band_score DECIMAL(2,1),
+    time_taken INTEGER, -- in seconds
+    correct_answers INTEGER,
+    total_questions INTEGER,
+    detailed_answers JSONB, -- detailed answers for each question
+    ai_feedback TEXT,
+    ai_score DECIMAL(5,2),
+    teacher_feedback TEXT,
+    teacher_score DECIMAL(5,2),
+    grading_method VARCHAR(20) DEFAULT 'ai', -- ai, teacher, hybrid
+    graded_by UUID REFERENCES teachers(id),
+    graded_at TIMESTAMP,
+    deleted BOOLEAN DEFAULT FALSE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
 CREATE TABLE exercises (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    lesson_id UUID REFERENCES lessons(id) ON DELETE CASCADE,
+    lesson_id UUID REFERENCES lessons(id) ON DELETE CASCADE, -- nullable for standalone exercises
+    test_section_id UUID REFERENCES test_sections(id) ON DELETE CASCADE, -- nullable for lesson exercises
     title VARCHAR(255) NOT NULL,
     instruction TEXT,
     content JSONB, -- flexible structure for different exercise types
+    exercise_type VARCHAR(20) DEFAULT 'lesson', -- lesson, mock_test, practice
+    skill_type VARCHAR(20), -- reading, writing, listening, speaking, general
     time_limit INTEGER, -- in minutes
     max_attempts INTEGER DEFAULT 1,
     passing_score DECIMAL(5,2),
@@ -221,19 +295,28 @@ CREATE TABLE exercises (
     is_active BOOLEAN DEFAULT TRUE,
     deleted BOOLEAN DEFAULT FALSE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT check_exercise_context CHECK (
+        (lesson_id IS NOT NULL AND test_section_id IS NULL) OR 
+        (lesson_id IS NULL AND test_section_id IS NOT NULL) OR
+        (lesson_id IS NULL AND test_section_id IS NULL)
+    )
 );
 
 CREATE TABLE questions (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     exercise_id UUID REFERENCES exercises(id) ON DELETE CASCADE,
     question_text TEXT NOT NULL,
-    question_type VARCHAR(20) NOT NULL, -- multiple_choice, essay, speaking, true_false
-    media_url VARCHAR(500), -- for listening/speaking questions
+    question_type VARCHAR(20) NOT NULL, -- multiple_choice, essay, speaking, true_false, fill_blank, matching, summary_completion
+    image_url VARCHAR(500), -- for images, videos, etc.
+    audio_url VARCHAR(500), -- specifically for listening questions
+    audio_duration INTEGER, -- in seconds for listening questions
+    reading_passage TEXT, -- for reading questions
     explanation TEXT,
     points DECIMAL(5,2) DEFAULT 1,
     ordering INTEGER DEFAULT 0,
     difficulty_level DECIMAL(3,1), -- band (e.g., 5.0, 6.5, 7.0)
+    question_group VARCHAR(50), -- for grouping related questions (e.g., "Passage 1", "Task 1")
     deleted BOOLEAN DEFAULT FALSE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
@@ -263,9 +346,13 @@ CREATE TABLE user_submissions (
     feedback TEXT,
     teacher_feedback TEXT,
     teacher_score DECIMAL(5,2),
+    ai_feedback TEXT,
+    ai_score DECIMAL(5,2),
+    grading_method VARCHAR(20) DEFAULT 'ai', -- ai, teacher, hybrid
     graded_by UUID REFERENCES teachers(id),
     graded_at TIMESTAMP,
-    status VARCHAR(20) DEFAULT 'submitted', -- submitted, graded, needs_review
+    ai_graded_at TIMESTAMP,
+    status VARCHAR(20) DEFAULT 'submitted', -- submitted, graded, needs_review, ai_graded
     deleted BOOLEAN DEFAULT FALSE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
@@ -280,41 +367,11 @@ CREATE TABLE question_answers (
     media_url VARCHAR(500), -- for speaking/audio answers
     is_correct BOOLEAN,
     points_earned DECIMAL(5,2),
-    deleted BOOLEAN DEFAULT FALSE,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-
-CREATE TABLE mock_tests (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    title VARCHAR(255) NOT NULL,
-    description TEXT,
-    test_type VARCHAR(20), -- full_test, reading, writing, listening, speaking
-    duration INTEGER, -- in minutes
-    total_questions INTEGER,
-    max_score DECIMAL(5,2),
-    difficulty_level VARCHAR(20),
-    created_by UUID REFERENCES teachers(id),
-    deleted BOOLEAN DEFAULT FALSE,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-
-CREATE TABLE test_results (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    user_id UUID REFERENCES users(id) ON DELETE CASCADE,
-    mock_test_id UUID REFERENCES mock_tests(id) ON DELETE CASCADE,
-    overall_score DECIMAL(5,2),
-    band_score DECIMAL(2,1),
-    reading_score DECIMAL(5,2),
-    writing_score DECIMAL(5,2),
-    listening_score DECIMAL(5,2),
-    speaking_score DECIMAL(5,2),
-    time_taken INTEGER,
-    detailed_results JSONB,
-    recommendations TEXT,
-    strengths TEXT[],
-    weaknesses TEXT[],
+    ai_feedback TEXT,
+    ai_points DECIMAL(5,2),
+    teacher_feedback TEXT,
+    teacher_points DECIMAL(5,2),
+    grading_method VARCHAR(20) DEFAULT 'ai', -- ai, teacher, hybrid
     deleted BOOLEAN DEFAULT FALSE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP

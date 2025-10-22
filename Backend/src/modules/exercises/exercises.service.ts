@@ -31,11 +31,15 @@ export interface Question {
   exercise_id: string | null;
   question_text: string;
   question_type: string;
-  media_url: string | null;
+  image_url: string | null;
+  audio_url: string | null;
+  audio_duration: number | null;
+  reading_passage: string | null;
   explanation: string | null;
   points: Decimal | null;
   ordering: number | null;
   difficulty_level: Decimal | null;
+  question_group: string | null;
   deleted: boolean | null;
   created_at: Date | null;
   updated_at: Date | null;
@@ -154,11 +158,14 @@ export class ExerciseService {
             exercise_id: exercise.id,
             question_text: questionDto.question_text,
             question_type: questionDto.question_type,
-            media_url: questionDto.media_url,
+            image_url: questionDto.media_url && this.fileService.getMediaType(questionDto.media_url) === 'image' ? questionDto.media_url : null,
+            audio_url: questionDto.media_url && this.fileService.getMediaType(questionDto.media_url) === 'audio' ? questionDto.media_url : null,
+            reading_passage: questionDto.reading_passage,
             explanation: questionDto.explanation,
             points: questionDto.points || 1,
             ordering: questionDto.ordering || 0,
             difficulty_level: questionDto.difficulty_level || 5,
+            question_group: questionDto.question_group,
           },
         });
 
@@ -290,13 +297,14 @@ export class ExerciseService {
 
     // check media urls in questions is audio will return hls url
     for (const question of exercise.questions) {
-      if (question.media_url) {
-        const mediaType = this.fileService.getMediaType(question.media_url);
-        if (mediaType === 'audio') {
+      const mediaUrl = question.audio_url || question.image_url;
+      if (mediaUrl) {
+        const mediaType = this.fileService.getMediaType(mediaUrl);
+        if (mediaType === 'audio' && question.audio_url) {
           const hlsUrl = await this.videoService.getVideoHLSUrl(
-            question.media_url,
+            question.audio_url,
           );
-          question.media_url = hlsUrl;
+          question.audio_url = hlsUrl;
         }
       }
     }
@@ -391,11 +399,24 @@ export class ExerciseService {
               exercise_id: exerciseId,
               question_text: questionDto.question_text,
               question_type: questionDto.question_type,
-              media_url: questionDto.media_url,
+              image_url:
+                questionDto.media_url &&
+                this.fileService.getMediaType(questionDto.media_url) ===
+                  'image'
+                  ? questionDto.media_url
+                  : null,
+              audio_url:
+                questionDto.media_url &&
+                this.fileService.getMediaType(questionDto.media_url) ===
+                  'audio'
+                  ? questionDto.media_url
+                  : null,
+              reading_passage: questionDto.reading_passage,
               explanation: questionDto.explanation,
               points: questionDto.points || 1,
               ordering: questionDto.ordering || 0,
               difficulty_level: questionDto.difficulty_level || 5,
+              question_group: questionDto.question_group,
             },
           });
 
@@ -556,12 +577,21 @@ export class ExerciseService {
         FileType.EXERCISE_IMAGE,
       );
 
-      // check previous media is audio or image and delete it
-      if (question.media_url) await this.deleteMediaFile(question.media_url);
+      // Delete previous media if exists
+      if (question.image_url) {
+        await this.fileService.deleteFiles(question.image_url);
+      }
+      if (question.audio_url) {
+        await this.videoService.clearVideoData(question.audio_url);
+      }
 
       return await this.prisma.questions.update({
         where: { id },
-        data: { media_url: uploadResult.url, updated_at: new Date() },
+        data: { 
+          image_url: uploadResult.url, 
+          audio_url: null,
+          updated_at: new Date() 
+        },
       });
     } catch (error) {
       this.logger.error('Error uploading question image', error);
@@ -588,12 +618,21 @@ export class ExerciseService {
         file.mimetype,
       );
 
-      // check previous media is audio or image and delete it
-      if (question.media_url) await this.deleteMediaFile(question.media_url);
+      // Delete previous media if exists
+      if (question.image_url) {
+        await this.fileService.deleteFiles(question.image_url);
+      }
+      if (question.audio_url) {
+        await this.videoService.clearVideoData(question.audio_url);
+      }
 
       return await this.prisma.questions.update({
         where: { id },
-        data: { media_url: uploadResult.fileName, updated_at: new Date() },
+        data: { 
+          audio_url: uploadResult.fileName, 
+          image_url: null,
+          updated_at: new Date() 
+        },
       });
     } catch (error) {
       this.logger.error('Error uploading question audio', error);
@@ -631,15 +670,4 @@ export class ExerciseService {
       return { explanation };
     }
   }
-
-  private deleteMediaFile = async (mediaUrl: string) => {
-    if (!mediaUrl) return;
-
-    const mediaType = this.fileService.getMediaType(mediaUrl);
-    if (mediaType === 'image') {
-      await this.fileService.deleteFiles(mediaUrl);
-    } else if (mediaType === 'audio') {
-      await this.videoService.clearVideoData(mediaUrl);
-    }
-  };
 }

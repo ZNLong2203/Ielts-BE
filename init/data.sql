@@ -117,23 +117,89 @@ INSERT INTO section_progress (id, user_id, section_id, course_id, completed_less
 ('560e8400-e29b-41d4-a716-446655440005', '550e8400-e29b-41d4-a716-446655440006', 'c50e8400-e29b-41d4-a716-446655440005', '950e8400-e29b-41d4-a716-446655440003', 1, 1, 100.00, NOW() - INTERVAL '15 days', NOW() - INTERVAL '2 days'),
 ('560e8400-e29b-41d4-a716-446655440006', '550e8400-e29b-41d4-a716-446655440006', 'c50e8400-e29b-41d4-a716-446655440007', '950e8400-e29b-41d4-a716-446655440004', 0, 1, 0.00, NOW() - INTERVAL '5 days', NULL);
 
+-- Insert sample mock tests
+INSERT INTO mock_tests (id, title, description, test_type, duration, total_questions, difficulty_level, target_band_score, instructions, created_by) VALUES
+('160e8400-e29b-41d4-a716-446655440001', 'IELTS Academic Full Test 1', 'Complete IELTS Academic practice test covering all four skills', 'full_test', 165, 40, 'intermediate', 7.0, 'This is a complete IELTS Academic test. You will have 60 minutes for Reading, 60 minutes for Writing, 30 minutes for Listening, and 15 minutes for Speaking.', '550e8400-e29b-41d4-a716-446655440002'),
+('160e8400-e29b-41d4-a716-446655440002', 'Reading Practice Test A', 'Academic Reading practice with 3 passages and various question types', 'reading', 60, 40, 'intermediate', 6.5, 'Read the three passages and answer all questions. You have 60 minutes total. Transfer your answers to the answer sheet.', '550e8400-e29b-41d4-a716-446655440002'),
+('160e8400-e29b-41d4-a716-446655440003', 'Writing Task 1 & 2 Practice', 'Academic Writing practice test with Task 1 and Task 2', 'writing', 60, 2, 'advanced', 7.5, 'Complete both writing tasks. Task 1 should be at least 150 words, Task 2 should be at least 250 words.', '550e8400-e29b-41d4-a716-446655440003'),
+('160e8400-e29b-41d4-a716-446655440004', 'Listening Skills Test', 'Comprehensive listening practice with all four sections', 'listening', 30, 40, 'intermediate', 6.5, 'Listen to the audio and answer all questions. You will hear each section only once.', '550e8400-e29b-41d4-a716-446655440003'),
+('160e8400-e29b-41d4-a716-446655440005', 'Speaking Mock Interview', 'Full speaking test simulation with all three parts', 'speaking', 15, 3, 'intermediate', 7.0, 'This is a complete IELTS Speaking test simulation. Answer naturally and speak clearly.', '550e8400-e29b-41d4-a716-446655440002'),
+('160e8400-e29b-41d4-a716-446655440006', 'General Training Practice', 'GT reading and writing practice test', 'full_test', 150, 42, 'beginner', 6.0, 'This is a General Training IELTS test. Complete all sections within the time limit.', '550e8400-e29b-41d4-a716-446655440003');
+
+-- Insert sample test sections
+INSERT INTO test_sections (id, mock_test_id, section_name, section_type, description, duration, ordering) VALUES
+-- Full test sections
+('300e8400-e29b-41d4-a716-446655440001', '160e8400-e29b-41d4-a716-446655440001', 'Reading Section', 'reading', 'Academic Reading with 3 passages and 40 questions', 60, 1),
+('300e8400-e29b-41d4-a716-446655440002', '160e8400-e29b-41d4-a716-446655440001', 'Writing Section', 'writing', 'Academic Writing Task 1 and Task 2', 60, 2),
+('300e8400-e29b-41d4-a716-446655440003', '160e8400-e29b-41d4-a716-446655440001', 'Listening Section', 'listening', 'Academic Listening with 4 sections and 40 questions', 30, 3),
+('300e8400-e29b-41d4-a716-446655440004', '160e8400-e29b-41d4-a716-446655440001', 'Speaking Section', 'speaking', 'Academic Speaking with 3 parts', 15, 4),
+
+-- Reading only test sections
+('300e8400-e29b-41d4-a716-446655440005', '160e8400-e29b-41d4-a716-446655440002', 'Passage 1', 'reading', 'First reading passage with questions 1-13', 20, 1),
+('300e8400-e29b-41d4-a716-446655440006', '160e8400-e29b-41d4-a716-446655440002', 'Passage 2', 'reading', 'Second reading passage with questions 14-26', 20, 2),
+('300e8400-e29b-41d4-a716-446655440007', '160e8400-e29b-41d4-a716-446655440002', 'Passage 3', 'reading', 'Third reading passage with questions 27-40', 20, 3),
+
+-- Writing only test sections
+('300e8400-e29b-41d4-a716-446655440008', '160e8400-e29b-41d4-a716-446655440003', 'Task 1', 'writing', 'Academic Writing Task 1 - Chart Description', 20, 1),
+('300e8400-e29b-41d4-a716-446655440009', '160e8400-e29b-41d4-a716-446655440003', 'Task 2', 'writing', 'Academic Writing Task 2 - Essay', 40, 2),
+
+-- Listening only test sections
+('300e8400-e29b-41d4-a716-446655440010', '160e8400-e29b-41d4-a716-446655440004', 'Section 1', 'listening', 'Conversation between two people', 7, 1),
+('300e8400-e29b-41d4-a716-446655440011', '160e8400-e29b-41d4-a716-446655440004', 'Section 2', 'listening', 'Monologue in everyday context', 7, 2),
+('300e8400-e29b-41d4-a716-446655440012', '160e8400-e29b-41d4-a716-446655440004', 'Section 3', 'listening', 'Conversation in educational context', 8, 3),
+('300e8400-e29b-41d4-a716-446655440013', '160e8400-e29b-41d4-a716-446655440004', 'Section 4', 'listening', 'Academic lecture', 8, 4),
+
+-- Speaking only test sections
+('300e8400-e29b-41d4-a716-446655440014', '160e8400-e29b-41d4-a716-446655440005', 'Part 1', 'speaking', 'Personal questions and familiar topics', 5, 1),
+('300e8400-e29b-41d4-a716-446655440015', '160e8400-e29b-41d4-a716-446655440005', 'Part 2', 'speaking', 'Individual long turn with cue card', 2, 2),
+('300e8400-e29b-41d4-a716-446655440016', '160e8400-e29b-41d4-a716-446655440005', 'Part 3', 'speaking', 'Two-way discussion on abstract topics', 5, 3);
+
 -- Insert sample exercises
-INSERT INTO exercises (id, lesson_id, title, instruction, content, time_limit, max_attempts, passing_score, ordering, is_active) VALUES
-('130e8400-e29b-41d4-a716-446655440001', 'd50e8400-e29b-41d4-a716-446655440001', 'Reading Comprehension Quiz', 'Read the passage and answer the questions', '{"passage": "IELTS reading passage...", "questions": []}', 30, 3, 70.00, 1, TRUE),
-('130e8400-e29b-41d4-a716-446655440002', 'd50e8400-e29b-41d4-a716-446655440002', 'Skimming Practice', 'Practice skimming techniques with these statements', '{"statements": [], "passage": ""}', 15, 2, 75.00, 1, TRUE),
-('130e8400-e29b-41d4-a716-446655440003', 'd50e8400-e29b-41d4-a716-446655440003', 'Part 1 Speaking Practice', 'Record your answers to these personal questions', '{"questions": ["Tell me about your hometown", "What do you do?"]}', 10, 1, 0.00, 1, TRUE),
-('130e8400-e29b-41d4-a716-446655440004', 'd50e8400-e29b-41d4-a716-446655440004', 'Cue Card Practice', 'Practice with this cue card topic', '{"topic": "Describe a memorable journey", "points": []}', 5, 2, 0.00, 1, TRUE),
-('130e8400-e29b-41d4-a716-446655440005', 'd50e8400-e29b-41d4-a716-446655440005', 'Task 1 Writing Practice', 'Write a 150-word description of the chart', '{"chart_url": "https://example.com/chart1.png"}', 60, 1, 0.00, 1, TRUE),
-('130e8400-e29b-41d4-a716-446655440006', 'd50e8400-e29b-41d4-a716-446655440006', 'Listening Comprehension', 'Listen and answer the questions', '{"audio_url": "https://example.com/audio.mp3"}', 25, 2, 65.00, 1, TRUE);
+INSERT INTO exercises (id, lesson_id, test_section_id, title, instruction, content, exercise_type, skill_type, time_limit, max_attempts, passing_score, ordering, is_active) VALUES
+-- Lesson exercises
+('130e8400-e29b-41d4-a716-446655440001', 'd50e8400-e29b-41d4-a716-446655440001', NULL, 'Reading Comprehension Quiz', 'Read the passage and answer the questions', '{"passage": "IELTS reading passage...", "questions": []}', 'lesson', 'reading', 30, 3, 70.00, 1, TRUE),
+('130e8400-e29b-41d4-a716-446655440002', 'd50e8400-e29b-41d4-a716-446655440002', NULL, 'Skimming Practice', 'Practice skimming techniques with these statements', '{"statements": [], "passage": ""}', 'lesson', 'reading', 15, 2, 75.00, 1, TRUE),
+('130e8400-e29b-41d4-a716-446655440003', 'd50e8400-e29b-41d4-a716-446655440003', NULL, 'Part 1 Speaking Practice', 'Record your answers to these personal questions', '{"questions": ["Tell me about your hometown", "What do you do?"]}', 'lesson', 'speaking', 10, 1, 0.00, 1, TRUE),
+('130e8400-e29b-41d4-a716-446655440004', 'd50e8400-e29b-41d4-a716-446655440004', NULL, 'Cue Card Practice', 'Practice with this cue card topic', '{"topic": "Describe a memorable journey", "points": []}', 'lesson', 'speaking', 5, 2, 0.00, 1, TRUE),
+('130e8400-e29b-41d4-a716-446655440005', 'd50e8400-e29b-41d4-a716-446655440005', NULL, 'Task 1 Writing Practice', 'Write a 150-word description of the chart', '{"chart_url": "https://example.com/chart1.png"}', 'lesson', 'writing', 60, 1, 0.00, 1, TRUE),
+('130e8400-e29b-41d4-a716-446655440006', 'd50e8400-e29b-41d4-a716-446655440006', NULL, 'Listening Comprehension', 'Listen and answer the questions', '{"audio_url": "https://example.com/audio.mp3"}', 'lesson', 'listening', 25, 2, 65.00, 1, TRUE),
+
+-- Mock test exercises (linked to test_sections)
+('130e8400-e29b-41d4-a716-446655440007', NULL, '300e8400-e29b-41d4-a716-446655440001', 'Academic Reading Section 1', 'Read the passage and answer questions 1-13', '{"passage": "Academic reading passage 1...", "questions": []}', 'mock_test', 'reading', 20, 1, 0.00, 1, TRUE),
+('130e8400-e29b-41d4-a716-446655440008', NULL, '300e8400-e29b-41d4-a716-446655440001', 'Academic Reading Section 2', 'Read the passage and answer questions 14-26', '{"passage": "Academic reading passage 2...", "questions": []}', 'mock_test', 'reading', 20, 1, 0.00, 2, TRUE),
+('130e8400-e29b-41d4-a716-446655440009', NULL, '300e8400-e29b-41d4-a716-446655440001', 'Academic Reading Section 3', 'Read the passage and answer questions 27-40', '{"passage": "Academic reading passage 3...", "questions": []}', 'mock_test', 'reading', 20, 1, 0.00, 3, TRUE),
+('130e8400-e29b-41d4-a716-446655440010', NULL, '300e8400-e29b-41d4-a716-446655440002', 'Academic Writing Task 1', 'Write a 150-word report describing the chart', '{"chart_url": "https://example.com/academic_chart.png"}', 'mock_test', 'writing', 20, 1, 0.00, 1, TRUE),
+('130e8400-e29b-41d4-a716-446655440011', NULL, '300e8400-e29b-41d4-a716-446655440002', 'Academic Writing Task 2', 'Write a 250-word essay on the given topic', '{"topic": "Some people believe that...", "essay_type": "opinion"}', 'mock_test', 'writing', 40, 1, 0.00, 2, TRUE),
+('130e8400-e29b-41d4-a716-446655440012', NULL, '300e8400-e29b-41d4-a716-446655440003', 'Listening Section 1', 'Listen to the conversation and answer questions 1-10', '{"audio_url": "https://example.com/listening1.mp3", "audio_duration": 600}', 'mock_test', 'listening', 10, 1, 0.00, 1, TRUE),
+('130e8400-e29b-41d4-a716-446655440013', NULL, '300e8400-e29b-41d4-a716-446655440003', 'Listening Section 2', 'Listen to the monologue and answer questions 11-20', '{"audio_url": "https://example.com/listening2.mp3", "audio_duration": 600}', 'mock_test', 'listening', 10, 1, 0.00, 2, TRUE),
+('130e8400-e29b-41d4-a716-446655440014', NULL, '300e8400-e29b-41d4-a716-446655440003', 'Listening Section 3', 'Listen to the conversation and answer questions 21-30', '{"audio_url": "https://example.com/listening3.mp3", "audio_duration": 600}', 'mock_test', 'listening', 10, 1, 0.00, 3, TRUE),
+('130e8400-e29b-41d4-a716-446655440015', NULL, '300e8400-e29b-41d4-a716-446655440003', 'Listening Section 4', 'Listen to the lecture and answer questions 31-40', '{"audio_url": "https://example.com/listening4.mp3", "audio_duration": 600}', 'mock_test', 'listening', 10, 1, 0.00, 4, TRUE),
+('130e8400-e29b-41d4-a716-446655440016', NULL, '300e8400-e29b-41d4-a716-446655440004', 'Speaking Part 1', 'Answer personal questions about yourself', '{"questions": ["What is your name?", "Where are you from?", "What do you do?"]}', 'mock_test', 'speaking', 5, 1, 0.00, 1, TRUE),
+('130e8400-e29b-41d4-a716-446655440017', NULL, '300e8400-e29b-41d4-a716-446655440004', 'Speaking Part 2', 'Speak about the given topic for 2 minutes', '{"topic": "Describe a book you recently read", "cue_card": true}', 'mock_test', 'speaking', 2, 1, 0.00, 2, TRUE),
+('130e8400-e29b-41d4-a716-446655440018', NULL, '300e8400-e29b-41d4-a716-446655440004', 'Speaking Part 3', 'Discuss abstract topics related to Part 2', '{"questions": ["How has reading changed?", "What are the benefits of reading?"]}', 'mock_test', 'speaking', 5, 1, 0.00, 3, TRUE);
 
 -- Insert sample questions
-INSERT INTO questions (id, exercise_id, question_text, question_type, media_url, explanation, points, ordering, difficulty_level) VALUES
-('140e8400-e29b-41d4-a716-446655440001', '130e8400-e29b-41d4-a716-446655440001', 'What is the main idea of the passage?', 'multiple_choice', NULL, 'The main idea is found in the first paragraph', 1.00, 1, 6.0),
-('140e8400-e29b-41d4-a716-446655440002', '130e8400-e29b-41d4-a716-446655440001', 'According to the text, which statement is true?', 'multiple_choice', NULL, 'Look for supporting evidence in paragraph 2', 1.00, 2, 6.5),
-('140e8400-e29b-41d4-a716-446655440003', '130e8400-e29b-41d4-a716-446655440002', 'The passage discusses environmental issues.', 'true_false', NULL, 'Check the topic sentences of each paragraph', 1.00, 1, 5.5),
-('140e8400-e29b-41d4-a716-446655440004', '130e8400-e29b-41d4-a716-446655440003', 'Tell me about your hometown.', 'speaking', NULL, 'Mention location, size, characteristics, and what you like about it', 0.00, 1, 5.0),
-('140e8400-e29b-41d4-a716-446655440005', '130e8400-e29b-41d4-a716-446655440005', 'Describe the main trend shown in the chart.', 'essay', 'https://example.com/chart1.png', 'Start with an overview of the main trend', 0.00, 1, 7.0),
-('140e8400-e29b-41d4-a716-446655440006', '130e8400-e29b-41d4-a716-446655440006', 'What is the speakers main concern?', 'multiple_choice', 'https://example.com/audio1.mp3', 'Listen for key phrases that indicate concern', 1.00, 1, 6.5);
+INSERT INTO questions (id, exercise_id, question_text, question_type, image_url, audio_url, audio_duration, reading_passage, explanation, points, ordering, difficulty_level, question_group) VALUES
+-- Lesson questions
+('140e8400-e29b-41d4-a716-446655440001', '130e8400-e29b-41d4-a716-446655440001', 'What is the main idea of the passage?', 'multiple_choice', NULL, NULL, NULL, 'Climate change is one of the most pressing issues facing humanity today...', 'The main idea is found in the first paragraph', 1.00, 1, 6.0, 'Passage 1'),
+('140e8400-e29b-41d4-a716-446655440002', '130e8400-e29b-41d4-a716-446655440001', 'According to the text, which statement is true?', 'multiple_choice', NULL, NULL, NULL, NULL, 'Look for supporting evidence in paragraph 2', 1.00, 2, 6.5, 'Passage 1'),
+('140e8400-e29b-41d4-a716-446655440003', '130e8400-e29b-41d4-a716-446655440002', 'The passage discusses environmental issues.', 'true_false', NULL, NULL, NULL, 'Environmental protection has become increasingly important...', 'Check the topic sentences of each paragraph', 1.00, 1, 5.5, 'Statement 1'),
+('140e8400-e29b-41d4-a716-446655440004', '130e8400-e29b-41d4-a716-446655440003', 'Tell me about your hometown.', 'speaking', NULL, NULL, NULL, NULL, 'Mention location, size, characteristics, and what you like about it', 0.00, 1, 5.0, 'Part 1'),
+('140e8400-e29b-41d4-a716-446655440005', '130e8400-e29b-41d4-a716-446655440005', 'Describe the main trend shown in the chart.', 'essay', 'https://example.com/chart1.png', NULL, NULL, NULL, 'Start with an overview of the main trend', 0.00, 1, 7.0, 'Task 1'),
+('140e8400-e29b-41d4-a716-446655440006', '130e8400-e29b-41d4-a716-446655440006', 'What is the speakers main concern?', 'multiple_choice', NULL, 'https://example.com/audio1.mp3', 300, NULL, 'Listen for key phrases that indicate concern', 1.00, 1, 6.5, 'Section 1'),
+
+-- Mock test questions
+('140e8400-e29b-41d4-a716-446655440007', '130e8400-e29b-41d4-a716-446655440007', 'What is the main purpose of the passage?', 'multiple_choice', NULL, NULL, NULL, 'The development of renewable energy sources has accelerated significantly...', 'Look for the main purpose in the introduction', 1.00, 1, 6.5, 'Passage 1'),
+('140e8400-e29b-41d4-a716-446655440008', '130e8400-e29b-41d4-a716-446655440007', 'Complete the sentence: Solar energy is considered...', 'fill_blank', NULL, NULL, NULL, NULL, 'Look for the adjective describing solar energy', 1.00, 2, 6.0, 'Passage 1'),
+('140e8400-e29b-41d4-a716-446655440009', '130e8400-e29b-41d4-a716-446655440008', 'Match the following statements with the correct paragraph.', 'matching', NULL, NULL, NULL, 'Wind energy has become increasingly popular...', 'Read each paragraph carefully to match statements', 1.00, 1, 7.0, 'Passage 2'),
+('140e8400-e29b-41d4-a716-446655440010', '130e8400-e29b-41d4-a716-446655440010', 'Summarize the information in the chart.', 'essay', 'https://example.com/academic_chart.png', NULL, NULL, NULL, 'Write at least 150 words describing the chart', 0.00, 1, 7.0, 'Task 1'),
+('140e8400-e29b-41d4-a716-446655440011', '130e8400-e29b-41d4-a716-446655440011', 'Write an essay discussing both views.', 'essay', NULL, NULL, NULL, NULL, 'Write at least 250 words with clear structure', 0.00, 1, 7.5, 'Task 2'),
+('140e8400-e29b-41d4-a716-446655440012', '130e8400-e29b-41d4-a716-446655440012', 'What is the woman looking for?', 'multiple_choice', NULL, 'https://example.com/listening1.mp3', 300, NULL, 'Listen carefully to the conversation', 1.00, 1, 6.0, 'Section 1'),
+('140e8400-e29b-41d4-a716-446655440013', '130e8400-e29b-41d4-a716-446655440012', 'Complete the form with the correct information.', 'fill_blank', NULL, 'https://example.com/listening1.mp3', 300, NULL, 'Listen for specific details', 1.00, 2, 6.5, 'Section 1'),
+('140e8400-e29b-41d4-a716-446655440014', '130e8400-e29b-41d4-a716-446655440016', 'What is your name?', 'speaking', NULL, NULL, NULL, NULL, 'Give your full name clearly', 0.00, 1, 5.0, 'Part 1'),
+('140e8400-e29b-41d4-a716-446655440015', '130e8400-e29b-41d4-a716-446655440016', 'Where are you from?', 'speaking', NULL, NULL, NULL, NULL, 'Mention your hometown and country', 0.00, 2, 5.0, 'Part 1'),
+('140e8400-e29b-41d4-a716-446655440016', '130e8400-e29b-41d4-a716-446655440017', 'Describe a book you recently read.', 'speaking', NULL, NULL, NULL, NULL, 'Speak for 2 minutes about the book', 0.00, 1, 6.5, 'Part 2'),
+('140e8400-e29b-41d4-a716-446655440017', '130e8400-e29b-41d4-a716-446655440018', 'How has reading changed in recent years?', 'speaking', NULL, NULL, NULL, NULL, 'Discuss the topic in detail', 0.00, 1, 7.0, 'Part 3');
 
 -- Insert sample question options
 INSERT INTO question_options (id, question_id, option_text, is_correct, ordering, explanation) VALUES
@@ -206,6 +272,25 @@ INSERT INTO coupon_usage (id, coupon_id, user_id, order_id, combo_id, discount_a
 ('240e8400-e29b-41d4-a716-446655440004', '230e8400-e29b-41d4-a716-446655440003', '550e8400-e29b-41d4-a716-446655440005', '200e8400-e29b-41d4-a716-446655440005', '850e8400-e29b-41d4-a716-446655440002', 300000, NOW() - INTERVAL '15 days'),
 ('240e8400-e29b-41d4-a716-446655440005', '230e8400-e29b-41d4-a716-446655440004', '550e8400-e29b-41d4-a716-446655440006', '200e8400-e29b-41d4-a716-446655440006', NULL, 450000, NOW() - INTERVAL '10 days');
 
+-- Insert sample user submissions
+INSERT INTO user_submissions (id, user_id, exercise_id, attempt_number, answers, score, max_score, time_taken, feedback, teacher_feedback, teacher_score, ai_feedback, ai_score, grading_method, graded_by, graded_at, ai_graded_at, status) VALUES
+('320e8400-e29b-41d4-a716-446655440001', '550e8400-e29b-41d4-a716-446655440004', '130e8400-e29b-41d4-a716-446655440001', 1, '{"1": "A", "2": "B"}', 2.0, 2.0, 1800, 'Good work on reading comprehension', 'Excellent performance. Keep practicing vocabulary.', 2.0, 'Good reading skills. Work on time management.', 2.0, 'hybrid', '350e8400-e29b-41d4-a716-446655440001', NOW() - INTERVAL '2 days', NOW() - INTERVAL '2 days', 'graded'),
+('320e8400-e29b-41d4-a716-446655440002', '550e8400-e29b-41d4-a716-446655440005', '130e8400-e29b-41d4-a716-446655440003', 1, '{"answer": "My hometown is Ho Chi Minh City..."}', 0.0, 0.0, 600, 'Good fluency and pronunciation', 'Confident speaking. Develop ideas more.', 0.0, 'Good fluency. Work on vocabulary range.', 0.0, 'hybrid', '350e8400-e29b-41d4-a716-446655440002', NOW() - INTERVAL '1 day', NOW() - INTERVAL '1 day', 'graded'),
+('320e8400-e29b-41d4-a716-446655440003', '550e8400-e29b-41d4-a716-446655440006', '130e8400-e29b-41d4-a716-446655440005', 1, '{"task1": "The chart shows the percentage of..."}', 0.0, 0.0, 3600, 'Well-structured response', 'Good organization. Improve grammar accuracy.', 0.0, 'Good structure. Needs more complex vocabulary.', 0.0, 'ai', NULL, NULL, NOW() - INTERVAL '3 days', 'ai_graded'),
+('320e8400-e29b-41d4-a716-446655440004', '550e8400-e29b-41d4-a716-446655440004', '130e8400-e29b-41d4-a716-446655440007', 1, '{"1": "A", "2": "B", "3": "C"}', 3.0, 3.0, 1200, 'Good performance in mock test', 'Excellent work on Passage 1.', 3.0, 'Strong reading comprehension.', 3.0, 'hybrid', '350e8400-e29b-41d4-a716-446655440001', NOW() - INTERVAL '1 day', NOW() - INTERVAL '1 day', 'graded'),
+('320e8400-e29b-41d4-a716-446655440005', '550e8400-e29b-41d4-a716-446655440005', '130e8400-e29b-41d4-a716-446655440010', 1, '{"task1": "The bar chart illustrates..."}', 0.0, 0.0, 1200, 'Good description of the chart', 'Well-organized Task 1 response.', 0.0, 'Good overview. Work on data analysis.', 0.0, 'teacher', '350e8400-e29b-41d4-a716-446655440002', NOW() - INTERVAL '2 days', NULL, 'graded');
+
+-- Insert sample question answers
+INSERT INTO question_answers (id, submission_id, question_id, answer_text, selected_options, media_url, is_correct, points_earned, ai_feedback, ai_points, teacher_feedback, teacher_points, grading_method) VALUES
+('330e8400-e29b-41d4-a716-446655440001', '320e8400-e29b-41d4-a716-446655440001', '140e8400-e29b-41d4-a716-446655440001', NULL, ARRAY['150e8400-e29b-41d4-a716-446655440001']::uuid[], NULL, TRUE, 1.0, 'Correct answer. Good comprehension.', 1.0, 'Well done!', 1.0, 'hybrid'),
+('330e8400-e29b-41d4-a716-446655440002', '320e8400-e29b-41d4-a716-446655440001', '140e8400-e29b-41d4-a716-446655440002', NULL, ARRAY['150e8400-e29b-41d4-a716-446655440004']::uuid[], NULL, TRUE, 1.0, 'Correct answer. Good analysis.', 1.0, 'Excellent!', 1.0, 'hybrid'),
+('330e8400-e29b-41d4-a716-446655440003', '320e8400-e29b-41d4-a716-446655440002', '140e8400-e29b-41d4-a716-446655440004', 'My hometown is Ho Chi Minh City, which is the largest city in Vietnam. It is located in the south of the country and has a population of about 9 million people. I like living here because it is very dynamic and has many opportunities for work and study.', NULL, 'https://example.com/speaking1.mp3', NULL, 0.0, 'Good fluency and pronunciation. Develop ideas more.', 0.0, 'Confident speaking. Work on vocabulary range.', 0.0, 'hybrid'),
+('330e8400-e29b-41d4-a716-446655440004', '320e8400-e29b-41d4-a716-446655440003', '140e8400-e29b-41d4-a716-446655440005', 'The chart shows the percentage of renewable energy sources used in different countries in 2020. Overall, Germany had the highest percentage at 45%, followed by Denmark at 40%. The lowest percentage was in Japan at 15%.', NULL, NULL, NULL, 0.0, 'Good overview. Work on data analysis and vocabulary.', 0.0, 'Well-structured response. Improve grammar.', 0.0, 'ai'),
+('330e8400-e29b-41d4-a716-446655440005', '320e8400-e29b-41d4-a716-446655440004', '140e8400-e29b-41d4-a716-446655440007', NULL, ARRAY['150e8400-e29b-41d4-a716-446655440001']::uuid[], NULL, TRUE, 1.0, 'Correct answer. Good reading skills.', 1.0, 'Excellent work!', 1.0, 'hybrid'),
+('330e8400-e29b-41d4-a716-446655440006', '320e8400-e29b-41d4-a716-446655440004', '140e8400-e29b-41d4-a716-446655440008', 'sustainable', NULL, NULL, TRUE, 1.0, 'Correct answer. Good vocabulary.', 1.0, 'Perfect!', 1.0, 'hybrid'),
+('330e8400-e29b-41d4-a716-446655440007', '320e8400-e29b-41d4-a716-446655440004', '140e8400-e29b-41d4-a716-446655440009', NULL, ARRAY['150e8400-e29b-41d4-a716-446655440001']::uuid[], NULL, TRUE, 1.0, 'Correct matching. Good comprehension.', 1.0, 'Well done!', 1.0, 'hybrid'),
+('330e8400-e29b-41d4-a716-446655440008', '320e8400-e29b-41d4-a716-446655440005', '140e8400-e29b-41d4-a716-446655440010', 'The bar chart illustrates the percentage of renewable energy sources used in different countries in 2020. Overall, Germany had the highest percentage at 45%, followed by Denmark at 40%. The lowest percentage was in Japan at 15%.', NULL, NULL, NULL, 0.0, 'Good overview. Work on data analysis.', 0.0, 'Well-organized Task 1 response.', 0.0, 'teacher');
+
 -- Insert sample blog categories
 INSERT INTO blog_categories (id, name, slug, description, ordering, is_active) VALUES
 ('170e8400-e29b-41d4-a716-446655440001', 'IELTS Tips', 'ielts-tips', 'Useful tips and strategies for IELTS preparation', 1, TRUE),
@@ -224,23 +309,27 @@ INSERT INTO blogs (id, author_id, category_id, title, content, image, tags, stat
 ('180e8400-e29b-41d4-a716-446655440005', '550e8400-e29b-41d4-a716-446655440002', '170e8400-e29b-41d4-a716-446655440004', 'Common Grammar Mistakes in IELTS Writing', 'Grammar accuracy is crucial for achieving a high score in IELTS Writing...', 'https://example.com/blog5.jpg', ARRAY['grammar', 'writing', 'mistakes'], 'published', TRUE, 298, NOW() - INTERVAL '25 days'),
 ('180e8400-e29b-41d4-a716-446655440006', '550e8400-e29b-41d4-a716-446655440003', '170e8400-e29b-41d4-a716-446655440005', '100 Advanced Vocabulary Words for IELTS', 'Building a strong vocabulary is essential for IELTS success...', 'https://example.com/blog6.jpg', ARRAY['vocabulary', 'advanced', 'wordlist'], 'published', FALSE, 567, NOW() - INTERVAL '30 days');
 
--- Insert sample mock tests
-INSERT INTO mock_tests (id, title, description, test_type, duration, total_questions, max_score, difficulty_level, created_by) VALUES
-('160e8400-e29b-41d4-a716-446655440001', 'IELTS Academic Full Test 1', 'Complete IELTS Academic practice test', 'full_test', 165, 40, 9.0, 'intermediate', '350e8400-e29b-41d4-a716-446655440001'),
-('160e8400-e29b-41d4-a716-446655440002', 'Reading Practice Test A', 'Academic Reading practice with 3 passages', 'reading', 60, 40, 9.0, 'intermediate', '350e8400-e29b-41d4-a716-446655440001'),
-('160e8400-e29b-41d4-a716-446655440003', 'Writing Task 1 & 2 Practice', 'Academic Writing practice test', 'writing', 60, 2, 9.0, 'advanced', '350e8400-e29b-41d4-a716-446655440002'),
-('160e8400-e29b-41d4-a716-446655440004', 'Listening Skills Test', 'Comprehensive listening practice', 'listening', 30, 40, 9.0, 'intermediate', '350e8400-e29b-41d4-a716-446655440002'),
-('160e8400-e29b-41d4-a716-446655440005', 'Speaking Mock Interview', 'Full speaking test simulation', 'speaking', 15, 3, 9.0, 'intermediate', '350e8400-e29b-41d4-a716-446655440001'),
-('160e8400-e29b-41d4-a716-446655440006', 'General Training Practice', 'GT reading and writing practice', 'full_test', 150, 42, 9.0, 'beginner', '350e8400-e29b-41d4-a716-446655440002');
-
 -- Insert sample test results
-INSERT INTO test_results (id, user_id, mock_test_id, overall_score, band_score, reading_score, writing_score, listening_score, speaking_score, time_taken, recommendations, strengths, weaknesses) VALUES
-('190e8400-e29b-41d4-a716-446655440001', '550e8400-e29b-41d4-a716-446655440004', '160e8400-e29b-41d4-a716-446655440001', 7.0, 7.0, 7.5, 6.5, 7.0, 7.0, 160, 'Focus on writing Task 2 structure and vocabulary', ARRAY['Reading comprehension', 'Listening accuracy'], ARRAY['Writing coherence', 'Complex sentence structures']),
-('190e8400-e29b-41d4-a716-446655440002', '550e8400-e29b-41d4-a716-446655440005', '160e8400-e29b-41d4-a716-446655440002', 6.5, 6.5, 6.5, 0, 0, 0, 55, 'Work on time management and vocabulary', ARRAY['Skimming and scanning'], ARRAY['Academic vocabulary', 'Question types']),
-('190e8400-e29b-41d4-a716-446655440003', '550e8400-e29b-41d4-a716-446655440006', '160e8400-e29b-41d4-a716-446655440003', 7.5, 7.5, 0, 7.5, 0, 0, 58, 'Excellent progress in writing skills', ARRAY['Task 1 description', 'Grammar accuracy'], ARRAY['Task 2 examples', 'Word count management']),
-('190e8400-e29b-41d4-a716-446655440004', '550e8400-e29b-41d4-a716-446655440004', '160e8400-e29b-41d4-a716-446655440004', 6.0, 6.0, 0, 0, 6.0, 0, 28, 'Practice with different accents', ARRAY['Note-taking skills'], ARRAY['Multiple choice questions', 'Spelling accuracy']),
-('190e8400-e29b-41d4-a716-446655440005', '550e8400-e29b-41d4-a716-446655440005', '160e8400-e29b-41d4-a716-446655440005', 6.5, 6.5, 0, 0, 0, 6.5, 14, 'Build confidence and fluency', ARRAY['Pronunciation', 'Part 1 responses'], ARRAY['Part 2 development', 'Part 3 analysis']),
-('190e8400-e29b-41d4-a716-446655440006', '550e8400-e29b-41d4-a716-446655440006', '160e8400-e29b-41d4-a716-446655440006', 5.5, 5.5, 6.0, 5.0, 5.5, 6.0, 145, 'Focus on writing improvement', ARRAY['Speaking fluency', 'Reading speed'], ARRAY['Writing task achievement', 'Grammar range']);
+INSERT INTO test_results (id, user_id, mock_test_id, overall_score, band_score, reading_score, writing_score, listening_score, speaking_score, time_taken, recommendations, strengths, weaknesses, status) VALUES
+('190e8400-e29b-41d4-a716-446655440001', '550e8400-e29b-41d4-a716-446655440004', '160e8400-e29b-41d4-a716-446655440001', 7.0, 7.0, 7.5, 6.5, 7.0, 7.0, 160, 'Focus on writing Task 2 structure and vocabulary', ARRAY['Reading comprehension', 'Listening accuracy'], ARRAY['Writing coherence', 'Complex sentence structures'], 'completed'),
+('190e8400-e29b-41d4-a716-446655440002', '550e8400-e29b-41d4-a716-446655440005', '160e8400-e29b-41d4-a716-446655440002', 6.5, 6.5, 6.5, 0, 0, 0, 55, 'Work on time management and vocabulary', ARRAY['Skimming and scanning'], ARRAY['Academic vocabulary', 'Question types'], 'completed'),
+('190e8400-e29b-41d4-a716-446655440003', '550e8400-e29b-41d4-a716-446655440006', '160e8400-e29b-41d4-a716-446655440003', 7.5, 7.5, 0, 7.5, 0, 0, 58, 'Excellent progress in writing skills', ARRAY['Task 1 description', 'Grammar accuracy'], ARRAY['Task 2 examples', 'Word count management'], 'completed'),
+('190e8400-e29b-41d4-a716-446655440004', '550e8400-e29b-41d4-a716-446655440004', '160e8400-e29b-41d4-a716-446655440004', 6.0, 6.0, 0, 0, 6.0, 0, 28, 'Practice with different accents', ARRAY['Note-taking skills'], ARRAY['Multiple choice questions', 'Spelling accuracy'], 'completed'),
+('190e8400-e29b-41d4-a716-446655440005', '550e8400-e29b-41d4-a716-446655440005', '160e8400-e29b-41d4-a716-446655440005', 6.5, 6.5, 0, 0, 0, 6.5, 14, 'Build confidence and fluency', ARRAY['Pronunciation', 'Part 1 responses'], ARRAY['Part 2 development', 'Part 3 analysis'], 'completed'),
+('190e8400-e29b-41d4-a716-446655440006', '550e8400-e29b-41d4-a716-446655440006', '160e8400-e29b-41d4-a716-446655440006', 5.5, 5.5, 6.0, 5.0, 5.5, 6.0, 145, 'Focus on writing improvement', ARRAY['Speaking fluency', 'Reading speed'], ARRAY['Writing task achievement', 'Grammar range'], 'completed');
+
+-- Insert sample section results
+INSERT INTO section_results (id, test_result_id, test_section_id, band_score, time_taken, correct_answers, total_questions, detailed_answers, ai_feedback, ai_score, teacher_feedback, teacher_score, grading_method, graded_by, graded_at) VALUES
+-- Full test section results
+('310e8400-e29b-41d4-a716-446655440001', '190e8400-e29b-41d4-a716-446655440001', '300e8400-e29b-41d4-a716-446655440001', 7.5, 3600, 30, 40, '{"answers": {"1": "A", "2": "B", "3": "C"}}', 'Good reading comprehension skills. Work on time management.', 7.5, 'Excellent performance in reading. Focus on vocabulary.', 7.5, 'hybrid', '350e8400-e29b-41d4-a716-446655440001', NOW() - INTERVAL '5 days'),
+('310e8400-e29b-41d4-a716-446655440002', '190e8400-e29b-41d4-a716-446655440001', '300e8400-e29b-41d4-a716-446655440002', 6.5, 3600, 0, 2, '{"task1": "The chart shows...", "task2": "Some people believe..."}', 'Good structure but needs more complex vocabulary.', 6.5, 'Well-organized essays. Improve grammar accuracy.', 6.5, 'hybrid', '350e8400-e29b-41d4-a716-446655440001', NOW() - INTERVAL '5 days'),
+('310e8400-e29b-41d4-a716-446655440003', '190e8400-e29b-41d4-a716-446655440001', '300e8400-e29b-41d4-a716-446655440003', 7.0, 1800, 28, 40, '{"answers": {"1": "library", "2": "student"}}', 'Good listening skills. Practice with different accents.', 7.0, 'Strong listening comprehension.', 7.0, 'hybrid', '350e8400-e29b-41d4-a716-446655440001', NOW() - INTERVAL '5 days'),
+('310e8400-e29b-41d4-a716-446655440004', '190e8400-e29b-41d4-a716-446655440001', '300e8400-e29b-41d4-a716-446655440004', 7.0, 900, 0, 3, '{"part1": "My name is...", "part2": "I would like to describe...", "part3": "I think that..."}', 'Good fluency and pronunciation. Develop ideas more.', 7.0, 'Confident speaking. Work on Part 3 depth.', 7.0, 'hybrid', '350e8400-e29b-41d4-a716-446655440001', NOW() - INTERVAL '5 days'),
+
+-- Reading only test section results
+('310e8400-e29b-41d4-a716-446655440005', '190e8400-e29b-41d4-a716-446655440002', '300e8400-e29b-41d4-a716-446655440005', 6.5, 1200, 10, 13, '{"answers": {"1": "A", "2": "B"}}', 'Good skimming skills. Work on vocabulary.', 6.5, 'Solid performance in Passage 1.', 6.5, 'hybrid', '350e8400-e29b-41d4-a716-446655440001', NOW() - INTERVAL '3 days'),
+('310e8400-e29b-41d4-a716-446655440006', '190e8400-e29b-41d4-a716-446655440002', '300e8400-e29b-41d4-a716-446655440006', 6.5, 1200, 9, 13, '{"answers": {"14": "C", "15": "A"}}', 'Good comprehension. Time management needs improvement.', 6.5, 'Well done on Passage 2.', 6.5, 'hybrid', '350e8400-e29b-41d4-a716-446655440001', NOW() - INTERVAL '3 days'),
+('310e8400-e29b-41d4-a716-446655440007', '190e8400-e29b-41d4-a716-446655440002', '300e8400-e29b-41d4-a716-446655440007', 6.5, 1200, 8, 14, '{"answers": {"27": "B", "28": "A"}}', 'Challenging passage handled well.', 6.5, 'Good effort on the most difficult passage.', 6.5, 'hybrid', '350e8400-e29b-41d4-a716-446655440001', NOW() - INTERVAL '3 days');
 
 -- Fix learning_paths table
 INSERT INTO learning_paths (id, name, description, target_band_score, skill_focus, difficulty_level, estimated_duration, course_sequence, prerequisites, created_by) VALUES
