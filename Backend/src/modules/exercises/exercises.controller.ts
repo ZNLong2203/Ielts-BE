@@ -21,7 +21,10 @@ import {
   ApiTags,
 } from '@nestjs/swagger';
 import { MessageResponse, Public } from 'src/decorator/customize';
-import { CreateExerciseDto } from 'src/modules/exercises/dto/create-exercise.dto';
+import {
+  CreateExerciseDto,
+  CreateQuestionDto,
+} from 'src/modules/exercises/dto/create-exercise.dto';
 import {
   ExerciseResponseDto,
   UpdateExerciseDto,
@@ -71,7 +74,10 @@ export class ExerciseController {
   ) {
     // Override lesson_id from URL param
     createDto.lesson_id = lessonId;
-    const exercise = await this.exerciseService.createExercise(createDto);
+    const exercise = await this.exerciseService.createExercise(
+      createDto,
+      lessonId,
+    );
 
     return {
       success: true,
@@ -285,12 +291,12 @@ export class ExerciseController {
     };
   }
 
-  // upload exercise image
-  @Post(':exerciseId/image')
+  // upload question image
+  @Post(':exerciseId/question/:questionId/image')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
-    summary: 'Upload exercise image',
-    description: 'Upload an image for the exercise',
+    summary: 'Upload question image',
+    description: 'Upload an image for the question',
   })
   @ApiParam({
     name: 'lessonId',
@@ -304,19 +310,26 @@ export class ExerciseController {
     type: 'string',
     format: 'uuid',
   })
+  @ApiParam({
+    name: 'questionId',
+    description: 'Question ID',
+    type: 'string',
+    format: 'uuid',
+  })
   @ApiResponse({
     status: 200,
-    description: 'Exercise image uploaded successfully',
+    description: 'Question image uploaded successfully',
   })
   @ApiResponse({
     status: 404,
-    description: 'Exercise not found',
+    description: 'Question not found',
   })
   @Public()
-  @MessageResponse('Exercise image uploaded successfully')
+  @MessageResponse('Question image uploaded successfully')
   async uploadExerciseImage(
     @Param('lessonId', ParseUUIDPipe) lessonId: string,
     @Param('exerciseId', ParseUUIDPipe) exerciseId: string,
+    @Param('questionId', ParseUUIDPipe) questionId: string,
     @UploadedFile(
       new ParseFilePipeBuilder()
         .addFileTypeValidator({
@@ -332,7 +345,7 @@ export class ExerciseController {
     file: Express.Multer.File,
   ) {
     const exercise = await this.exerciseService.uploadQuestionImage(
-      exerciseId,
+      questionId,
       file,
     );
 
@@ -342,12 +355,12 @@ export class ExerciseController {
     };
   }
 
-  // upload exercise audio max 10min
-  @Post(':exerciseId/audio')
+  // upload question audio max 10min
+  @Post(':exerciseId/question/:questionId/audio')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
-    summary: 'Upload exercise audio',
-    description: 'Upload an audio file for the exercise',
+    summary: 'Upload question audio',
+    description: 'Upload an audio file for the question',
   })
   @ApiParam({
     name: 'lessonId',
@@ -361,19 +374,26 @@ export class ExerciseController {
     type: 'string',
     format: 'uuid',
   })
+  @ApiParam({
+    name: 'questionId',
+    description: 'Question ID',
+    type: 'string',
+    format: 'uuid',
+  })
   @ApiResponse({
     status: 200,
-    description: 'Exercise audio uploaded successfully',
+    description: 'Question audio uploaded successfully',
   })
   @ApiResponse({
     status: 404,
-    description: 'Exercise not found',
+    description: 'Question not found',
   })
   @Public()
-  @MessageResponse('Exercise audio uploaded successfully')
+  @MessageResponse('Question audio uploaded successfully')
   async uploadExerciseAudio(
     @Param('lessonId', ParseUUIDPipe) lessonId: string,
     @Param('exerciseId', ParseUUIDPipe) exerciseId: string,
+    @Param('questionId', ParseUUIDPipe) questionId: string,
     @UploadedFile(
       new ParseFilePipeBuilder()
         .addFileTypeValidator({
@@ -389,13 +409,142 @@ export class ExerciseController {
     file: Express.Multer.File,
   ) {
     const exercise = await this.exerciseService.uploadQuestionAudio(
-      exerciseId,
+      questionId,
       file,
     );
 
     return {
       success: true,
       data: exercise,
+    };
+  }
+
+  /**
+   * Create question for exercise
+   */
+  @Post(':exerciseId/question')
+  @HttpCode(HttpStatus.CREATED)
+  @ApiOperation({
+    summary: 'Create question for exercise',
+    description: 'Create a new question for the specified exercise',
+  })
+  @ApiParam({
+    name: 'exerciseId',
+    description: 'Exercise ID',
+    type: 'string',
+    format: 'uuid',
+  })
+  @ApiResponse({
+    status: 201,
+    description: 'Question created successfully',
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'Exercise not found',
+  })
+  @Public()
+  @MessageResponse('Question created successfully')
+  async createQuestion(
+    @Param('exerciseId', ParseUUIDPipe) exerciseId: string,
+    @Body() createQuestionDto: CreateQuestionDto,
+  ) {
+    const question = await this.exerciseService.createQuestion(
+      exerciseId,
+      createQuestionDto,
+    );
+
+    return {
+      success: true,
+      data: question,
+    };
+  }
+
+  /**
+   * Update question for exercise
+   */
+  @Put(':exerciseId/question/:questionId')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Update question for exercise',
+    description: 'Update an existing question for the specified exercise',
+  })
+  @ApiParam({
+    name: 'exerciseId',
+    description: 'Exercise ID',
+    type: 'string',
+    format: 'uuid',
+  })
+  @ApiParam({
+    name: 'questionId',
+    description: 'Question ID',
+    type: 'string',
+    format: 'uuid',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Question updated successfully',
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'Question not found',
+  })
+  @Public()
+  @MessageResponse('Question updated successfully')
+  async updateQuestion(
+    @Param('exerciseId', ParseUUIDPipe) exerciseId: string,
+    @Param('questionId', ParseUUIDPipe) questionId: string,
+    @Body() updateQuestionDto: CreateQuestionDto,
+  ) {
+    const question = await this.exerciseService.updateQuestion(
+      questionId,
+      updateQuestionDto,
+    );
+
+    return {
+      success: true,
+      data: question,
+    };
+  }
+
+  /**
+   * Delete question for exercise
+   */
+  @Delete(':exerciseId/question/:questionId')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Delete question for exercise',
+    description: 'Delete an existing question for the specified exercise',
+  })
+  @ApiParam({
+    name: 'exerciseId',
+    description: 'Exercise ID',
+    type: 'string',
+    format: 'uuid',
+  })
+  @ApiParam({
+    name: 'questionId',
+    description: 'Question ID',
+    type: 'string',
+    format: 'uuid',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Question deleted successfully',
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'Question not found',
+  })
+  @Public()
+  @MessageResponse('Question deleted successfully')
+  async deleteQuestion(
+    @Param('exerciseId', ParseUUIDPipe) exerciseId: string,
+    @Param('questionId', ParseUUIDPipe) questionId: string,
+  ) {
+    await this.exerciseService.deleteQuestion(questionId);
+
+    return {
+      success: true,
     };
   }
 }

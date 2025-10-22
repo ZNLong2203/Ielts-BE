@@ -108,7 +108,7 @@ export class ExerciseResponseDto {
   is_active: boolean;
 
   @ApiProperty({ type: [QuestionResponseDto] })
-  questions: QuestionResponseDto[];
+  questions?: QuestionResponseDto[];
 
   @ApiProperty()
   created_at: Date;

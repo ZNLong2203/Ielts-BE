@@ -199,5 +199,5 @@ export class CreateExerciseDto {
   @IsArray()
   @ValidateNested({ each: true })
   @Type(() => CreateQuestionDto)
-  questions: CreateQuestionDto[];
+  questions?: CreateQuestionDto[];
 }
