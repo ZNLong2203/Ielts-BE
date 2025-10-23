@@ -191,13 +191,4 @@ export class CreateExerciseDto {
   @IsOptional()
   @IsBoolean()
   is_active?: boolean;
-
-  @ApiProperty({
-    type: [CreateQuestionDto],
-    description: 'Questions in this exercise',
-  })
-  @IsArray()
-  @ValidateNested({ each: true })
-  @Type(() => CreateQuestionDto)
-  questions?: CreateQuestionDto[];
 }

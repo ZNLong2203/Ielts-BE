@@ -16,7 +16,6 @@ import { VideoService } from 'src/modules/video/video.service';
 import { PrismaService } from '../../prisma/prisma.service';
 import { QUESTION_TYPE } from './constants';
 
-// ✅ Export interfaces to make them available to controller
 export interface QuestionOption {
   id: string;
   question_id: string | null;
@@ -34,20 +33,18 @@ export interface Question {
   exercise_id: string | null;
   question_text: string;
   question_type: string;
-  media_url: string | null; // This matches your database field
+  image_url: string | null;
+  audio_url: string | null;
+  audio_duration: number | null;
+  reading_passage: string | null;
   explanation: string | null;
   points: Decimal | null;
   ordering: number | null;
   difficulty_level: Decimal | null;
+  question_group: string | null;
   deleted: boolean | null;
   created_at: Date | null;
   updated_at: Date | null;
-  // ✅ Optional fields for specific database schemas (if they exist)
-  image_url?: string | null;
-  audio_url?: string | null;
-  audio_duration?: number | null;
-  reading_passage?: string | null;
-  question_group?: string | null;
   options?: QuestionOption[];
   // ✅ Additional parsed fields from explanation JSON
   correct_answer?: string;
@@ -183,16 +180,35 @@ export class ExerciseService {
 
     // Create question with transaction
     return await this.prisma.$transaction(async (tx) => {
+      // Determine if media_url is image or audio
+      let imageUrl: string | null = null;
+      let audioUrl: string | null = null;
+
+      if (createQuestionDto.media_url) {
+        const mediaType = this.fileService.getMediaType(
+          createQuestionDto.media_url,
+        );
+        if (mediaType === 'image') {
+          imageUrl = createQuestionDto.media_url;
+        } else if (mediaType === 'audio') {
+          audioUrl = createQuestionDto.media_url;
+        }
+      }
+
       // ✅ Create questions with proper typing
       const question = await tx.questions.create({
         data: {
           exercise_id: exercise.id,
           question_text: createQuestionDto.question_text,
           question_type: createQuestionDto.question_type,
+          image_url: imageUrl,
+          audio_url: audioUrl,
+          reading_passage: createQuestionDto.reading_passage,
           explanation: createQuestionDto.explanation,
           points: createQuestionDto.points || 1,
           ordering: createQuestionDto.ordering || 0,
           difficulty_level: createQuestionDto.difficulty_level || 5,
+          question_group: createQuestionDto.question_group,
         },
       });
 
@@ -331,15 +347,11 @@ export class ExerciseService {
 
     // check media urls in questions is audio will return hls url
     for (const question of exercise.questions) {
-      const mediaUrl = question.audio_url || question.image_url;
-      if (mediaUrl) {
-        const mediaType = this.fileService.getMediaType(mediaUrl);
-        if (mediaType === 'audio' && question.audio_url) {
-          const hlsUrl = await this.videoService.getVideoHLSUrl(
-            question.audio_url,
-          );
-          question.audio_url = hlsUrl;
-        }
+      if (question.audio_url) {
+        const hlsUrl = await this.videoService.getVideoHLSUrl(
+          question.audio_url,
+        );
+        question.audio_url = hlsUrl;
       }
     }
 
@@ -389,9 +401,6 @@ export class ExerciseService {
             media_url: updateDto.media_url,
             exercise_metadata: {
               ...existingMetadata,
-              total_questions:
-                updateDto.questions?.length ||
-                existingMetadata?.total_questions,
               updated_at: new Date(),
             },
           },
@@ -423,16 +432,33 @@ export class ExerciseService {
     }
 
     return await this.prisma.$transaction(async (tx) => {
+      // Determine if media_url is image or audio
+      let imageUrl: string | undefined = undefined;
+      let audioUrl: string | undefined = undefined;
+
+      if (updateDto.media_url) {
+        const mediaType = this.fileService.getMediaType(updateDto.media_url);
+        if (mediaType === 'image') {
+          imageUrl = updateDto.media_url;
+        } else if (mediaType === 'audio') {
+          audioUrl = updateDto.media_url;
+        }
+      }
+
       // Update question
       const question = await tx.questions.update({
         where: { id: questionId },
         data: {
           question_text: updateDto.question_text,
           question_type: updateDto.question_type,
+          image_url: imageUrl,
+          audio_url: audioUrl,
+          reading_passage: updateDto.reading_passage,
           explanation: updateDto.explanation,
           points: updateDto.points || 1,
           ordering: updateDto.ordering || 0,
           difficulty_level: updateDto.difficulty_level || 5,
+          question_group: updateDto.question_group,
         },
       });
 
@@ -710,9 +736,7 @@ export class ExerciseService {
         FileType.EXERCISE_IMAGE,
       );
 
-      // Delete previous media if exists
-      if (!question.image_url)
-        throw new NotFoundException('No image found for this question');
+      // Delete previous image if exists
       if (question.image_url) {
         await this.fileService.deleteFiles(question.image_url);
       }
@@ -720,7 +744,7 @@ export class ExerciseService {
       return await this.prisma.questions.update({
         where: { id },
         data: {
-          image_url: uploadResult.fileName,
+          image_url: uploadResult.url,
           updated_at: new Date(),
         },
       });
@@ -749,9 +773,7 @@ export class ExerciseService {
         file.mimetype,
       );
 
-      // Delete previous media if exists
-      if (!question.audio_url)
-        throw new NotFoundException('No audio found for this question');
+      // Delete previous audio if exists
       if (question.audio_url) {
         await this.videoService.clearVideoData(question.audio_url);
       }

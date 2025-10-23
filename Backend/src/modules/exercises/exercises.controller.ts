@@ -1,4 +1,3 @@
-// src/modules/lessons/controllers/exercise.controller.ts
 import {
   Body,
   Controller,
@@ -12,9 +11,12 @@ import {
   Post,
   Put,
   UploadedFile,
+  UseInterceptors,
 } from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
 import {
   ApiBody,
+  ApiConsumes,
   ApiOperation,
   ApiParam,
   ApiResponse,
@@ -38,12 +40,14 @@ export class ExerciseController {
   constructor(private readonly exerciseService: ExerciseService) {}
 
   /**
-   * ✅ Create exercise
+   * ✅ Create exercise (without questions)
+   * Questions should be added separately using POST /:exerciseId/question
    */
   @Post()
   @ApiOperation({
     summary: 'Create exercise for lesson',
-    description: 'Create a new exercise with questions for a specific lesson',
+    description:
+      'Create a new exercise for a specific lesson. This only creates the exercise metadata. Questions should be added separately using the question endpoints.',
   })
   @ApiParam({
     name: 'lessonId',
@@ -55,8 +59,35 @@ export class ExerciseController {
   @ApiBody({ type: CreateExerciseDto })
   @ApiResponse({
     status: 201,
-    description: 'Exercise created successfully',
-    type: ApiResponseDto<ExerciseResponseDto>,
+    description: 'Exercise created successfully (without questions)',
+    schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean', example: true },
+        data: {
+          type: 'object',
+          properties: {
+            id: { type: 'string', format: 'uuid' },
+            lesson_id: { type: 'string', format: 'uuid' },
+            title: { type: 'string', example: 'IELTS Reading Exercise' },
+            instruction: {
+              type: 'string',
+              nullable: true,
+              example: 'Read the passage carefully and answer all questions',
+            },
+            content: { type: 'object', nullable: true },
+            time_limit: { type: 'number', example: 30 },
+            max_attempts: { type: 'number', example: 3 },
+            passing_score: { type: 'number', example: 70 },
+            ordering: { type: 'number', example: 0 },
+            is_active: { type: 'boolean', example: true },
+            deleted: { type: 'boolean', example: false },
+            created_at: { type: 'string', format: 'date-time' },
+            updated_at: { type: 'string', format: 'date-time' },
+          },
+        },
+      },
+    },
   })
   @ApiResponse({
     status: 400,
@@ -86,13 +117,13 @@ export class ExerciseController {
   }
 
   /**
-   * 🔍 Get exercise by ID
+   * 🔍 Get exercise by ID (includes questions)
    */
   @Get(':exerciseId')
   @ApiOperation({
     summary: 'Get exercise by ID',
     description:
-      'Retrieve detailed exercise information with questions and options',
+      'Retrieve detailed exercise information including all questions and options. Audio URLs are automatically converted to HLS streaming URLs.',
   })
   @ApiParam({
     name: 'lessonId',
@@ -130,12 +161,13 @@ export class ExerciseController {
   }
 
   /**
-   * ✏️ Update exercise
+   * ✏️ Update exercise metadata
    */
   @Put(':exerciseId')
   @ApiOperation({
     summary: 'Update exercise',
-    description: 'Update exercise information and questions',
+    description:
+      'Update exercise metadata (title, instruction, time_limit, etc.). To modify questions, use the question endpoints.',
   })
   @ApiParam({
     name: 'lessonId',
@@ -235,23 +267,56 @@ export class ExerciseController {
   @Get(':exerciseId/stats')
   @ApiOperation({
     summary: 'Get exercise statistics',
-    description: 'Get comprehensive statistics about the exercise',
+    description:
+      'Get comprehensive statistics about the exercise including question types, difficulty distribution, and scoring information',
   })
   @ApiParam({
     name: 'lessonId',
     description: 'Lesson ID',
     type: 'string',
     format: 'uuid',
+    example: '123e4567-e89b-12d3-a456-426614174000',
   })
   @ApiParam({
     name: 'exerciseId',
     description: 'Exercise ID',
     type: 'string',
     format: 'uuid',
+    example: '123e4567-e89b-12d3-a456-426614174001',
   })
   @ApiResponse({
     status: 200,
     description: 'Exercise statistics retrieved successfully',
+    schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean', example: true },
+        data: {
+          type: 'object',
+          properties: {
+            id: { type: 'string', format: 'uuid' },
+            title: { type: 'string', example: 'IELTS Reading Practice' },
+            total_questions: { type: 'number', example: 40 },
+            total_points: { type: 'number', example: 40 },
+            question_types: {
+              type: 'object',
+              example: {
+                multiple_choice: 20,
+                fill_blank: 10,
+                true_false: 10,
+              },
+            },
+            difficulty_distribution: {
+              type: 'object',
+              example: { 5: 10, 6: 15, 7: 15 },
+            },
+            time_limit: { type: 'number', example: 60, nullable: true },
+            passing_score: { type: 'number', example: 70, nullable: true },
+            is_active: { type: 'boolean', example: true },
+          },
+        },
+      },
+    },
   })
   @ApiResponse({
     status: 404,
@@ -271,15 +336,46 @@ export class ExerciseController {
     };
   }
 
-  // get all exercise types in the system
+  /**
+   * Get all question types available in the system
+   * NOTE: This route MUST be before /:exerciseId to avoid route conflicts
+   */
   @Get('types/all')
   @ApiOperation({
-    summary: 'Get all exercise types',
-    description: 'Retrieve a list of all exercise types in the system',
+    summary: 'Get all question types',
+    description:
+      'Retrieve a list of all available question types in the system (multiple_choice, essay, speaking, true_false, fill_blank, matching, summary_completion, droplist)',
+  })
+  @ApiParam({
+    name: 'lessonId',
+    description: 'Lesson ID (required in URL path)',
+    type: 'string',
+    format: 'uuid',
+    example: '123e4567-e89b-12d3-a456-426614174000',
   })
   @ApiResponse({
     status: 200,
-    description: 'Exercise types retrieved successfully',
+    description: 'Question types retrieved successfully',
+    schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean', example: true },
+        data: {
+          type: 'array',
+          items: { type: 'string' },
+          example: [
+            'multiple_choice',
+            'essay',
+            'speaking',
+            'true_false',
+            'fill_blank',
+            'matching',
+            'summary_completion',
+            'droplist',
+          ],
+        },
+      },
+    },
   })
   @Public()
   @MessageResponse('Exercise types retrieved successfully')
@@ -291,38 +387,80 @@ export class ExerciseController {
     };
   }
 
-  // upload question image
+  /**
+   * Upload image for question
+   */
   @Post(':exerciseId/question/:questionId/image')
   @HttpCode(HttpStatus.OK)
+  @UseInterceptors(FileInterceptor('file'))
+  @ApiConsumes('multipart/form-data')
   @ApiOperation({
     summary: 'Upload question image',
-    description: 'Upload an image for the question',
+    description:
+      'Upload an image for a question. Supports JPEG, PNG, JPG, GIF, and WebP formats. Max file size: 2MB. Replaces existing image if any.',
   })
   @ApiParam({
     name: 'lessonId',
     description: 'Lesson ID',
     type: 'string',
     format: 'uuid',
+    example: '123e4567-e89b-12d3-a456-426614174000',
   })
   @ApiParam({
     name: 'exerciseId',
     description: 'Exercise ID',
     type: 'string',
     format: 'uuid',
+    example: '123e4567-e89b-12d3-a456-426614174001',
   })
   @ApiParam({
     name: 'questionId',
-    description: 'Question ID',
+    description: 'Question ID to upload image for',
     type: 'string',
     format: 'uuid',
+    example: '123e4567-e89b-12d3-a456-426614174002',
+  })
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        file: {
+          type: 'string',
+          format: 'binary',
+          description: 'Image file (JPEG, PNG, JPG, GIF, WebP - Max 2MB)',
+        },
+      },
+      required: ['file'],
+    },
   })
   @ApiResponse({
     status: 200,
     description: 'Question image uploaded successfully',
+    schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean', example: true },
+        data: {
+          type: 'object',
+          properties: {
+            id: { type: 'string', format: 'uuid' },
+            image_url: {
+              type: 'string',
+              example: 'https://example.com/exercises/image.jpg',
+            },
+            updated_at: { type: 'string', format: 'date-time' },
+          },
+        },
+      },
+    },
   })
   @ApiResponse({
     status: 404,
     description: 'Question not found',
+  })
+  @ApiResponse({
+    status: 422,
+    description: 'Invalid file type or file size exceeds limit',
   })
   @Public()
   @MessageResponse('Question image uploaded successfully')
@@ -355,38 +493,86 @@ export class ExerciseController {
     };
   }
 
-  // upload question audio max 10min
+  /**
+   * Upload audio for question
+   */
   @Post(':exerciseId/question/:questionId/audio')
   @HttpCode(HttpStatus.OK)
+  @UseInterceptors(FileInterceptor('file'))
+  @ApiConsumes('multipart/form-data')
   @ApiOperation({
     summary: 'Upload question audio',
-    description: 'Upload an audio file for the question',
+    description:
+      'Upload an audio file for a question. Supports MP3, WAV, AAC, OGG, and MPEG formats. Max file size: 10MB. Audio is converted to HLS format for streaming. Replaces existing audio if any.',
   })
   @ApiParam({
     name: 'lessonId',
     description: 'Lesson ID',
     type: 'string',
     format: 'uuid',
+    example: '123e4567-e89b-12d3-a456-426614174000',
   })
   @ApiParam({
     name: 'exerciseId',
     description: 'Exercise ID',
     type: 'string',
     format: 'uuid',
+    example: '123e4567-e89b-12d3-a456-426614174001',
   })
   @ApiParam({
     name: 'questionId',
-    description: 'Question ID',
+    description: 'Question ID to upload audio for',
     type: 'string',
     format: 'uuid',
+    example: '123e4567-e89b-12d3-a456-426614174002',
+  })
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        file: {
+          type: 'string',
+          format: 'binary',
+          description: 'Audio file (MP3, WAV, AAC, OGG, MPEG - Max 10MB)',
+        },
+      },
+      required: ['file'],
+    },
   })
   @ApiResponse({
     status: 200,
-    description: 'Question audio uploaded successfully',
+    description: 'Question audio uploaded and converted to HLS successfully',
+    schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean', example: true },
+        data: {
+          type: 'object',
+          properties: {
+            id: { type: 'string', format: 'uuid' },
+            audio_url: {
+              type: 'string',
+              example: 'exercises/audio/filename.m3u8',
+              description: 'HLS playlist path for streaming',
+            },
+            audio_duration: {
+              type: 'number',
+              example: 120,
+              description: 'Audio duration in seconds',
+            },
+            updated_at: { type: 'string', format: 'date-time' },
+          },
+        },
+      },
+    },
   })
   @ApiResponse({
     status: 404,
     description: 'Question not found',
+  })
+  @ApiResponse({
+    status: 422,
+    description: 'Invalid file type or file size exceeds limit',
   })
   @Public()
   @MessageResponse('Question audio uploaded successfully')
@@ -426,17 +612,91 @@ export class ExerciseController {
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({
     summary: 'Create question for exercise',
-    description: 'Create a new question for the specified exercise',
+    description:
+      'Create a new question for the specified exercise. Questions are created separately from exercises. Use media_url to upload image or audio, which will be automatically split into image_url or audio_url based on file type.',
+  })
+  @ApiParam({
+    name: 'lessonId',
+    description: 'Lesson ID',
+    type: 'string',
+    format: 'uuid',
+    example: '123e4567-e89b-12d3-a456-426614174000',
   })
   @ApiParam({
     name: 'exerciseId',
-    description: 'Exercise ID',
+    description: 'Exercise ID to add question to',
     type: 'string',
     format: 'uuid',
+    example: '123e4567-e89b-12d3-a456-426614174001',
+  })
+  @ApiBody({
+    type: CreateQuestionDto,
+    description:
+      'Question data including text, options, correct answer, and optional media',
+    examples: {
+      'Multiple Choice': {
+        value: {
+          question_text: 'What is the capital of France?',
+          question_type: 'multiple_choice',
+          options: ['London', 'Paris', 'Berlin', 'Madrid'],
+          correct_answer: 'Paris',
+          points: 1,
+          order_index: 1,
+        },
+      },
+      'With Image': {
+        value: {
+          question_text: 'Identify the object in the image',
+          question_type: 'multiple_choice',
+          media_url: 'https://example.com/image.jpg',
+          options: ['Cat', 'Dog', 'Bird', 'Fish'],
+          correct_answer: 'Cat',
+          points: 1,
+          order_index: 2,
+        },
+      },
+      'With Audio': {
+        value: {
+          question_text: 'What did the speaker say?',
+          question_type: 'listening',
+          media_url: 'https://example.com/audio.mp3',
+          options: ['Yes', 'No', 'Maybe'],
+          correct_answer: 'Yes',
+          points: 1,
+          order_index: 3,
+        },
+      },
+    },
   })
   @ApiResponse({
     status: 201,
     description: 'Question created successfully',
+    schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean', example: true },
+        data: {
+          type: 'object',
+          properties: {
+            id: { type: 'string', format: 'uuid' },
+            exercise_id: { type: 'string', format: 'uuid' },
+            question_text: { type: 'string' },
+            question_type: { type: 'string' },
+            image_url: { type: 'string', nullable: true },
+            audio_url: { type: 'string', nullable: true },
+            audio_duration: { type: 'number', nullable: true },
+            reading_passage: { type: 'string', nullable: true },
+            question_group: { type: 'string', nullable: true },
+            options: { type: 'array', items: { type: 'string' } },
+            correct_answer: { type: 'string' },
+            points: { type: 'number' },
+            order_index: { type: 'number' },
+            created_at: { type: 'string', format: 'date-time' },
+            updated_at: { type: 'string', format: 'date-time' },
+          },
+        },
+      },
+    },
   })
   @ApiResponse({
     status: 404,
@@ -445,6 +705,7 @@ export class ExerciseController {
   @Public()
   @MessageResponse('Question created successfully')
   async createQuestion(
+    @Param('lessonId', ParseUUIDPipe) lessonId: string,
     @Param('exerciseId', ParseUUIDPipe) exerciseId: string,
     @Body() createQuestionDto: CreateQuestionDto,
   ) {
@@ -466,23 +727,77 @@ export class ExerciseController {
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
     summary: 'Update question for exercise',
-    description: 'Update an existing question for the specified exercise',
+    description:
+      'Update an existing question for the specified exercise. Use media_url to update image or audio, which will be automatically split into image_url or audio_url based on file type.',
+  })
+  @ApiParam({
+    name: 'lessonId',
+    description: 'Lesson ID',
+    type: 'string',
+    format: 'uuid',
+    example: '123e4567-e89b-12d3-a456-426614174000',
   })
   @ApiParam({
     name: 'exerciseId',
     description: 'Exercise ID',
     type: 'string',
     format: 'uuid',
+    example: '123e4567-e89b-12d3-a456-426614174001',
   })
   @ApiParam({
     name: 'questionId',
-    description: 'Question ID',
+    description: 'Question ID to update',
     type: 'string',
     format: 'uuid',
+    example: '123e4567-e89b-12d3-a456-426614174002',
+  })
+  @ApiBody({
+    type: CreateQuestionDto,
+    description: 'Partial question data to update',
+    examples: {
+      'Update Text': {
+        value: {
+          question_text: 'Updated question text',
+          points: 2,
+        },
+      },
+      'Update with Image': {
+        value: {
+          question_text: 'What is shown in this image?',
+          media_url: 'https://example.com/new-image.jpg',
+        },
+      },
+    },
   })
   @ApiResponse({
     status: 200,
     description: 'Question updated successfully',
+    schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean', example: true },
+        data: {
+          type: 'object',
+          properties: {
+            id: { type: 'string', format: 'uuid' },
+            exercise_id: { type: 'string', format: 'uuid' },
+            question_text: { type: 'string' },
+            question_type: { type: 'string' },
+            image_url: { type: 'string', nullable: true },
+            audio_url: { type: 'string', nullable: true },
+            audio_duration: { type: 'number', nullable: true },
+            reading_passage: { type: 'string', nullable: true },
+            question_group: { type: 'string', nullable: true },
+            options: { type: 'array', items: { type: 'string' } },
+            correct_answer: { type: 'string' },
+            points: { type: 'number' },
+            order_index: { type: 'number' },
+            created_at: { type: 'string', format: 'date-time' },
+            updated_at: { type: 'string', format: 'date-time' },
+          },
+        },
+      },
+    },
   })
   @ApiResponse({
     status: 404,
@@ -491,6 +806,7 @@ export class ExerciseController {
   @Public()
   @MessageResponse('Question updated successfully')
   async updateQuestion(
+    @Param('lessonId', ParseUUIDPipe) lessonId: string,
     @Param('exerciseId', ParseUUIDPipe) exerciseId: string,
     @Param('questionId', ParseUUIDPipe) questionId: string,
     @Body() updateQuestionDto: CreateQuestionDto,
@@ -513,23 +829,39 @@ export class ExerciseController {
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
     summary: 'Delete question for exercise',
-    description: 'Delete an existing question for the specified exercise',
+    description:
+      'Delete an existing question for the specified exercise. This will permanently remove the question and all its associated data including media files.',
+  })
+  @ApiParam({
+    name: 'lessonId',
+    description: 'Lesson ID',
+    type: 'string',
+    format: 'uuid',
+    example: '123e4567-e89b-12d3-a456-426614174000',
   })
   @ApiParam({
     name: 'exerciseId',
     description: 'Exercise ID',
     type: 'string',
     format: 'uuid',
+    example: '123e4567-e89b-12d3-a456-426614174001',
   })
   @ApiParam({
     name: 'questionId',
-    description: 'Question ID',
+    description: 'Question ID to delete',
     type: 'string',
     format: 'uuid',
+    example: '123e4567-e89b-12d3-a456-426614174002',
   })
   @ApiResponse({
     status: 200,
     description: 'Question deleted successfully',
+    schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean', example: true },
+      },
+    },
   })
   @ApiResponse({
     status: 404,
@@ -538,6 +870,7 @@ export class ExerciseController {
   @Public()
   @MessageResponse('Question deleted successfully')
   async deleteQuestion(
+    @Param('lessonId', ParseUUIDPipe) lessonId: string,
     @Param('exerciseId', ParseUUIDPipe) exerciseId: string,
     @Param('questionId', ParseUUIDPipe) questionId: string,
   ) {
