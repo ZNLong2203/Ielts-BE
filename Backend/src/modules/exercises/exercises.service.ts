@@ -189,7 +189,6 @@ export class ExerciseService {
           exercise_id: exercise.id,
           question_text: createQuestionDto.question_text,
           question_type: createQuestionDto.question_type,
-          media_url: createQuestionDto.media_url,
           explanation: createQuestionDto.explanation,
           points: createQuestionDto.points || 1,
           ordering: createQuestionDto.ordering || 0,
@@ -332,14 +331,14 @@ export class ExerciseService {
 
     // check media urls in questions is audio will return hls url
     for (const question of exercise.questions) {
-      const mediaUrl = question.media_url;
+      const mediaUrl = question.audio_url || question.image_url;
       if (mediaUrl) {
         const mediaType = this.fileService.getMediaType(mediaUrl);
-        if (mediaType === 'audio' && question.media_url) {
+        if (mediaType === 'audio' && question.audio_url) {
           const hlsUrl = await this.videoService.getVideoHLSUrl(
-            question.media_url,
+            question.audio_url,
           );
-          question.media_url = hlsUrl;
+          question.audio_url = hlsUrl;
         }
       }
     }
@@ -430,7 +429,6 @@ export class ExerciseService {
         data: {
           question_text: updateDto.question_text,
           question_type: updateDto.question_type,
-          media_url: updateDto.media_url,
           explanation: updateDto.explanation,
           points: updateDto.points || 1,
           ordering: updateDto.ordering || 0,
@@ -713,21 +711,16 @@ export class ExerciseService {
       );
 
       // Delete previous media if exists
-      if (!question.media_url)
-        throw new NotFoundException('No media found for this question');
-      const isAudio =
-        this.fileService.getMediaType(question.media_url) === 'audio';
-      if (!isAudio && question.media_url) {
-        await this.fileService.deleteFiles(question.media_url);
-      }
-      if (isAudio && question.media_url) {
-        await this.videoService.clearVideoData(question.media_url);
+      if (!question.image_url)
+        throw new NotFoundException('No image found for this question');
+      if (question.image_url) {
+        await this.fileService.deleteFiles(question.image_url);
       }
 
       return await this.prisma.questions.update({
         where: { id },
         data: {
-          media_url: uploadResult.url,
+          image_url: uploadResult.fileName,
           updated_at: new Date(),
         },
       });
@@ -757,21 +750,16 @@ export class ExerciseService {
       );
 
       // Delete previous media if exists
-      if (!question.media_url)
-        throw new NotFoundException('No media found for this question');
-      const isAudio =
-        this.fileService.getMediaType(question.media_url) === 'audio';
-      if (!isAudio && question.media_url) {
-        await this.fileService.deleteFiles(question.media_url);
-      }
-      if (isAudio && question.media_url) {
-        await this.videoService.clearVideoData(question.media_url);
+      if (!question.audio_url)
+        throw new NotFoundException('No audio found for this question');
+      if (question.audio_url) {
+        await this.videoService.clearVideoData(question.audio_url);
       }
 
       return await this.prisma.questions.update({
         where: { id },
         data: {
-          media_url: uploadResult.fileName,
+          audio_url: uploadResult.fileName,
           updated_at: new Date(),
         },
       });
