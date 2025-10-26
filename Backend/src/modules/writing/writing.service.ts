@@ -1,3 +1,7 @@
+/* eslint-disable @typescript-eslint/no-unsafe-assignment */
+/* eslint-disable @typescript-eslint/no-unsafe-member-access */
+/* eslint-disable @typescript-eslint/no-unsafe-call */
+/* eslint-disable @typescript-eslint/no-unsafe-return */
 import {
   Injectable,
   NotFoundException,
@@ -20,6 +24,10 @@ import {
   GradeWritingDto,
   WritingGradeResponse as GeminiWritingGradeResponse,
 } from './dto/grade-writing.dto';
+import {
+  SaveWritingAssessmentDto,
+  WritingAssessmentResponse,
+} from './dto/save-writing-assessment.dto';
 
 interface WritingContent {
   taskType?: string;
@@ -305,5 +313,150 @@ export class WritingService {
     });
 
     return submissions;
+  }
+
+  // Save writing assessment
+  async saveWritingAssessment(
+    userId: string,
+    saveDto: SaveWritingAssessmentDto,
+  ): Promise<WritingAssessmentResponse> {
+    const assessment = await (
+      this.prisma.prisma as any
+    ).writing_assessments.create({
+      data: {
+        user_id: userId,
+        task_type: saveDto.taskType,
+        question: saveDto.question,
+        student_answer: saveDto.studentAnswer,
+        word_limit: saveDto.wordLimit,
+        additional_instructions: saveDto.additionalInstructions,
+        overall_score: saveDto.overallScore,
+        task_achievement_score: saveDto.taskAchievementScore,
+        coherence_cohesion_score: saveDto.coherenceCohesionScore,
+        lexical_resource_score: saveDto.lexicalResourceScore,
+        grammatical_range_accuracy_score: saveDto.grammaticalRangeAccuracyScore,
+        detailed_feedback: saveDto.detailedFeedback,
+        suggestions: saveDto.suggestions || [],
+        strengths: saveDto.strengths || [],
+        weaknesses: saveDto.weaknesses || [],
+        detailed_metrics: saveDto.detailedMetrics || {},
+        upgraded_essay: saveDto.upgradedEssay,
+        sample_answer: saveDto.sampleAnswer,
+        ai_model: saveDto.aiModel || 'gemini-2.5-flash',
+        status: 'completed',
+      },
+    });
+
+    return {
+      id: assessment.id,
+      userId: assessment.user_id,
+      taskType: assessment.task_type,
+      question: assessment.question,
+      studentAnswer: assessment.student_answer,
+      wordLimit: assessment.word_limit || undefined,
+      additionalInstructions: assessment.additional_instructions || undefined,
+      overallScore: Number(assessment.overall_score),
+      taskAchievementScore: Number(assessment.task_achievement_score),
+      coherenceCohesionScore: Number(assessment.coherence_cohesion_score),
+      lexicalResourceScore: Number(assessment.lexical_resource_score),
+      grammaticalRangeAccuracyScore: Number(
+        assessment.grammatical_range_accuracy_score,
+      ),
+      detailedFeedback: assessment.detailed_feedback || '',
+      suggestions: assessment.suggestions as string[],
+      strengths: assessment.strengths as string[],
+      weaknesses: assessment.weaknesses as string[],
+      detailedMetrics: assessment.detailed_metrics,
+      upgradedEssay: assessment.upgraded_essay || undefined,
+      sampleAnswer: assessment.sample_answer || undefined,
+      aiModel: assessment.ai_model || undefined,
+      gradingMethod: assessment.grading_method,
+      status: assessment.status || '',
+      createdAt: assessment.created_at,
+      updatedAt: assessment.updated_at,
+    };
+  }
+
+  // Get writing assessments by user
+  async getWritingAssessmentsByUser(
+    userId: string,
+  ): Promise<WritingAssessmentResponse[]> {
+    const assessments = await (
+      this.prisma.prisma as any
+    ).writing_assessments.findMany({
+      where: { user_id: userId, deleted: false },
+      orderBy: { created_at: 'desc' },
+    });
+
+    return assessments.map((assessment) => ({
+      id: assessment.id,
+      userId: assessment.user_id,
+      taskType: assessment.task_type,
+      question: assessment.question,
+      studentAnswer: assessment.student_answer,
+      wordLimit: assessment.word_limit || undefined,
+      additionalInstructions: assessment.additional_instructions || undefined,
+      overallScore: Number(assessment.overall_score),
+      taskAchievementScore: Number(assessment.task_achievement_score),
+      coherenceCohesionScore: Number(assessment.coherence_cohesion_score),
+      lexicalResourceScore: Number(assessment.lexical_resource_score),
+      grammaticalRangeAccuracyScore: Number(
+        assessment.grammatical_range_accuracy_score,
+      ),
+      detailedFeedback: assessment.detailed_feedback || '',
+      suggestions: assessment.suggestions as string[],
+      strengths: assessment.strengths as string[],
+      weaknesses: assessment.weaknesses as string[],
+      detailedMetrics: assessment.detailed_metrics,
+      upgradedEssay: assessment.upgraded_essay || undefined,
+      sampleAnswer: assessment.sample_answer || undefined,
+      aiModel: assessment.ai_model || undefined,
+      gradingMethod: assessment.grading_method,
+      status: assessment.status || '',
+      createdAt: assessment.created_at,
+      updatedAt: assessment.updated_at,
+    }));
+  }
+
+  // Get writing assessment by ID
+  async getWritingAssessmentById(
+    id: string,
+  ): Promise<WritingAssessmentResponse | null> {
+    const assessment = await (
+      this.prisma.prisma as any
+    ).writing_assessments.findFirst({
+      where: { id, deleted: false },
+    });
+
+    if (!assessment) return null;
+
+    return {
+      id: assessment.id,
+      userId: assessment.user_id,
+      taskType: assessment.task_type,
+      question: assessment.question,
+      studentAnswer: assessment.student_answer,
+      wordLimit: assessment.word_limit || undefined,
+      additionalInstructions: assessment.additional_instructions || undefined,
+      overallScore: Number(assessment.overall_score),
+      taskAchievementScore: Number(assessment.task_achievement_score),
+      coherenceCohesionScore: Number(assessment.coherence_cohesion_score),
+      lexicalResourceScore: Number(assessment.lexical_resource_score),
+      grammaticalRangeAccuracyScore: Number(
+        assessment.grammatical_range_accuracy_score,
+      ),
+      detailedFeedback: assessment.detailed_feedback || '',
+      suggestions: assessment.suggestions as string[],
+      strengths: assessment.strengths as string[],
+      weaknesses: assessment.weaknesses as string[],
+      detailedMetrics: assessment.detailed_metrics,
+      upgradedEssay: assessment.upgraded_essay || undefined,
+      sampleAnswer: assessment.sample_answer || undefined,
+      aiModel: assessment.ai_model || undefined,
+      gradingMethod: assessment.grading_method,
+      status: assessment.status || '',
+      createdAt: assessment.created_at,
+      updatedAt: assessment.updated_at,
+    };
   }
 }

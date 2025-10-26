@@ -37,4 +37,80 @@ export class WritingGradeResponse {
   suggestions: string[];
   strengths: string[];
   weaknesses: string[];
+
+  // Detailed metrics for Task 1 & Task 2
+  detailedMetrics?: {
+    task1?: {
+      score: number;
+      taskAchievement: number;
+      coherenceCohesion: number;
+      lexicalResource: number;
+      grammaticalRangeAccuracy: number;
+      scoreDescription: string;
+      criteriaBreakdown: {
+        addressingAllParts?: { score: number; level: string; feedback: string };
+        comparisons?: { score: number; level: string; feedback: string };
+        progression?: { score: number; level: string; feedback: string };
+        linkingDevices?: { score: number; level: string; feedback: string };
+        paragraphing?: { score: number; level: string; feedback: string };
+        vocabularyRange?: { score: number; level: string; feedback: string };
+        wordFormation?: { score: number; level: string; feedback: string };
+        grammarVariety?: { score: number; level: string; feedback: string };
+        accuracy?: { score: number; level: string; feedback: string };
+      };
+      collocations?: Array<{ phrase: string; context: string }>;
+      topicSpecificWords?: string[];
+      lexicalErrors?: Array<{
+        original: string;
+        corrected: string;
+        context: string;
+      }>;
+      grammaticalErrors?: Array<{
+        original: string;
+        corrected: string;
+        context: string;
+      }>;
+      repetitiveWords?: string[];
+      improvements?: string[];
+    };
+    task2?: {
+      score: number;
+      taskResponse: number;
+      coherenceCohesion: number;
+      lexicalResource: number;
+      grammaticalRangeAccuracy: number;
+      scoreDescription: string;
+      criteriaBreakdown: {
+        addressingAllParts?: { score: number; level: string; feedback: string };
+        position?: { score: number; level: string; feedback: string };
+        progression?: { score: number; level: string; feedback: string };
+        linkingDevices?: { score: number; level: string; feedback: string };
+        paragraphing?: { score: number; level: string; feedback: string };
+        vocabularyRange?: { score: number; level: string; feedback: string };
+        wordFormation?: { score: number; level: string; feedback: string };
+        grammarVariety?: { score: number; level: string; feedback: string };
+        accuracy?: { score: number; level: string; feedback: string };
+      };
+      collocations?: Array<{ phrase: string; context: string }>;
+      topicSpecificWords?: string[];
+      lexicalErrors?: Array<{
+        original: string;
+        corrected: string;
+        context: string;
+      }>;
+      grammaticalErrors?: Array<{
+        original: string;
+        corrected: string;
+        context: string;
+      }>;
+      repetitiveWords?: string[];
+      improvements?: string[];
+    };
+  };
+
+  // Sample upgraded essay
+  upgradedEssay?: string;
+
+  // Sample answer
+  sampleAnswer?: string;
 }

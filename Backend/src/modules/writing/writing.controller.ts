@@ -28,6 +28,10 @@ import {
   WritingGradeResponse as GeminiWritingGradeResponse,
 } from './dto/grade-writing.dto';
 import {
+  SaveWritingAssessmentDto,
+  WritingAssessmentResponse,
+} from './dto/save-writing-assessment.dto';
+import {
   Public,
   CurrentUser,
   SkipCheckPermission,
@@ -154,5 +158,42 @@ export class WritingController {
     @Body() gradeWritingDto: GradeWritingDto,
   ): Promise<GeminiWritingGradeResponse> {
     return this.writingService.gradeWritingByGemini(gradeWritingDto);
+  }
+
+  // Save writing assessment
+  @Post('save-assessment')
+  @ApiOperation({ summary: 'Save writing assessment to database' })
+  @ApiBearerAuth()
+  @SkipCheckPermission()
+  @MessageResponse(MESSAGE.WRITING.CREATE_SUCCESS)
+  async saveWritingAssessment(
+    @CurrentUser() user: IUser,
+    @Body() saveDto: SaveWritingAssessmentDto,
+  ): Promise<WritingAssessmentResponse> {
+    return this.writingService.saveWritingAssessment(user.id, saveDto);
+  }
+
+  // Get my writing assessments
+  @Get('my-assessments')
+  @ApiOperation({ summary: 'Get my writing assessments' })
+  @ApiBearerAuth()
+  @SkipCheckPermission()
+  @MessageResponse('Retrieved assessments successfully')
+  async getMyAssessments(
+    @CurrentUser() user: IUser,
+  ): Promise<WritingAssessmentResponse[]> {
+    return this.writingService.getWritingAssessmentsByUser(user.id);
+  }
+
+  // Get writing assessment by ID
+  @Get('assessment/:id')
+  @ApiOperation({ summary: 'Get writing assessment by ID' })
+  @ApiBearerAuth()
+  @SkipCheckPermission()
+  @MessageResponse('Retrieved assessment successfully')
+  async getWritingAssessment(
+    @Param('id') id: string,
+  ): Promise<WritingAssessmentResponse | null> {
+    return this.writingService.getWritingAssessmentById(id);
   }
 }

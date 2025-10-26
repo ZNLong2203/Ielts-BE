@@ -169,7 +169,93 @@ export class GeminiService {
      "detailedFeedback": "[detailed explanation of the score and performance]",
      "suggestions": ["suggestion1", "suggestion2", "suggestion3"],
      "strengths": ["strength1", "strength2", "strength3"],
-     "weaknesses": ["weakness1", "weakness2", "weakness3"]
+     "weaknesses": ["weakness1", "weakness2", "weakness3"],
+     "detailedMetrics": {
+       "task1": {
+         "score": [number from 0-9],
+         "taskAchievement": [number from 0-9],
+         "coherenceCohesion": [number from 0-9],
+         "lexicalResource": [number from 0-9],
+         "grammaticalRangeAccuracy": [number from 0-9],
+         "scoreDescription": "[detailed description of what this score means in Vietnamese]",
+         "criteriaBreakdown": {
+           "addressingAllParts": {
+             "score": [number 0-100],
+             "level": "Excellent|Very Good|Good|Needs Improvement",
+             "feedback": "[specific feedback]"
+           },
+           "comparisons": {
+             "score": [number 0-100],
+             "level": "Excellent|Very Good|Good|Needs Improvement",
+             "feedback": "[specific feedback]"
+           },
+           "progression": {
+             "score": [number 0-100],
+             "level": "Excellent|Very Good|Good|Needs Improvement",
+             "feedback": "[specific feedback]"
+           },
+           "linkingDevices": {
+             "score": [number 0-100],
+             "level": "Excellent|Very Good|Good|Needs Improvement",
+             "feedback": "[specific feedback]"
+           },
+           "paragraphing": {
+             "score": [number 0-100],
+             "level": "Excellent|Very Good|Good|Needs Improvement",
+             "feedback": "[specific feedback]"
+           },
+           "vocabularyRange": {
+             "score": [number 0-100],
+             "level": "Excellent|Very Good|Good|Needs Improvement",
+             "feedback": "[specific feedback]"
+           },
+           "wordFormation": {
+             "score": [number 0-100],
+             "level": "Excellent|Very Good|Good|Needs Improvement",
+             "feedback": "[specific feedback]"
+           },
+           "grammarVariety": {
+             "score": [number 0-100],
+             "level": "Excellent|Very Good|Good|Needs Improvement",
+             "feedback": "[specific feedback]"
+           },
+           "accuracy": {
+             "score": [number 0-100],
+             "level": "Excellent|Very Good|Good|Needs Improvement",
+             "feedback": "[specific feedback]"
+           }
+         },
+         "collocations": [
+           {"phrase": "phrase1", "context": "sentence where it appears"}
+         ],
+         "topicSpecificWords": ["word1", "word2"],
+         "lexicalErrors": [
+           {"original": "wrong word", "corrected": "correct word", "context": "sentence"}
+         ],
+         "grammaticalErrors": [
+           {"original": "wrong grammar", "corrected": "correct grammar", "context": "sentence"}
+         ],
+         "repetitiveWords": ["word1", "word2"],
+         "improvements": ["improvement1", "improvement2"]
+       },
+       "task2": {
+         "score": [number from 0-9],
+         "taskResponse": [number from 0-9],
+         "coherenceCohesion": [number from 0-9],
+         "lexicalResource": [number from 0-9],
+         "grammaticalRangeAccuracy": [number from 0-9],
+         "scoreDescription": "[detailed description in Vietnamese]",
+         "criteriaBreakdown": { /* same structure as task1 */ },
+         "collocations": [ /* same as task1 */ ],
+         "topicSpecificWords": [ /* same as task1 */ ],
+         "lexicalErrors": [ /* same as task1 */ ],
+         "grammaticalErrors": [ /* same as task1 */ ],
+         "repetitiveWords": [ /* same as task1 */ ],
+         "improvements": [ /* same as task1 */ ]
+       }
+     },
+     "upgradedEssay": "[An improved version of the student's essay with the same content but better language]",
+     "sampleAnswer": "[A sample high-quality answer to this question]"
    }
 
    Focus on:
@@ -178,7 +264,7 @@ export class GeminiService {
    3. Lexical Resource: Vocabulary range and accuracy
    4. Grammatical Range and Accuracy: Grammar variety and correctness
 
-   Provide constructive feedback that helps the student improve.
+   IMPORTANT: For each score level, provide detailed description in Vietnamese explaining what this score means. Extract all collocations (word partnerships), topic-specific vocabulary, identify all errors with corrections, and provide specific improvements.
    `;
   }
 
@@ -234,13 +320,30 @@ export class GeminiService {
 
   private parseGradingResponse(text: string): WritingGradeResponse {
     try {
-      // Extract JSON from the response
-      const jsonMatch = text.match(/\{[\s\S]*\}/);
+      // Try to extract JSON from the response with better error handling
+      let jsonMatch = text.match(/\{[\s\S]*\}/);
+
       if (!jsonMatch) {
         throw new Error('No valid JSON found in response');
       }
 
-      const parsed = JSON.parse(jsonMatch[0]) as Record<string, any>;
+      let parsed: any;
+      try {
+        parsed = JSON.parse(jsonMatch[0]) as Record<string, any>;
+      } catch (parseError) {
+        // If JSON parsing fails, try to fix common issues
+        const cleanedJson = jsonMatch[0]
+          .replace(/,(\s*[}\]])/g, '$1') // Remove trailing commas
+          .replace(/([{,]\s*)([a-zA-Z_][a-zA-Z0-9_]*)\s*:/g, '$1"$2":'); // Quote unquoted keys
+
+        try {
+          parsed = JSON.parse(cleanedJson);
+        } catch {
+          // Last resort: return minimal response
+          console.error('Failed to parse AI response:', parseError);
+          return this.getDefaultWritingResponse();
+        }
+      }
 
       // Validate required fields
       const requiredFields = [
@@ -249,24 +352,39 @@ export class GeminiService {
         'coherenceCohesion',
         'lexicalResource',
         'grammaticalRangeAccuracy',
-        'detailedFeedback',
-        'suggestions',
-        'strengths',
-        'weaknesses',
       ];
 
       for (const field of requiredFields) {
         if (parsed[field] === undefined) {
-          throw new Error(`Missing required field: ${field}`);
+          parsed[field] = 0;
         }
       }
 
+      // Ensure arrays have defaults
+      if (!parsed.detailedFeedback)
+        parsed.detailedFeedback = 'No detailed feedback available.';
+      if (!Array.isArray(parsed.suggestions)) parsed.suggestions = [];
+      if (!Array.isArray(parsed.strengths)) parsed.strengths = [];
+      if (!Array.isArray(parsed.weaknesses)) parsed.weaknesses = [];
+
       return parsed as WritingGradeResponse;
     } catch (error) {
-      throw new HttpException(
-        `Error parsing grading response: ${error instanceof Error ? error.message : 'Unknown error'}`,
-        HttpStatus.INTERNAL_SERVER_ERROR,
-      );
+      console.error('Error parsing grading response:', error);
+      return this.getDefaultWritingResponse();
     }
+  }
+
+  private getDefaultWritingResponse(): WritingGradeResponse {
+    return {
+      overallScore: 0,
+      taskAchievement: 0,
+      coherenceCohesion: 0,
+      lexicalResource: 0,
+      grammaticalRangeAccuracy: 0,
+      detailedFeedback: 'Unable to parse AI response. Please try again.',
+      suggestions: [],
+      strengths: [],
+      weaknesses: [],
+    };
   }
 }

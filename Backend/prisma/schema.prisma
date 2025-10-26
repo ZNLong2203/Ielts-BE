@@ -46,6 +46,7 @@ model users {
   user_learning_paths      user_learning_paths[]
   user_progress            user_progress[]
   user_submissions         user_submissions[]
+  writing_assessments      writing_assessments[]
 
   @@index([email], map: "idx_users_email")
 }
@@ -672,4 +673,33 @@ model test_sections {
   exercises       exercises[]
   section_results section_results[]
   mock_tests      mock_tests?       @relation(fields: [mock_test_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+}
+
+model writing_assessments {
+  id                               String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id                          String?   @db.Uuid
+  task_type                        String    @db.VarChar(10)
+  question                         String
+  student_answer                   String
+  word_limit                       String?   @db.VarChar(50)
+  additional_instructions          String?
+  overall_score                    Decimal?  @db.Decimal(3, 1)
+  task_achievement_score           Decimal?  @db.Decimal(3, 1)
+  coherence_cohesion_score         Decimal?  @db.Decimal(3, 1)
+  lexical_resource_score           Decimal?  @db.Decimal(3, 1)
+  grammatical_range_accuracy_score Decimal?  @db.Decimal(3, 1)
+  detailed_feedback                String?
+  suggestions                      Json?
+  strengths                        Json?
+  weaknesses                       Json?
+  detailed_metrics                 Json?
+  upgraded_essay                   String?
+  sample_answer                    String?
+  ai_model                         String?   @db.VarChar(50)
+  grading_method                   String?   @default("ai") @db.VarChar(20)
+  status                           String?   @default("completed") @db.VarChar(20)
+  deleted                          Boolean?  @default(false)
+  created_at                       DateTime? @default(now()) @db.Timestamp(6)
+  updated_at                       DateTime? @default(now()) @db.Timestamp(6)
+  users                            users?    @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
 }
