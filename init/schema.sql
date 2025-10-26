@@ -358,6 +358,39 @@ CREATE TABLE user_submissions (
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
+CREATE TABLE writing_assessments (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID REFERENCES users(id) ON DELETE CASCADE,
+    task_type VARCHAR(10) NOT NULL, -- 'task_1' or 'task_2'
+    question TEXT NOT NULL,
+    student_answer TEXT NOT NULL,
+    word_limit VARCHAR(50),
+    additional_instructions TEXT,
+    -- Overall scores
+    overall_score DECIMAL(3,1), -- 0.0 to 9.0
+    task_achievement_score DECIMAL(3,1),
+    coherence_cohesion_score DECIMAL(3,1),
+    lexical_resource_score DECIMAL(3,1),
+    grammatical_range_accuracy_score DECIMAL(3,1),
+    -- Detailed AI feedback
+    detailed_feedback TEXT,
+    suggestions JSONB, -- array of suggestion strings
+    strengths JSONB, -- array of strength strings
+    weaknesses JSONB, -- array of weakness strings
+    -- Detailed metrics (Task 1 & Task 2 specific)
+    detailed_metrics JSONB, -- full detailed metrics structure
+    -- Sample answers
+    upgraded_essay TEXT,
+    sample_answer TEXT,
+    -- Metadata
+    ai_model VARCHAR(50), -- e.g., 'gemini-2.5-flash'
+    grading_method VARCHAR(20) DEFAULT 'ai',
+    status VARCHAR(20) DEFAULT 'completed', -- completed, failed, processing
+    deleted BOOLEAN DEFAULT FALSE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
 CREATE TABLE question_answers (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     submission_id UUID REFERENCES user_submissions(id) ON DELETE CASCADE,
