@@ -1,11 +1,14 @@
 // src/modules/reading/reading.service.ts
 import {
+  BadRequestException,
   ConflictException,
   Injectable,
   Logger,
   NotFoundException,
 } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
+import { FileType } from 'src/common/constants';
+import { FilesService } from 'src/modules/files/files.service';
 import { SECTION_TYPE } from 'src/modules/mock-tests/constants';
 import { CreateReadingExerciseDto } from 'src/modules/reading/dto/create-reading.dto';
 import { UpdateReadingExerciseDto } from 'src/modules/reading/dto/update-reading.dto';
@@ -90,7 +93,10 @@ type QuestionWithOptions = Prisma.questionsGetPayload<{
 export class ReadingService {
   private readonly logger = new Logger(ReadingService.name);
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly fileService: FilesService,
+  ) {}
 
   /**
    * 📚 Create Reading Exercise in test section
@@ -601,6 +607,43 @@ export class ReadingService {
         })),
       })),
     }));
+  }
+
+  /**
+   * Upload image for question
+   */
+  async uploadQuestionImage(id: string, file: Express.Multer.File) {
+    try {
+      const question = await this.prisma.questions.findFirst({
+        where: { id, deleted: false },
+      });
+
+      if (!question) {
+        throw new NotFoundException('Question not found');
+      }
+
+      const uploadResult = await this.fileService.uploadFile(
+        file.buffer,
+        file.originalname,
+        FileType.EXERCISE_IMAGE,
+      );
+
+      // Delete previous image if exists
+      if (question.image_url) {
+        await this.fileService.deleteFiles(question.image_url);
+      }
+
+      return await this.prisma.questions.update({
+        where: { id },
+        data: {
+          image_url: uploadResult.url,
+          updated_at: new Date(),
+        },
+      });
+    } catch (error) {
+      this.logger.error('Error uploading question image', error);
+      throw new BadRequestException('Failed to upload image');
+    }
   }
 
   // ======= PRIVATE HELPER METHODS =======

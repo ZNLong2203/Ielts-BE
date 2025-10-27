@@ -6,7 +6,7 @@ import {
   Logger,
   NotFoundException,
 } from '@nestjs/common';
-import { Prisma } from '@prisma/client';
+import { matching_sets, Prisma } from '@prisma/client';
 import { FileType } from 'src/common/constants';
 import { QUESTION_TYPE } from 'src/modules/exercises/constants';
 import {
@@ -118,6 +118,48 @@ export class QuestionsService {
     // Validate question type specific requirements
     await this.validateQuestionTypeRequirements(createDto);
 
+    // Validate and check total correct answers + new answers do not exceed 40 for section reading
+    // Count new answers by calculating total options marked correct, do not use correct_answer_count from DTO
+    let newCorrectAnswers = 0;
+    if (createDto.options && createDto.options.length > 0) {
+      newCorrectAnswers = (createDto.options || []).filter(
+        (opt) => opt.is_correct,
+      ).length;
+    } else if (
+      [QUESTION_TYPE.FILL_BLANK, QUESTION_TYPE.TRUE_FALSE].includes(
+        createDto.question_type,
+      )
+    ) {
+      newCorrectAnswers = 1;
+    }
+
+    createDto.correct_answer_count = newCorrectAnswers || 1;
+    const allQuestionsInSection = await this.prisma.questions.findMany({
+      where: {
+        exercises: {
+          test_section_id: exercise.test_section_id,
+          skill_type: SKILL_TYPE.READING,
+          deleted: false,
+        },
+        deleted: false,
+      },
+      select: {
+        correct_answer_count: true,
+      },
+    });
+
+    const totalCorrectAnswers =
+      allQuestionsInSection.reduce(
+        (sum, q) => sum + (q.correct_answer_count || 0),
+        0,
+      ) + newCorrectAnswers;
+
+    if (totalCorrectAnswers > 40) {
+      throw new BadRequestException(
+        `Total correct answers in this reading section cannot exceed 40. Current total including this question would be ${totalCorrectAnswers}.`,
+      );
+    }
+
     return await this.prisma.$transaction(async (tx) => {
       // Handle matching questions
       let matchingSetId = createDto.matching_set_id;
@@ -144,7 +186,7 @@ export class QuestionsService {
           question_text: createDto.question_text,
           question_type: createDto.question_type,
           question_group: createDto.question_group,
-          correct_answer_count: createDto.correct_answer_count || 1,
+          correct_answer_count: newCorrectAnswers,
           points: createDto.points || 1,
           ordering: ordering,
           difficulty_level: createDto.difficulty_level,
@@ -364,6 +406,7 @@ export class QuestionsService {
           select: {
             id: true,
             skill_type: true,
+            test_section_id: true,
           },
         },
       },
@@ -412,6 +455,51 @@ export class QuestionsService {
       } as CreateReadingQuestionDto);
     }
 
+    // Validate and check total correct answers + new answers - old answers do not exceed 40 for section reading
+    let newCorrectAnswers = 0;
+    if (updateDto.options && updateDto.options.length > 0) {
+      newCorrectAnswers = (updateDto.options || []).filter(
+        (opt) => opt.is_correct,
+      ).length;
+    } else if (
+      [QUESTION_TYPE.FILL_BLANK, QUESTION_TYPE.TRUE_FALSE].includes(
+        updateDto.question_type || existingQuestion.question_type,
+      )
+    ) {
+      newCorrectAnswers = 1;
+    } else {
+      newCorrectAnswers = existingQuestion.correct_answer_count || 0;
+    }
+
+    const allQuestionsInSection = await this.prisma.questions.findMany({
+      where: {
+        exercises: {
+          test_section_id: existingQuestion.exercises.test_section_id,
+          skill_type: SKILL_TYPE.READING,
+          deleted: false,
+        },
+        deleted: false,
+        id: { not: id },
+      },
+      select: {
+        correct_answer_count: true,
+      },
+    });
+
+    const totalCorrectAnswers =
+      allQuestionsInSection.reduce(
+        (sum, q) => sum + (q.correct_answer_count || 0),
+        0,
+      ) +
+      newCorrectAnswers -
+      (existingQuestion.correct_answer_count || 0);
+
+    if (totalCorrectAnswers > 40) {
+      throw new BadRequestException(
+        `Total correct answers in this reading section cannot exceed 40. Current total including this update would be ${totalCorrectAnswers}.`,
+      );
+    }
+
     return await this.prisma.$transaction(async (tx) => {
       if (!existingQuestion.exercise_id) {
         throw new BadRequestException('Question is not linked to any exercise');
@@ -423,7 +511,7 @@ export class QuestionsService {
           question_text: updateDto.question_text,
           question_type: updateDto.question_type,
           question_group: updateDto.question_group,
-          correct_answer_count: updateDto.correct_answer_count,
+          correct_answer_count: newCorrectAnswers,
           points: updateDto.points,
           ordering: updateDto.ordering,
           difficulty_level: updateDto.difficulty_level,
@@ -743,9 +831,10 @@ export class QuestionsService {
       case QUESTION_TYPE.MATCHING:
         // Matching questions can optionally have a matching_set_id
         if (dto.matching_set_id) {
-          const matchingSet = await this.prisma.matching_sets.findFirst({
-            where: { id: dto.matching_set_id, deleted: false },
-          });
+          const matchingSet: matching_sets | null =
+            await this.prisma.matching_sets.findFirst({
+              where: { id: dto.matching_set_id, deleted: false },
+            });
           if (!matchingSet) {
             throw new BadRequestException('Invalid matching_set_id');
           }

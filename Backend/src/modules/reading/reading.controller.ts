@@ -4,14 +4,27 @@ import {
   Controller,
   Delete,
   Get,
+  HttpCode,
   HttpStatus,
   Param,
+  ParseFilePipeBuilder,
   ParseUUIDPipe,
   Post,
   Put,
+  UploadedFile,
+  UseInterceptors,
   ValidationPipe,
 } from '@nestjs/common';
-import { ApiOperation, ApiParam, ApiResponse, ApiTags } from '@nestjs/swagger';
+import { FileInterceptor } from '@nestjs/platform-express';
+import {
+  ApiBody,
+  ApiConsumes,
+  ApiOperation,
+  ApiParam,
+  ApiResponse,
+  ApiTags,
+} from '@nestjs/swagger';
+import { MessageResponse, Public } from 'src/decorator/customize';
 import { CreateReadingExerciseDto } from 'src/modules/reading/dto/create-reading.dto';
 import { UpdateReadingExerciseDto } from 'src/modules/reading/dto/update-reading.dto';
 import { ReadingService } from './reading.service';
@@ -211,6 +224,112 @@ export class ReadingController {
       statusCode: HttpStatus.OK,
       message: 'Mock tests with reading sections retrieved successfully',
       data,
+    };
+  }
+
+  /**
+   * Upload image for question
+   */
+  @Post(':exerciseId/question/:questionId/image')
+  @HttpCode(HttpStatus.OK)
+  @UseInterceptors(FileInterceptor('file'))
+  @ApiConsumes('multipart/form-data')
+  @ApiOperation({
+    summary: 'Upload question image',
+    description:
+      'Upload an image for a question. Supports JPEG, PNG, JPG, GIF, and WebP formats. Max file size: 2MB. Replaces existing image if any.',
+  })
+  @ApiParam({
+    name: 'lessonId',
+    description: 'Lesson ID',
+    type: 'string',
+    format: 'uuid',
+    example: '123e4567-e89b-12d3-a456-426614174000',
+  })
+  @ApiParam({
+    name: 'exerciseId',
+    description: 'Exercise ID',
+    type: 'string',
+    format: 'uuid',
+    example: '123e4567-e89b-12d3-a456-426614174001',
+  })
+  @ApiParam({
+    name: 'questionId',
+    description: 'Question ID to upload image for',
+    type: 'string',
+    format: 'uuid',
+    example: '123e4567-e89b-12d3-a456-426614174002',
+  })
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        file: {
+          type: 'string',
+          format: 'binary',
+          description: 'Image file (JPEG, PNG, JPG, GIF, WebP - Max 2MB)',
+        },
+      },
+      required: ['file'],
+    },
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Question image uploaded successfully',
+    schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean', example: true },
+        data: {
+          type: 'object',
+          properties: {
+            id: { type: 'string', format: 'uuid' },
+            image_url: {
+              type: 'string',
+              example: 'https://example.com/exercises/image.jpg',
+            },
+            updated_at: { type: 'string', format: 'date-time' },
+          },
+        },
+      },
+    },
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'Question not found',
+  })
+  @ApiResponse({
+    status: 422,
+    description: 'Invalid file type or file size exceeds limit',
+  })
+  @Public()
+  @MessageResponse('Question image uploaded successfully')
+  async uploadExerciseImage(
+    @Param('lessonId', ParseUUIDPipe) lessonId: string,
+    @Param('exerciseId', ParseUUIDPipe) exerciseId: string,
+    @Param('questionId', ParseUUIDPipe) questionId: string,
+    @UploadedFile(
+      new ParseFilePipeBuilder()
+        .addFileTypeValidator({
+          fileType: 'image/jpeg|image/png|image/jpg|image/gif|image/webp',
+        })
+        .addMaxSizeValidator({
+          maxSize: 2 * 1024 * 1024, // 2MB
+        })
+        .build({
+          errorHttpStatusCode: HttpStatus.UNPROCESSABLE_ENTITY,
+        }),
+    )
+    file: Express.Multer.File,
+  ) {
+    const exercise = await this.readingService.uploadQuestionImage(
+      questionId,
+      file,
+    );
+
+    return {
+      success: true,
+      data: exercise,
     };
   }
 }
