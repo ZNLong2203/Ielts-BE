@@ -179,36 +179,36 @@ INSERT INTO exercises (id, lesson_id, test_section_id, title, instruction, conte
 ('130e8400-e29b-41d4-a716-446655440018', NULL, '300e8400-e29b-41d4-a716-446655440004', 'Speaking Part 3', 'Discuss abstract topics related to Part 2', '{"questions": ["How has reading changed?", "What are the benefits of reading?"]}', 'mock_test', 'speaking', 5, 1, 0.00, 3, TRUE);
 
 -- Insert sample questions
-INSERT INTO questions (id, exercise_id, question_text, question_type, image_url, audio_url, audio_duration, reading_passage, explanation, points, ordering, difficulty_level, question_group) VALUES
+INSERT INTO questions (id, exercise_id, question_text, question_type, image_url, audio_url, audio_duration, reading_passage, explanation, points, correct_answer_count, ordering, difficulty_level, question_group) VALUES
 -- Lesson questions
-('140e8400-e29b-41d4-a716-446655440001', '130e8400-e29b-41d4-a716-446655440001', 'What is the main idea of the passage?', 'multiple_choice', NULL, NULL, NULL, 'Climate change is one of the most pressing issues facing humanity today...', 'The main idea is found in the first paragraph', 1.00, 1, 6.0, 'Passage 1'),
-('140e8400-e29b-41d4-a716-446655440002', '130e8400-e29b-41d4-a716-446655440001', 'According to the text, which statement is true?', 'multiple_choice', NULL, NULL, NULL, NULL, 'Look for supporting evidence in paragraph 2', 1.00, 2, 6.5, 'Passage 1'),
-('140e8400-e29b-41d4-a716-446655440003', '130e8400-e29b-41d4-a716-446655440002', 'The passage discusses environmental issues.', 'true_false', NULL, NULL, NULL, 'Environmental protection has become increasingly important...', 'Check the topic sentences of each paragraph', 1.00, 1, 5.5, 'Statement 1'),
-('140e8400-e29b-41d4-a716-446655440004', '130e8400-e29b-41d4-a716-446655440003', 'Tell me about your hometown.', 'speaking', NULL, NULL, NULL, NULL, 'Mention location, size, characteristics, and what you like about it', 0.00, 1, 5.0, 'Part 1'),
-('140e8400-e29b-41d4-a716-446655440005', '130e8400-e29b-41d4-a716-446655440005', 'Describe the main trend shown in the chart.', 'essay', 'https://example.com/chart1.png', NULL, NULL, NULL, 'Start with an overview of the main trend', 0.00, 1, 7.0, 'Task 1'),
-('140e8400-e29b-41d4-a716-446655440006', '130e8400-e29b-41d4-a716-446655440006', 'What is the speakers main concern?', 'multiple_choice', NULL, 'https://example.com/audio1.mp3', 300, NULL, 'Listen for key phrases that indicate concern', 1.00, 1, 6.5, 'Section 1'),
+('140e8400-e29b-41d4-a716-446655440001', '130e8400-e29b-41d4-a716-446655440001', 'What is the main idea of the passage?', 'multiple_choice', NULL, NULL, NULL, 'Climate change is one of the most pressing issues facing humanity today...', 'The main idea is found in the first paragraph', 1.00, 1, 1, 6.0, 'Passage 1'),
+('140e8400-e29b-41d4-a716-446655440002', '130e8400-e29b-41d4-a716-446655440001', 'According to the text, which statement is true?', 'multiple_choice', NULL, NULL, NULL, NULL, 'Look for supporting evidence in paragraph 2', 1.00, 2, 1, 6.5, 'Passage 1'),
+('140e8400-e29b-41d4-a716-446655440003', '130e8400-e29b-41d4-a716-446655440002', 'The passage discusses environmental issues.', 'true_false', NULL, NULL, NULL, 'Environmental protection has become increasingly important...', 'Check the topic sentences of each paragraph', 1.00, 1, 1, 5.5, 'Statement 1'),
+('140e8400-e29b-41d4-a716-446655440004', '130e8400-e29b-41d4-a716-446655440003', 'Tell me about your hometown.', 'speaking', NULL, NULL, NULL, NULL, 'Mention location, size, characteristics, and what you like about it', 0.00, 1, 1, 5.0, 'Part 1'),
+('140e8400-e29b-41d4-a716-446655440005', '130e8400-e29b-41d4-a716-446655440005', 'Describe the main trend shown in the chart.', 'essay', 'https://example.com/chart1.png', NULL, NULL, NULL, 'Start with an overview of the main trend', 0.00, 1, 1, 7.0, 'Task 1'),
+('140e8400-e29b-41d4-a716-446655440006', '130e8400-e29b-41d4-a716-446655440006', 'What is the speakers main concern?', 'multiple_choice', NULL, 'https://example.com/audio1.mp3', 300, NULL, 'Listen for key phrases that indicate concern', 1.00, 1, 1, 6.5, 'Section 1'),
 
 -- Mock test questions
-('140e8400-e29b-41d4-a716-446655440007', '130e8400-e29b-41d4-a716-446655440007', 'What is the main purpose of the passage?', 'multiple_choice', NULL, NULL, NULL, 'The development of renewable energy sources has accelerated significantly...', 'Look for the main purpose in the introduction', 1.00, 1, 6.5, 'Passage 1'),
-('140e8400-e29b-41d4-a716-446655440008', '130e8400-e29b-41d4-a716-446655440007', 'Complete the sentence: Solar energy is considered...', 'fill_blank', NULL, NULL, NULL, NULL, 'Look for the adjective describing solar energy', 1.00, 2, 6.0, 'Passage 1'),
-('140e8400-e29b-41d4-a716-446655440009', '130e8400-e29b-41d4-a716-446655440008', 'Match the following statements with the correct paragraph.', 'matching', NULL, NULL, NULL, 'Wind energy has become increasingly popular...', 'Read each paragraph carefully to match statements', 1.00, 1, 7.0, 'Passage 2'),
-('140e8400-e29b-41d4-a716-446655440010', '130e8400-e29b-41d4-a716-446655440010', 'Summarize the information in the chart.', 'essay', 'https://example.com/academic_chart.png', NULL, NULL, NULL, 'Write at least 150 words describing the chart', 0.00, 1, 7.0, 'Task 1'),
-('140e8400-e29b-41d4-a716-446655440011', '130e8400-e29b-41d4-a716-446655440011', 'Write an essay discussing both views.', 'essay', NULL, NULL, NULL, NULL, 'Write at least 250 words with clear structure', 0.00, 1, 7.5, 'Task 2'),
-('140e8400-e29b-41d4-a716-446655440012', '130e8400-e29b-41d4-a716-446655440012', 'What is the woman looking for?', 'multiple_choice', NULL, 'https://example.com/listening1.mp3', 300, NULL, 'Listen carefully to the conversation', 1.00, 1, 6.0, 'Section 1'),
-('140e8400-e29b-41d4-a716-446655440013', '130e8400-e29b-41d4-a716-446655440012', 'Complete the form with the correct information.', 'fill_blank', NULL, 'https://example.com/listening1.mp3', 300, NULL, 'Listen for specific details', 1.00, 2, 6.5, 'Section 1'),
-('140e8400-e29b-41d4-a716-446655440014', '130e8400-e29b-41d4-a716-446655440016', 'What is your name?', 'speaking', NULL, NULL, NULL, NULL, 'Give your full name clearly', 0.00, 1, 5.0, 'Part 1'),
-('140e8400-e29b-41d4-a716-446655440015', '130e8400-e29b-41d4-a716-446655440016', 'Where are you from?', 'speaking', NULL, NULL, NULL, NULL, 'Mention your hometown and country', 0.00, 2, 5.0, 'Part 1'),
-('140e8400-e29b-41d4-a716-446655440016', '130e8400-e29b-41d4-a716-446655440017', 'Describe a book you recently read.', 'speaking', NULL, NULL, NULL, NULL, 'Speak for 2 minutes about the book', 0.00, 1, 6.5, 'Part 2'),
-('140e8400-e29b-41d4-a716-446655440017', '130e8400-e29b-41d4-a716-446655440018', 'How has reading changed in recent years?', 'speaking', NULL, NULL, NULL, NULL, 'Discuss the topic in detail', 0.00, 1, 7.0, 'Part 3');
+('140e8400-e29b-41d4-a716-446655440007', '130e8400-e29b-41d4-a716-446655440007', 'What is the main purpose of the passage?', 'multiple_choice', NULL, NULL, NULL, 'The development of renewable energy sources has accelerated significantly...', 'Look for the main purpose in the introduction', 1.00, 1, 1, 6.5, 'Passage 1'),
+('140e8400-e29b-41d4-a716-446655440008', '130e8400-e29b-41d4-a716-446655440007', 'Complete the sentence: Solar energy is considered...', 'fill_blank', NULL, NULL, NULL, NULL, 'Look for the adjective describing solar energy', 1.00, 2, 1, 6.0, 'Passage 1'),
+('140e8400-e29b-41d4-a716-446655440009', '130e8400-e29b-41d4-a716-446655440008', 'Match the following statements with the correct paragraph.', 'matching', NULL, NULL, NULL, 'Wind energy has become increasingly popular...', 'Read each paragraph carefully to match statements', 1.00, 1, 1, 7.0, 'Passage 2'),
+('140e8400-e29b-41d4-a716-446655440010', '130e8400-e29b-41d4-a716-446655440010', 'Summarize the information in the chart.', 'essay', 'https://example.com/academic_chart.png', NULL, NULL, NULL, 'Write at least 150 words describing the chart', 0.00, 1, 1, 7.0, 'Task 1'),
+('140e8400-e29b-41d4-a716-446655440011', '130e8400-e29b-41d4-a716-446655440011', 'Write an essay discussing both views.', 'essay', NULL, NULL, NULL, NULL, 'Write at least 250 words with clear structure', 0.00, 1, 1, 7.5, 'Task 2'),
+('140e8400-e29b-41d4-a716-446655440012', '130e8400-e29b-41d4-a716-446655440012', 'What is the woman looking for?', 'multiple_choice', NULL, 'https://example.com/listening1.mp3', 300, NULL, 'Listen carefully to the conversation', 1.00, 1, 1, 6.0, 'Section 1'),
+('140e8400-e29b-41d4-a716-446655440013', '130e8400-e29b-41d4-a716-446655440012', 'Complete the form with the correct information.', 'fill_blank', NULL, 'https://example.com/listening1.mp3', 300, NULL, 'Listen for specific details', 1.00, 2, 1, 6.5, 'Section 1'),
+('140e8400-e29b-41d4-a716-446655440014', '130e8400-e29b-41d4-a716-446655440016', 'What is your name?', 'speaking', NULL, NULL, NULL, NULL, 'Give your full name clearly', 0.00, 1, 1, 5.0, 'Part 1'),
+('140e8400-e29b-41d4-a716-446655440015', '130e8400-e29b-41d4-a716-446655440016', 'Where are you from?', 'speaking', NULL, NULL, NULL, NULL, 'Mention your hometown and country', 0.00, 2, 1, 5.0, 'Part 1'),
+('140e8400-e29b-41d4-a716-446655440016', '130e8400-e29b-41d4-a716-446655440017', 'Describe a book you recently read.', 'speaking', NULL, NULL, NULL, NULL, 'Speak for 2 minutes about the book', 0.00, 1, 1, 6.5, 'Part 2'),
+('140e8400-e29b-41d4-a716-446655440017', '130e8400-e29b-41d4-a716-446655440018', 'How has reading changed in recent years?', 'speaking', NULL, NULL, NULL, NULL, 'Discuss the topic in detail', 0.00, 1, 1, 7.0, 'Part 3');
 
 -- Insert sample question options
-INSERT INTO question_options (id, question_id, option_text, is_correct, ordering, explanation) VALUES
-('150e8400-e29b-41d4-a716-446655440001', '140e8400-e29b-41d4-a716-446655440001', 'Climate change and its effects', TRUE, 1, 'This is mentioned as the central theme'),
-('150e8400-e29b-41d4-a716-446655440002', '140e8400-e29b-41d4-a716-446655440001', 'Economic development strategies', FALSE, 2, 'This is only briefly mentioned'),
-('150e8400-e29b-41d4-a716-446655440003', '140e8400-e29b-41d4-a716-446655440001', 'Political reform movements', FALSE, 3, 'Not discussed in the passage'),
-('150e8400-e29b-41d4-a716-446655440004', '140e8400-e29b-41d4-a716-446655440002', 'Technology improves education quality', TRUE, 1, 'Supported by examples in paragraph 2'),
-('150e8400-e29b-41d4-a716-446655440005', '140e8400-e29b-41d4-a716-446655440002', 'Traditional methods are outdated', FALSE, 2, 'The text suggests balance, not replacement'),
-('150e8400-e29b-41d4-a716-446655440006', '140e8400-e29b-41d4-a716-446655440006', 'Traffic congestion in the city', TRUE, 1, 'Mentioned repeatedly throughout the audio');
+INSERT INTO question_options (id, question_id, option_text, is_correct, ordering, explanation, point) VALUES
+('150e8400-e29b-41d4-a716-446655440001', '140e8400-e29b-41d4-a716-446655440001', 'Climate change and its effects', TRUE, 1, 'This is mentioned as the central theme', 1.00),
+('150e8400-e29b-41d4-a716-446655440002', '140e8400-e29b-41d4-a716-446655440001', 'Economic development strategies', FALSE, 2, 'This is only briefly mentioned', 0.00),
+('150e8400-e29b-41d4-a716-446655440003', '140e8400-e29b-41d4-a716-446655440001', 'Political reform movements', FALSE, 3, 'Not discussed in the passage', 0.00),
+('150e8400-e29b-41d4-a716-446655440004', '140e8400-e29b-41d4-a716-446655440002', 'Technology improves education quality', TRUE, 1, 'Supported by examples in paragraph 2', 1.00),
+('150e8400-e29b-41d4-a716-446655440005', '140e8400-e29b-41d4-a716-446655440002', 'Traditional methods are outdated', FALSE, 2, 'The text suggests balance, not replacement', 0.00),
+('150e8400-e29b-41d4-a716-446655440006', '140e8400-e29b-41d4-a716-446655440006', 'Traffic congestion in the city', TRUE, 1, 'Mentioned repeatedly throughout the audio', 1.00);
 
 -- Insert sample orders
 INSERT INTO orders (id, user_id, order_code, total_amount, discount_amount, final_amount, status, payment_method, payment_status) VALUES

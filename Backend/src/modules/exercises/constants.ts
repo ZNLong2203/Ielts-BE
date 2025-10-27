@@ -1,12 +1,13 @@
+// multiple_choice, essay, speaking, true_false, fill_blank, matching, summary_completion
 export const QUESTION_TYPE = {
-  // Listening types
   MULTIPLE_CHOICE: 'multiple_choice',
   DROPLIST: 'droplist',
   FILL_BLANK: 'fill_blank',
-
-  // Reading types
   TRUE_FALSE: 'true_false',
   MATCHING: 'matching',
+
+  // Speaking types
+  SPEAKING: 'speaking',
 
   // Writing types
   ESSAY: 'essay',

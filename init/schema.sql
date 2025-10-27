@@ -303,9 +303,28 @@ CREATE TABLE exercises (
     )
 );
 
+CREATE TABLE matching_sets (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    title VARCHAR(100),
+    deleted BOOLEAN DEFAULT FALSE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE matching_options (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    set_id UUID REFERENCES matching_sets(id) ON DELETE CASCADE,
+    option_text TEXT NOT NULL,
+    ordering INTEGER DEFAULT 0,
+    deleted BOOLEAN DEFAULT FALSE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
 CREATE TABLE questions (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     exercise_id UUID REFERENCES exercises(id) ON DELETE CASCADE,
+    matching_set_id UUID REFERENCES matching_sets(id) ON DELETE SET NULL,
     question_text TEXT NOT NULL,
     question_type VARCHAR(20) NOT NULL, -- multiple_choice, essay, speaking, true_false, fill_blank, matching, summary_completion
     image_url VARCHAR(500), -- for images, videos, etc.
@@ -314,6 +333,7 @@ CREATE TABLE questions (
     reading_passage TEXT, -- for reading questions
     explanation TEXT,
     points DECIMAL(5,2) DEFAULT 1,
+    correct_answer_count INTEGER DEFAULT 1,
     ordering INTEGER DEFAULT 0,
     difficulty_level DECIMAL(3,1), -- band (e.g., 5.0, 6.5, 7.0)
     question_group VARCHAR(50), -- for grouping related questions (e.g., "Passage 1", "Task 1")
@@ -328,11 +348,13 @@ CREATE TABLE question_options (
     option_text TEXT NOT NULL,
     is_correct BOOLEAN DEFAULT FALSE,
     ordering INTEGER DEFAULT 0,
+    point DECIMAL(5,2) DEFAULT 1,
     explanation TEXT,
     deleted BOOLEAN DEFAULT FALSE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
+
 
 CREATE TABLE user_submissions (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),

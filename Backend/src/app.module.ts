@@ -5,6 +5,7 @@ import { APP_GUARD } from '@nestjs/core';
 import { PermissionGuard } from 'src/casl/guards/permission.guard';
 import { JwtAuthGuard } from 'src/modules/auth/guards/jwt-auth.guard';
 import { CouponsModule } from 'src/modules/coupons/coupons.module';
+import { MockTestsModule } from 'src/modules/mock-tests/mock-tests.module';
 import { OrdersModule } from 'src/modules/orders/orders.module';
 import { PaymentsModule } from 'src/modules/payments/payments.module';
 import { SectionsModule } from 'src/modules/sections/sections.module';
@@ -81,6 +82,7 @@ import { UtilsModule } from './utils/utils.module';
     ReadingModule,
     ExercisesModule,
     LearningModule,
+    MockTestsModule,
   ],
   controllers: [AppController, DatabaseController],
   providers: [
