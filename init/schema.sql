@@ -285,6 +285,7 @@ CREATE TABLE exercises (
     test_section_id UUID REFERENCES test_sections(id) ON DELETE CASCADE, -- nullable for lesson exercises
     title VARCHAR(255) NOT NULL,
     instruction TEXT,
+    audio_url VARCHAR(500),
     content JSONB, -- flexible structure for different exercise types
     exercise_type VARCHAR(20) DEFAULT 'lesson', -- lesson, mock_test, practice
     skill_type VARCHAR(20), -- reading, writing, listening, speaking, general
