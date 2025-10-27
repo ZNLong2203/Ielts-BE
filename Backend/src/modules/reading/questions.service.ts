@@ -116,7 +116,7 @@ export class QuestionsService {
     }
 
     // Validate question type specific requirements
-    this.validateQuestionTypeRequirements(createDto);
+    await this.validateQuestionTypeRequirements(createDto);
 
     return await this.prisma.$transaction(async (tx) => {
       // Handle matching questions
@@ -403,7 +403,7 @@ export class QuestionsService {
       updateDto.question_type &&
       updateDto.question_type !== existingQuestion.question_type
     ) {
-      this.validateQuestionTypeRequirements({
+      await this.validateQuestionTypeRequirements({
         ...updateDto,
         exercise_id: existingQuestion.exercise_id,
         question_text:
@@ -743,7 +743,7 @@ export class QuestionsService {
       case QUESTION_TYPE.MATCHING:
         // Matching questions can optionally have a matching_set_id
         if (dto.matching_set_id) {
-          const matchingSet = await this.prisma.matching_sets.findUnique({
+          const matchingSet = await this.prisma.matching_sets.findFirst({
             where: { id: dto.matching_set_id, deleted: false },
           });
           if (!matchingSet) {
