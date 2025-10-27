@@ -228,6 +228,7 @@ model exercises {
   test_section_id  String?            @db.Uuid
   title            String             @db.VarChar(255)
   instruction      String?
+  audio_url        String?            @db.VarChar(500)
   content          Json?
   exercise_type    String?            @default("lesson") @db.VarChar(20)
   skill_type       String?            @db.VarChar(20)
