@@ -340,7 +340,12 @@ export class MinioService {
       throw new BadRequestException('Invalid file type');
     }
 
-    if (!config.allowedTypes.includes(mimetype)) {
+    const normalizedMimeType = mimetype.split(';')[0].trim();
+
+    if (!config.allowedTypes.includes(normalizedMimeType)) {
+      console.log(
+        `MIME type mismatch: received "${mimetype}", normalized to "${normalizedMimeType}", allowed: ${config.allowedTypes.join(', ')}`,
+      );
       throw new BadRequestException(
         `Invalid file type. Allowed types: ${config.allowedTypes.join(', ')}`,
       );

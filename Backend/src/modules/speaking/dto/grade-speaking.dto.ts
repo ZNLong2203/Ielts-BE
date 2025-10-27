@@ -77,3 +77,40 @@ export class PartGradeResponse {
   pronunciation: number;
   feedback: string;
 }
+
+export class TranscribeAndGradeDto {
+  @IsString()
+  @IsNotEmpty()
+  audioBuffer: any; // Buffer - will be handled by FileInterceptor
+
+  @IsString()
+  @IsNotEmpty()
+  fileName: string;
+
+  @IsString()
+  @IsNotEmpty()
+  mimetype: string;
+
+  @IsEnum(SpeakingPart)
+  @IsNotEmpty()
+  partType: SpeakingPart;
+
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => SpeakingQuestion)
+  questions: SpeakingQuestion[];
+
+  @IsString()
+  @IsOptional()
+  additionalInstructions?: string;
+
+  @IsString()
+  @IsOptional()
+  targetDuration?: string;
+}
+
+export class TranscribeAndGradeResponse {
+  audioUrl: string;
+  transcription: string;
+  grading: SpeakingGradeResponse;
+}

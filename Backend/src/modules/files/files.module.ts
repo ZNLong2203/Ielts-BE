@@ -31,6 +31,7 @@ import { MinioService } from './minio.service';
           'audio/wav',
           'audio/ogg',
           'audio/m4a',
+          'audio/webm',
           'application/pdf',
           'text/plain',
         ];

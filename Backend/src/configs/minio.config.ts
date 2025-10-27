@@ -39,8 +39,15 @@ export class MinioConfigService {
         folder: 'videos',
       },
       audio: {
-        allowedTypes: ['audio/mp3', 'audio/wav', 'audio/ogg', 'audio/m4a'],
-        maxSize: 20 * 1024 * 1024, // 20MB
+        allowedTypes: [
+          'audio/mp3',
+          'audio/mpeg',
+          'audio/wav',
+          'audio/ogg',
+          'audio/m4a',
+          'audio/webm',
+        ],
+        maxSize: 50 * 1024 * 1024, // 50MB
         folder: 'audio',
       },
       documents: {
