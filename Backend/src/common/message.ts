@@ -72,6 +72,8 @@ export const MESSAGE = {
     BLOG_STATUS_UPDATED: 'Blog status updated successfully',
     BLOG_UNAUTHORIZED: 'Not authorized to access this blog',
     BLOG_CANNOT_EDIT_PUBLISHED: 'Cannot edit published blog',
+    BLOG_COMMENT_LIKED: 'Blog comment liked successfully',
+    BLOG_COMMENT_UNLIKED: 'Blog comment unliked successfully',
     TEACHER_NOT_FOUND: 'Teacher not found',
     INVALID_IMAGE_URL: 'Invalid image URL format',
   },
@@ -88,6 +90,8 @@ export const MESSAGE = {
     REPLY_DELETED: 'Reply deleted successfully',
     REPLY_NOT_FOUND: 'Reply not found',
     REPLY_UPDATED: 'Reply updated successfully',
+    REPLY_LIKED: 'Reply liked successfully',
+    REPLY_UNLIKED: 'Reply unliked successfully',
   },
 
   COURSE: {

@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import { Injectable } from '@nestjs/common';
 import { CreateBlogCommentDto } from './dto/create-blog-comment.dto';
 import { PrismaService } from 'src/prisma/prisma.service';
@@ -77,15 +78,43 @@ export class BlogCommentsService {
       const allBlogComments = await this.prismaService.blog_comments.findMany({
         where: { blog_id: blog_id },
         orderBy: { created_at: 'desc' },
+        include: {
+          users: {
+            select: {
+              full_name: true,
+              avatar: true,
+            },
+          },
+        },
       });
+
+      // Group comments with replies
+      const parentComments = allBlogComments.filter(
+        (comment) => !comment.parent_comment_id,
+      );
+      const replies = allBlogComments.filter(
+        (comment) => comment.parent_comment_id,
+      );
+
+      // Attach replies to their parent comments
+      const commentsWithReplies = parentComments.map((parent) => ({
+        ...parent,
+        user: parent.users,
+        replies: replies
+          .filter((reply) => reply.parent_comment_id === parent.id)
+          .map((reply) => ({
+            ...reply,
+            user: reply.users,
+          })),
+      }));
 
       await this.redisService.set(
         `blog_comments:${blog_id}`,
-        JSON.stringify(allBlogComments),
+        JSON.stringify(commentsWithReplies),
         3600,
       );
 
-      return allBlogComments;
+      return commentsWithReplies;
     } catch (error) {
       if (error instanceof Error) {
         throw new Error(error.message);
@@ -158,6 +187,89 @@ export class BlogCommentsService {
       await this.redisService.del(
         `blog_comment:${comment.blog_id}:${comment.id}`,
       );
+    } catch (error) {
+      if (error instanceof Error) {
+        throw new Error(error.message);
+      }
+      throw new Error(MESSAGE.ERROR.UNEXPECTED_ERROR);
+    }
+  }
+
+  async toggleLikeComment(
+    blog_id: string,
+    comment_id: string,
+    user_id: string,
+  ): Promise<blog_comments> {
+    try {
+      const comment = await this.prismaService.blog_comments.findUnique({
+        where: {
+          id: comment_id,
+          blog_id: blog_id,
+        },
+      });
+
+      if (!comment) {
+        throw new Error(MESSAGE.BLOG_COMMENT.COMMENT_NOT_FOUND);
+      }
+
+      // Check if user already liked this comment
+      const existingLike =
+        await this.prismaService.blog_comment_likes.findUnique({
+          where: {
+            user_id_comment_id: {
+              user_id: user_id,
+              comment_id: comment_id,
+            },
+          },
+        });
+
+      let updatedComment: blog_comments;
+
+      if (existingLike) {
+        // Unlike - delete the like and decrement count
+        await this.prismaService.blog_comment_likes.delete({
+          where: {
+            id: existingLike.id,
+          },
+        });
+
+        updatedComment = await this.prismaService.blog_comments.update({
+          where: {
+            id: comment_id,
+            blog_id: blog_id,
+          },
+          data: {
+            like_count: {
+              decrement: 1,
+            },
+          },
+        });
+      } else {
+        // Like - create the like and increment count
+        await this.prismaService.blog_comment_likes.create({
+          data: {
+            user_id: user_id,
+            comment_id: comment_id,
+          },
+        });
+
+        updatedComment = await this.prismaService.blog_comments.update({
+          where: {
+            id: comment_id,
+            blog_id: blog_id,
+          },
+          data: {
+            like_count: {
+              increment: 1,
+            },
+          },
+        });
+      }
+
+      // Clear cache
+      await this.redisService.del(`blog_comments:${blog_id}`);
+
+      return updatedComment;
     } catch (error) {
       if (error instanceof Error) {
         throw new Error(error.message);

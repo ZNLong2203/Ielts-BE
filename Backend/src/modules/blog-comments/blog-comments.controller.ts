@@ -146,4 +146,29 @@ export class BlogCommentsController {
       user.id,
     );
   }
+
+  @Post(':blog_id/comments/:comment_id/like')
+  @UseGuards(PermissionGuard)
+  @CheckPolicies((ability) => ability.can(Action.Update, BlogComment))
+  @ApiOperation({ summary: 'Like or unlike a comment' })
+  @ApiParam({ name: 'blog_id', description: 'ID of the blog post' })
+  @ApiParam({ name: 'comment_id', description: 'ID of the comment to like' })
+  @ApiResponse({
+    status: 200,
+    description: 'Comment liked/unliked successfully',
+    type: BlogCommentApiResponseDto<BlogCommentResponseDto>,
+  })
+  @ApiBearerAuth()
+  @MessageResponse(MESSAGE.BLOG_COMMENT.REPLY_LIKED)
+  async likeComment(
+    @Param('blog_id') blog_id: string,
+    @Param('comment_id') comment_id: string,
+    @CurrentUser() user: IUser,
+  ) {
+    return await this.blogCommentsService.toggleLikeComment(
+      blog_id,
+      comment_id,
+      user.id,
+    );
+  }
 }

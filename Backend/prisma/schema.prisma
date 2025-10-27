@@ -29,6 +29,7 @@ model users {
   deleted                  Boolean?              @default(false)
   created_at               DateTime?             @default(now()) @db.Timestamp(6)
   updated_at               DateTime?             @default(now()) @db.Timestamp(6)
+  blog_comment_likes       blog_comment_likes[]
   blog_comments            blog_comments[]
   blogs                    blogs[]
   combo_courses            combo_courses[]
@@ -65,20 +66,21 @@ model blog_categories {
 }
 
 model blog_comments {
-  id                  String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  blog_id             String?         @db.Uuid
-  user_id             String?         @db.Uuid
-  parent_comment_id   String?         @db.Uuid
+  id                  String               @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  blog_id             String?              @db.Uuid
+  user_id             String?              @db.Uuid
+  parent_comment_id   String?              @db.Uuid
   content             String
-  is_approved         Boolean?        @default(true)
-  like_count          Int?            @default(0)
-  deleted             Boolean?        @default(false)
-  created_at          DateTime?       @default(now()) @db.Timestamp(6)
-  updated_at          DateTime?       @default(now()) @db.Timestamp(6)
-  blogs               blogs?          @relation(fields: [blog_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
-  blog_comments       blog_comments?  @relation("blog_commentsToblog_comments", fields: [parent_comment_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  other_blog_comments blog_comments[] @relation("blog_commentsToblog_comments")
-  users               users?          @relation(fields: [user_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  is_approved         Boolean?             @default(true)
+  like_count          Int?                 @default(0)
+  deleted             Boolean?             @default(false)
+  created_at          DateTime?            @default(now()) @db.Timestamp(6)
+  updated_at          DateTime?            @default(now()) @db.Timestamp(6)
+  blog_comment_likes  blog_comment_likes[]
+  blogs               blogs?               @relation(fields: [blog_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  blog_comments       blog_comments?       @relation("blog_commentsToblog_comments", fields: [parent_comment_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  other_blog_comments blog_comments[]      @relation("blog_commentsToblog_comments")
+  users               users?               @relation(fields: [user_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
 }
 
 model blogs {
@@ -397,6 +399,7 @@ model question_options {
   option_text String
   is_correct  Boolean?   @default(false)
   ordering    Int?       @default(0)
+  point       Decimal?   @default(1) @db.Decimal(5, 2)
   explanation String?
   deleted     Boolean?   @default(false)
   created_at  DateTime?  @default(now()) @db.Timestamp(6)
@@ -405,25 +408,28 @@ model question_options {
 }
 
 model questions {
-  id               String             @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  exercise_id      String?            @db.Uuid
-  question_text    String
-  question_type    String             @db.VarChar(20)
-  image_url        String?            @db.VarChar(500)
-  audio_url        String?            @db.VarChar(500)
-  audio_duration   Int?
-  reading_passage  String?
-  explanation      String?
-  points           Decimal?           @default(1) @db.Decimal(5, 2)
-  ordering         Int?               @default(0)
-  difficulty_level Decimal?           @db.Decimal(3, 1)
-  question_group   String?            @db.VarChar(50)
-  deleted          Boolean?           @default(false)
-  created_at       DateTime?          @default(now()) @db.Timestamp(6)
-  updated_at       DateTime?          @default(now()) @db.Timestamp(6)
-  question_answers question_answers[]
-  question_options question_options[]
-  exercises        exercises?         @relation(fields: [exercise_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  id                   String             @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  exercise_id          String?            @db.Uuid
+  matching_set_id      String?            @db.Uuid
+  question_text        String
+  question_type        String             @db.VarChar(20)
+  image_url            String?            @db.VarChar(500)
+  audio_url            String?            @db.VarChar(500)
+  audio_duration       Int?
+  reading_passage      String?
+  explanation          String?
+  points               Decimal?           @default(1) @db.Decimal(5, 2)
+  correct_answer_count Int?               @default(1)
+  ordering             Int?               @default(0)
+  difficulty_level     Decimal?           @db.Decimal(3, 1)
+  question_group       String?            @db.VarChar(50)
+  deleted              Boolean?           @default(false)
+  created_at           DateTime?          @default(now()) @db.Timestamp(6)
+  updated_at           DateTime?          @default(now()) @db.Timestamp(6)
+  question_answers     question_answers[]
+  question_options     question_options[]
+  exercises            exercises?         @relation(fields: [exercise_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  matching_sets        matching_sets?     @relation(fields: [matching_set_id], references: [id], onUpdate: NoAction)
 }
 
 model teachers {
@@ -702,4 +708,37 @@ model writing_assessments {
   created_at                       DateTime? @default(now()) @db.Timestamp(6)
   updated_at                       DateTime? @default(now()) @db.Timestamp(6)
   users                            users?    @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+}
+
+model matching_options {
+  id            String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  set_id        String?        @db.Uuid
+  option_text   String
+  ordering      Int?           @default(0)
+  deleted       Boolean?       @default(false)
+  created_at    DateTime?      @default(now()) @db.Timestamp(6)
+  updated_at    DateTime?      @default(now()) @db.Timestamp(6)
+  matching_sets matching_sets? @relation(fields: [set_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+}
+
+model matching_sets {
+  id               String             @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  title            String?            @db.VarChar(100)
+  deleted          Boolean?           @default(false)
+  created_at       DateTime?          @default(now()) @db.Timestamp(6)
+  updated_at       DateTime?          @default(now()) @db.Timestamp(6)
+  matching_options matching_options[]
+  questions        questions[]
+}
+
+model blog_comment_likes {
+  id            String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id       String?        @db.Uuid
+  comment_id    String?        @db.Uuid
+  created_at    DateTime?      @default(now()) @db.Timestamp(6)
+  updated_at    DateTime?      @default(now()) @db.Timestamp(6)
+  blog_comments blog_comments? @relation(fields: [comment_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  users         users?         @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([user_id, comment_id])
 }
