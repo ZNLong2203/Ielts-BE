@@ -342,10 +342,11 @@ export class FilesController {
     @UploadedFile(
       new ParseFilePipeBuilder()
         .addFileTypeValidator({
-          fileType: 'audio/mpeg|audio/wav|audio/mp3|audio/ogg',
+          fileType:
+            'audio/mpeg|audio/wav|audio/mp3|audio/ogg|audio/m4a|audio/webm',
         })
         .addMaxSizeValidator({
-          maxSize: 20 * 1024 * 1024, // 20MB
+          maxSize: 50 * 1024 * 1024, // 50MB
         })
         .build({
           errorHttpStatusCode: HttpStatus.UNPROCESSABLE_ENTITY,

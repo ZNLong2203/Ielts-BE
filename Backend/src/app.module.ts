@@ -16,6 +16,7 @@ import { DatabaseController } from './database/database.controller';
 import { DatabaseModule } from './database/database.module';
 import { DatabaseService } from './database/database.service';
 import { GeminiModule } from './integrations/gemini/gemini.module';
+import { WhisperModule } from './integrations/whisper/whisper.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { BlogCommentsModule } from './modules/blog-comments/blog-comments.module';
 import { BlogsModule } from './modules/blogs/blogs.module';
@@ -76,6 +77,7 @@ import { UtilsModule } from './utils/utils.module';
     VideoModule,
     SectionsModule,
     GeminiModule,
+    WhisperModule,
     WritingModule,
     SpeakingModule,
     ListeningModule,
