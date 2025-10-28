@@ -162,6 +162,13 @@ export const MESSAGE = {
     FILE_NOT_FOUND: 'File not found',
   },
 
+  CERTIFICATE: {
+    CERTIFICATE_GENERATED: 'Certificate generated successfully',
+    CERTIFICATE_RETRIEVED: 'Certificates retrieved successfully',
+    CERTIFICATE_NOT_FOUND: 'Certificate not found',
+    CERTIFICATE_NOT_COMPLETED: 'Combo must be 100% completed to generate certificate',
+  },
+
   GENERAL: {
     OPERATION_SUCCESS: 'Operation completed successfully',
     UNAUTHORIZED: 'Unauthorized access',

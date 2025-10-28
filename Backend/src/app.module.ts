@@ -21,6 +21,7 @@ import { AuthModule } from './modules/auth/auth.module';
 import { BlogCommentsModule } from './modules/blog-comments/blog-comments.module';
 import { BlogsModule } from './modules/blogs/blogs.module';
 import { CartsModule } from './modules/carts/carts.module';
+import { CertificatesModule } from './modules/certificates/certificates.module';
 import { CoursesModule } from './modules/courses/courses.module';
 import { ExercisesModule } from './modules/exercises/exercises.module';
 import { FilesModule } from './modules/files/files.module';
@@ -76,6 +77,7 @@ import { UtilsModule } from './utils/utils.module';
     LessonsModule,
     VideoModule,
     SectionsModule,
+    CertificatesModule,
     GeminiModule,
     WhisperModule,
     WritingModule,
