@@ -322,9 +322,23 @@ CREATE TABLE matching_options (
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
+CREATE TABLE question_groups (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    exercise_id UUID REFERENCES exercises(id) ON DELETE CASCADE,
+    group_title VARCHAR(255), -- "Questions 1-4", "Questions 5-10"
+    group_instruction TEXT NOT NULL, -- "Which paragraph contains each of the following pieces of information?"
+    passage_reference TEXT, -- "The text has 5 paragraphs (A - E)"
+    ordering INTEGER DEFAULT 0,
+    question_range VARCHAR(20), -- "1-4", "5-10" for display
+    deleted BOOLEAN DEFAULT FALSE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
 CREATE TABLE questions (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     exercise_id UUID REFERENCES exercises(id) ON DELETE CASCADE,
+    question_group_id UUID REFERENCES question_groups(id) ON DELETE SET NULL,
     matching_set_id UUID REFERENCES matching_sets(id) ON DELETE SET NULL,
     question_text TEXT NOT NULL,
     question_type VARCHAR(20) NOT NULL, -- multiple_choice, essay, speaking, true_false, fill_blank, matching, summary_completion

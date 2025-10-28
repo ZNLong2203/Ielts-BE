@@ -242,6 +242,7 @@ model exercises {
   updated_at       DateTime?          @default(now()) @db.Timestamp(6)
   lessons          lessons?           @relation(fields: [lesson_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
   test_sections    test_sections?     @relation(fields: [test_section_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  question_groups  question_groups[]
   questions        questions[]
   user_submissions user_submissions[]
 }
@@ -411,6 +412,7 @@ model question_options {
 model questions {
   id                   String             @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   exercise_id          String?            @db.Uuid
+  question_group_id    String?            @db.Uuid
   matching_set_id      String?            @db.Uuid
   question_text        String
   question_type        String             @db.VarChar(20)
@@ -431,6 +433,7 @@ model questions {
   question_options     question_options[]
   exercises            exercises?         @relation(fields: [exercise_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
   matching_sets        matching_sets?     @relation(fields: [matching_set_id], references: [id], onUpdate: NoAction)
+  question_groups      question_groups?   @relation(fields: [question_group_id], references: [id], onUpdate: NoAction)
 }
 
 model teachers {
@@ -742,4 +745,19 @@ model blog_comment_likes {
   users         users?         @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
 
   @@unique([user_id, comment_id])
+}
+
+model question_groups {
+  id                String      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  exercise_id       String?     @db.Uuid
+  group_title       String?     @db.VarChar(255)
+  group_instruction String
+  passage_reference String?
+  ordering          Int?        @default(0)
+  question_range    String?     @db.VarChar(20)
+  deleted           Boolean?    @default(false)
+  created_at        DateTime?   @default(now()) @db.Timestamp(6)
+  updated_at        DateTime?   @default(now()) @db.Timestamp(6)
+  exercises         exercises?  @relation(fields: [exercise_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  questions         questions[]
 }
