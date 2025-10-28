@@ -14,6 +14,10 @@ export enum WritingTaskType {
 }
 
 export class SaveWritingAssessmentDto {
+  @IsString()
+  @IsOptional()
+  exerciseId?: string;
+
   @IsEnum(WritingTaskType)
   @IsNotEmpty()
   taskType: WritingTaskType;
@@ -95,6 +99,7 @@ export class SaveWritingAssessmentDto {
 export class WritingAssessmentResponse {
   id: string;
   userId: string;
+  exerciseId?: string;
   taskType: string;
   question: string;
   studentAnswer: string;

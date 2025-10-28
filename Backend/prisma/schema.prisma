@@ -223,28 +223,29 @@ model enrollments {
 }
 
 model exercises {
-  id               String             @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  lesson_id        String?            @db.Uuid
-  test_section_id  String?            @db.Uuid
-  title            String             @db.VarChar(255)
-  instruction      String?
-  audio_url        String?            @db.VarChar(500)
-  content          Json?
-  exercise_type    String?            @default("lesson") @db.VarChar(20)
-  skill_type       String?            @db.VarChar(20)
-  time_limit       Int?
-  max_attempts     Int?               @default(1)
-  passing_score    Decimal?           @db.Decimal(5, 2)
-  ordering         Int?               @default(0)
-  is_active        Boolean?           @default(true)
-  deleted          Boolean?           @default(false)
-  created_at       DateTime?          @default(now()) @db.Timestamp(6)
-  updated_at       DateTime?          @default(now()) @db.Timestamp(6)
-  lessons          lessons?           @relation(fields: [lesson_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
-  test_sections    test_sections?     @relation(fields: [test_section_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
-  question_groups  question_groups[]
-  questions        questions[]
-  user_submissions user_submissions[]
+  id                  String                @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  lesson_id           String?               @db.Uuid
+  test_section_id     String?               @db.Uuid
+  title               String                @db.VarChar(255)
+  instruction         String?
+  audio_url           String?               @db.VarChar(500)
+  content             Json?
+  exercise_type       String?               @default("lesson") @db.VarChar(20)
+  skill_type          String?               @db.VarChar(20)
+  time_limit          Int?
+  max_attempts        Int?                  @default(1)
+  passing_score       Decimal?              @db.Decimal(5, 2)
+  ordering            Int?                  @default(0)
+  is_active           Boolean?              @default(true)
+  deleted             Boolean?              @default(false)
+  created_at          DateTime?             @default(now()) @db.Timestamp(6)
+  updated_at          DateTime?             @default(now()) @db.Timestamp(6)
+  lessons             lessons?              @relation(fields: [lesson_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  test_sections       test_sections?        @relation(fields: [test_section_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  question_groups     question_groups[]
+  questions           questions[]
+  user_submissions    user_submissions[]
+  writing_assessments writing_assessments[]
 }
 
 model learning_paths {
@@ -683,18 +684,19 @@ model test_sections {
 }
 
 model writing_assessments {
-  id                               String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  user_id                          String?   @db.Uuid
-  task_type                        String    @db.VarChar(10)
+  id                               String     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id                          String?    @db.Uuid
+  exercise_id                      String?    @db.Uuid
+  task_type                        String     @db.VarChar(10)
   question                         String
   student_answer                   String
-  word_limit                       String?   @db.VarChar(50)
+  word_limit                       String?    @db.VarChar(50)
   additional_instructions          String?
-  overall_score                    Decimal?  @db.Decimal(3, 1)
-  task_achievement_score           Decimal?  @db.Decimal(3, 1)
-  coherence_cohesion_score         Decimal?  @db.Decimal(3, 1)
-  lexical_resource_score           Decimal?  @db.Decimal(3, 1)
-  grammatical_range_accuracy_score Decimal?  @db.Decimal(3, 1)
+  overall_score                    Decimal?   @db.Decimal(3, 1)
+  task_achievement_score           Decimal?   @db.Decimal(3, 1)
+  coherence_cohesion_score         Decimal?   @db.Decimal(3, 1)
+  lexical_resource_score           Decimal?   @db.Decimal(3, 1)
+  grammatical_range_accuracy_score Decimal?   @db.Decimal(3, 1)
   detailed_feedback                String?
   suggestions                      Json?
   strengths                        Json?
@@ -702,13 +704,14 @@ model writing_assessments {
   detailed_metrics                 Json?
   upgraded_essay                   String?
   sample_answer                    String?
-  ai_model                         String?   @db.VarChar(50)
-  grading_method                   String?   @default("ai") @db.VarChar(20)
-  status                           String?   @default("completed") @db.VarChar(20)
-  deleted                          Boolean?  @default(false)
-  created_at                       DateTime? @default(now()) @db.Timestamp(6)
-  updated_at                       DateTime? @default(now()) @db.Timestamp(6)
-  users                            users?    @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  ai_model                         String?    @db.VarChar(50)
+  grading_method                   String?    @default("ai") @db.VarChar(20)
+  status                           String?    @default("completed") @db.VarChar(20)
+  deleted                          Boolean?   @default(false)
+  created_at                       DateTime?  @default(now()) @db.Timestamp(6)
+  updated_at                       DateTime?  @default(now()) @db.Timestamp(6)
+  exercises                        exercises? @relation(fields: [exercise_id], references: [id], onUpdate: NoAction)
+  users                            users?     @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
 }
 
 model matching_options {

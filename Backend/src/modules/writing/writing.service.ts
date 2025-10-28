@@ -325,6 +325,7 @@ export class WritingService {
     ).writing_assessments.create({
       data: {
         user_id: userId,
+        exercise_id: saveDto.exerciseId || null,
         task_type: saveDto.taskType,
         question: saveDto.question,
         student_answer: saveDto.studentAnswer,
@@ -350,6 +351,7 @@ export class WritingService {
     return {
       id: assessment.id,
       userId: assessment.user_id,
+      exerciseId: assessment.exercise_id || undefined,
       taskType: assessment.task_type,
       question: assessment.question,
       studentAnswer: assessment.student_answer,
@@ -380,17 +382,29 @@ export class WritingService {
   // Get writing assessments by user
   async getWritingAssessmentsByUser(
     userId: string,
+    exerciseId?: string,
+    taskType?: string,
   ): Promise<WritingAssessmentResponse[]> {
+    const where: any = { user_id: userId, deleted: false };
+
+    if (exerciseId) {
+      where.exercise_id = exerciseId;
+    }
+
+    if (taskType) {
+      where.task_type = taskType;
+    }
     const assessments = await (
       this.prisma.prisma as any
     ).writing_assessments.findMany({
-      where: { user_id: userId, deleted: false },
+      where,
       orderBy: { created_at: 'desc' },
     });
 
     return assessments.map((assessment) => ({
       id: assessment.id,
       userId: assessment.user_id,
+      exerciseId: assessment.exercise_id || undefined,
       taskType: assessment.task_type,
       question: assessment.question,
       studentAnswer: assessment.student_answer,
@@ -433,6 +447,7 @@ export class WritingService {
     return {
       id: assessment.id,
       userId: assessment.user_id,
+      exerciseId: assessment.exercise_id || undefined,
       taskType: assessment.task_type,
       question: assessment.question,
       studentAnswer: assessment.student_answer,

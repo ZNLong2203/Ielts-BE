@@ -391,6 +391,7 @@ CREATE TABLE user_submissions (
 CREATE TABLE writing_assessments (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id UUID REFERENCES users(id) ON DELETE CASCADE,
+    exercise_id UUID REFERENCES exercises(id) ON DELETE SET NULL, -- nullable for free-form practice
     task_type VARCHAR(10) NOT NULL, -- 'task_1' or 'task_2'
     question TEXT NOT NULL,
     student_answer TEXT NOT NULL,

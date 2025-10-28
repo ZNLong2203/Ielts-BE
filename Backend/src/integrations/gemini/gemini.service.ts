@@ -265,6 +265,14 @@ export class GeminiService {
    4. Grammatical Range and Accuracy: Grammar variety and correctness
 
    IMPORTANT: For each score level, provide detailed description in Vietnamese explaining what this score means. Extract all collocations (word partnerships), topic-specific vocabulary, identify all errors with corrections, and provide specific improvements.
+   
+   CRITICAL JSON REQUIREMENTS:
+   1. You MUST return ONLY valid JSON - no markdown code blocks, no explanation text before or after
+   2. Escape ALL quotes inside string values: use escape backslash-quote instead of plain quote
+   3. Escape all special characters in string values: double backslash for backslash, backslash-n for newline
+   4. Ensure proper closing of all arrays and objects
+   5. No trailing commas in arrays or objects
+   6. Return raw JSON only - do not wrap in code blocks
    `;
   }
 
@@ -331,21 +339,87 @@ export class GeminiService {
       try {
         parsed = JSON.parse(jsonMatch[0]) as Record<string, any>;
       } catch (parseError) {
-        // If JSON parsing fails, try to fix common issues
-        const cleanedJson = jsonMatch[0]
-          .replace(/,(\s*[}\]])/g, '$1') // Remove trailing commas
-          .replace(/([{,]\s*)([a-zA-Z_][a-zA-Z0-9_]*)\s*:/g, '$1"$2":'); // Quote unquoted keys
+        let cleanedJson = jsonMatch[0];
+
+        cleanedJson = cleanedJson.replace(/,(\s*[}\]])/g, '$1');
+
+        cleanedJson = cleanedJson.replace(
+          /([{,]\s*)([a-zA-Z_][a-zA-Z0-9_]*)\s*:/g,
+          '$1"$2":',
+        );
+
+        for (let i = 0; i < 5; i++) {
+          cleanedJson = cleanedJson.replace(/,\s*\]/g, ']'); // Remove trailing commas in arrays
+          cleanedJson = cleanedJson.replace(/,\s*\}/g, '}'); // Remove trailing commas in objects
+        }
+
+        // Fix incomplete array elements
+        cleanedJson = cleanedJson.replace(/,\s*,/g, ','); // Remove double commas
+        cleanedJson = cleanedJson.replace(/\[\s*,/g, '['); // Remove leading comma in arrays
+        cleanedJson = cleanedJson.replace(/{\s*,/g, '{'); // Remove leading comma in objects
+
+        // Replace unescaped " with \" inside string values
+        cleanedJson = cleanedJson.replace(
+          /("(?:[^"\\]|\\.)*")\s*:/g,
+          (match, key) => {
+            return match;
+          },
+        );
+
+        cleanedJson = cleanedJson.replace(
+          /:\s*"([^"]*)"/g,
+          (match, content) => {
+            const escaped = content.replace(/"/g, '\\"');
+            return `: "${escaped}"`;
+          },
+        );
+
+        // Fix unclosed arrays/objects
+        const openBraces = (cleanedJson.match(/\{/g) || []).length;
+        const closeBraces = (cleanedJson.match(/\}/g) || []).length;
+        const openBrackets = (cleanedJson.match(/\[/g) || []).length;
+        const closeBrackets = (cleanedJson.match(/\]/g) || []).length;
+
+        if (openBraces > closeBraces) {
+          cleanedJson += '}'.repeat(openBraces - closeBraces);
+        }
+        if (openBrackets > closeBrackets) {
+          cleanedJson += ']'.repeat(openBrackets - closeBrackets);
+        }
 
         try {
           parsed = JSON.parse(cleanedJson);
-        } catch {
-          // Last resort: return minimal response
-          console.error('Failed to parse AI response:', parseError);
-          return this.getDefaultWritingResponse();
+        } catch (secondError) {
+          try {
+            const lines = cleanedJson.split('\n');
+            let newJson = '';
+            for (const line of lines) {
+              if (
+                line.trim() &&
+                !line.trim().match(/[\]\}]/) &&
+                !line.includes(':')
+              ) {
+                continue;
+              }
+              newJson += line + '\n';
+            }
+            parsed = JSON.parse(newJson);
+          } catch {
+            console.error('Failed to parse AI response:', parseError);
+            console.error('Cleaned JSON failed:', secondError);
+            console.log(
+              'First 200 chars of JSON:',
+              cleanedJson.substring(0, 200),
+            );
+            console.log(
+              'Around error position (10973):',
+              cleanedJson.substring(10900, 11050),
+            );
+            return this.getDefaultWritingResponse();
+          }
         }
       }
 
-      // Validate required fields
       const requiredFields = [
         'overallScore',
         'taskAchievement',
@@ -360,7 +434,6 @@ export class GeminiService {
         }
       }
 
-      // Ensure arrays have defaults
       if (!parsed.detailedFeedback)
         parsed.detailedFeedback = 'No detailed feedback available.';
       if (!Array.isArray(parsed.suggestions)) parsed.suggestions = [];

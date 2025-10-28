@@ -181,8 +181,14 @@ export class WritingController {
   @MessageResponse('Retrieved assessments successfully')
   async getMyAssessments(
     @CurrentUser() user: IUser,
+    @Query('exerciseId') exerciseId?: string,
+    @Query('taskType') taskType?: string,
   ): Promise<WritingAssessmentResponse[]> {
-    return this.writingService.getWritingAssessmentsByUser(user.id);
+    return this.writingService.getWritingAssessmentsByUser(
+      user.id,
+      exerciseId,
+      taskType,
+    );
   }
 
   // Get writing assessment by ID
