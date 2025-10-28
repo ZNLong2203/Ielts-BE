@@ -9,54 +9,19 @@ import {
 import { matching_sets, Prisma } from '@prisma/client';
 import { FileType } from 'src/common/constants';
 import { QUESTION_TYPE } from 'src/modules/exercises/constants';
+import { CreateQuestionDto } from 'src/modules/questions/dto/create-question.dto';
+import { UpdateQuestionDto } from 'src/modules/questions/dto/update-question.dto';
 import {
-  CreateReadingQuestionDto,
-  UpdateReadingQuestionDto,
-} from 'src/modules/reading/dto/create-reading.dto';
+  MatchingOptionDetails,
+  QuestionDetails,
+  QuestionOptionDetails,
+} from 'src/modules/questions/types/types';
 import {
   QuestionWithDetails,
   SKILL_TYPE,
 } from 'src/modules/reading/types/reading.types';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { FilesService } from '../files/files.service';
-
-interface QuestionDetails {
-  id: string;
-  question_text: string;
-  question_type: string;
-  image_url?: string;
-  audio_url?: string;
-  reading_passage?: string;
-  explanation?: string;
-  points: number;
-  correct_answer_count: number;
-  ordering: number;
-  difficulty_level?: number;
-  question_group?: string;
-  question_options: QuestionOptionDetails[];
-  matching_sets?: MatchingSetDetails;
-}
-
-interface QuestionOptionDetails {
-  id: string;
-  option_text: string;
-  is_correct: boolean;
-  ordering: number;
-  point: number;
-  explanation?: string;
-}
-
-interface MatchingSetDetails {
-  id: string;
-  title: string;
-  matching_options: MatchingOptionDetails[];
-}
-
-interface MatchingOptionDetails {
-  id: string;
-  option_text: string;
-  ordering: number;
-}
 
 @Injectable()
 export class QuestionsService {
@@ -70,7 +35,7 @@ export class QuestionsService {
   /**
    * 📝 Create Question for Reading Exercise
    */
-  async createQuestion(createDto: CreateReadingQuestionDto) {
+  async createQuestion(createDto: CreateQuestionDto) {
     // Validate exercise exists and is reading type
     const exercise = await this.prisma.exercises.findFirst({
       where: {
@@ -397,7 +362,7 @@ export class QuestionsService {
    */
   async updateQuestion(
     id: string,
-    updateDto: UpdateReadingQuestionDto,
+    updateDto: UpdateQuestionDto,
   ): Promise<QuestionWithDetails> {
     const existingQuestion = await this.prisma.questions.findFirst({
       where: { id, deleted: false },
@@ -452,7 +417,7 @@ export class QuestionsService {
         question_text:
           updateDto.question_text || existingQuestion.question_text,
         question_type: updateDto.question_type,
-      } as CreateReadingQuestionDto);
+      } as CreateQuestionDto);
     }
 
     // Validate and check total correct answers + new answers - old answers do not exceed 40 for section reading
@@ -780,7 +745,7 @@ export class QuestionsService {
   // ======= PRIVATE HELPER METHODS =======
 
   private async validateQuestionTypeRequirements(
-    dto: CreateReadingQuestionDto,
+    dto: CreateQuestionDto,
   ): Promise<void> {
     switch (dto.question_type) {
       case QUESTION_TYPE.MULTIPLE_CHOICE: {

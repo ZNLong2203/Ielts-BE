@@ -6,7 +6,7 @@ import {
   Logger,
   NotFoundException,
 } from '@nestjs/common';
-import { Prisma } from '@prisma/client';
+import { exercises, Prisma } from '@prisma/client';
 import { FileType } from 'src/common/constants';
 import { FilesService } from 'src/modules/files/files.service';
 import { SECTION_TYPE } from 'src/modules/mock-tests/constants';
@@ -19,50 +19,6 @@ import {
   SKILL_TYPE,
 } from 'src/modules/reading/types/reading.types';
 import { PrismaService } from 'src/prisma/prisma.service';
-
-// Type definitions for better type safety
-type ExerciseWithIncludes = Prisma.exercisesGetPayload<{
-  include: {
-    test_sections: {
-      include: {
-        mock_tests: {
-          select: {
-            id: true;
-            title: true;
-            test_type: true;
-          };
-        };
-      };
-    };
-    lessons: {
-      select: {
-        id: true;
-        title: true;
-        sections: {
-          select: {
-            id: true;
-            title: true;
-            courses: {
-              select: {
-                id: true;
-                title: true;
-              };
-            };
-          };
-        };
-      };
-    };
-    _count: {
-      select: {
-        questions: {
-          where: {
-            deleted: false;
-          };
-        };
-      };
-    };
-  };
-}>;
 
 type QuestionWithOptions = Prisma.questionsGetPayload<{
   include: {
@@ -101,9 +57,7 @@ export class ReadingService {
   /**
    * 📚 Create Reading Exercise in test section
    */
-  async createReadingExercise(
-    createDto: CreateReadingExerciseDto,
-  ): Promise<ExerciseWithIncludes> {
+  async createReadingExercise(createDto: CreateReadingExerciseDto) {
     // Validate test_section exists and is reading type
     const testSection = await this.prisma.test_sections.findFirst({
       where: {
@@ -258,7 +212,7 @@ export class ReadingService {
    * 🔍 Get Reading Exercise by ID with questions
    */
   async getReadingExerciseById(id: string): Promise<{
-    exercise: ExerciseWithIncludes;
+    exercise: exercises;
     reading_passage: ReadingExerciseContent['reading_passage'];
     questions: QuestionWithDetails[];
     question_groups: Array<{
@@ -285,23 +239,29 @@ export class ReadingService {
             },
           },
         },
-        lessons: {
-          select: {
-            id: true,
-            title: true,
-            sections: {
-              select: {
-                id: true,
-                title: true,
-                courses: {
-                  select: {
-                    id: true,
-                    title: true,
+        question_groups: {
+          where: { deleted: false },
+          include: {
+            questions: {
+              where: { deleted: false },
+              include: {
+                question_options: {
+                  where: { deleted: false },
+                  orderBy: { ordering: 'asc' },
+                },
+                matching_sets: {
+                  include: {
+                    matching_options: {
+                      where: { deleted: false },
+                      orderBy: { ordering: 'asc' },
+                    },
                   },
                 },
               },
+              orderBy: { ordering: 'asc' },
             },
           },
+          orderBy: { ordering: 'asc' },
         },
         _count: {
           select: {
@@ -358,10 +318,7 @@ export class ReadingService {
   /**
    * ✏️ Update Reading Exercise
    */
-  async updateReadingExercise(
-    id: string,
-    updateDto: UpdateReadingExerciseDto,
-  ): Promise<ExerciseWithIncludes> {
+  async updateReadingExercise(id: string, updateDto: UpdateReadingExerciseDto) {
     const existingExercise = await this.prisma.exercises.findFirst({
       where: {
         id,
@@ -607,43 +564,6 @@ export class ReadingService {
         })),
       })),
     }));
-  }
-
-  /**
-   * Upload image for question
-   */
-  async uploadQuestionImage(id: string, file: Express.Multer.File) {
-    try {
-      const question = await this.prisma.questions.findFirst({
-        where: { id, deleted: false },
-      });
-
-      if (!question) {
-        throw new NotFoundException('Question not found');
-      }
-
-      const uploadResult = await this.fileService.uploadFile(
-        file.buffer,
-        file.originalname,
-        FileType.EXERCISE_IMAGE,
-      );
-
-      // Delete previous image if exists
-      if (question.image_url) {
-        await this.fileService.deleteFiles(question.image_url);
-      }
-
-      return await this.prisma.questions.update({
-        where: { id },
-        data: {
-          image_url: uploadResult.url,
-          updated_at: new Date(),
-        },
-      });
-    } catch (error) {
-      this.logger.error('Error uploading question image', error);
-      throw new BadRequestException('Failed to upload image');
-    }
   }
 
   // ======= PRIVATE HELPER METHODS =======
