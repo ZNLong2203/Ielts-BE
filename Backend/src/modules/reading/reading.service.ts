@@ -1,58 +1,31 @@
-// src/modules/reading/reading.service.ts
 import {
-  BadRequestException,
   ConflictException,
   Injectable,
   Logger,
   NotFoundException,
 } from '@nestjs/common';
-import { exercises, Prisma } from '@prisma/client';
-import { FileType } from 'src/common/constants';
-import { FilesService } from 'src/modules/files/files.service';
+import { Prisma } from '@prisma/client';
 import { SECTION_TYPE } from 'src/modules/mock-tests/constants';
+import {
+  QuestionDetails,
+  QuestionOptionDetails,
+} from 'src/modules/questions/types/types';
 import { CreateReadingExerciseDto } from 'src/modules/reading/dto/create-reading.dto';
 import { UpdateReadingExerciseDto } from 'src/modules/reading/dto/update-reading.dto';
 import {
   EXERCISE_TYPE,
   QuestionWithDetails,
   ReadingExerciseContent,
+  ReadingExerciseWithDetails,
   SKILL_TYPE,
 } from 'src/modules/reading/types/reading.types';
 import { PrismaService } from 'src/prisma/prisma.service';
-
-type QuestionWithOptions = Prisma.questionsGetPayload<{
-  include: {
-    question_options: {
-      where: {
-        deleted: false;
-      };
-      orderBy: {
-        ordering: 'asc';
-      };
-    };
-    matching_sets: {
-      include: {
-        matching_options: {
-          where: {
-            deleted: false;
-          };
-          orderBy: {
-            ordering: 'asc';
-          };
-        };
-      };
-    };
-  };
-}>;
 
 @Injectable()
 export class ReadingService {
   private readonly logger = new Logger(ReadingService.name);
 
-  constructor(
-    private readonly prisma: PrismaService,
-    private readonly fileService: FilesService,
-  ) {}
+  constructor(private readonly prisma: PrismaService) {}
 
   /**
    * 📚 Create Reading Exercise in test section
@@ -144,24 +117,6 @@ export class ReadingService {
             },
           },
         },
-        lessons: {
-          select: {
-            id: true,
-            title: true,
-            sections: {
-              select: {
-                id: true,
-                title: true,
-                courses: {
-                  select: {
-                    id: true,
-                    title: true,
-                  },
-                },
-              },
-            },
-          },
-        },
         _count: {
           select: {
             questions: {
@@ -197,7 +152,6 @@ export class ReadingService {
             test_type: true,
           },
         },
-        exercises: true,
       },
     });
 
@@ -205,22 +159,48 @@ export class ReadingService {
       throw new NotFoundException('Reading test section not found');
     }
 
-    return testSection.exercises.filter((ex) => !ex.deleted);
+    const exercises = await this.prisma.exercises.findMany({
+      where: {
+        test_section_id: testSectionId,
+        skill_type: SKILL_TYPE.READING,
+        deleted: false,
+      },
+      include: {
+        _count: {
+          select: {
+            questions: {
+              where: { deleted: false },
+            },
+            question_groups: {
+              where: { deleted: false },
+            },
+          },
+        },
+      },
+      orderBy: { ordering: 'asc' },
+    });
+
+    return {
+      test_section: {
+        id: testSection.id,
+        section_name: testSection.section_name,
+        mock_test: testSection.mock_tests,
+      },
+      exercises: exercises.map((ex) => ({
+        ...ex,
+        reading_passage: this.extractPassageInfo(ex.content),
+        total_questions: ex._count.questions,
+        total_question_groups: ex._count.question_groups,
+      })),
+    };
   }
 
   /**
-   * 🔍 Get Reading Exercise by ID with questions
+   * 🔍 Get Reading Exercise by ID with complete details
    */
-  async getReadingExerciseById(id: string): Promise<{
-    exercise: exercises;
-    reading_passage: ReadingExerciseContent['reading_passage'];
-    questions: QuestionWithDetails[];
-    question_groups: Array<{
-      group_name: string;
-      questions: QuestionWithDetails[];
-    }>;
-    total_questions: number;
-  }> {
+  async getReadingExerciseById(
+    id: string,
+  ): Promise<ReadingExerciseWithDetails> {
     const exercise = await this.prisma.exercises.findFirst({
       where: {
         id,
@@ -239,37 +219,6 @@ export class ReadingService {
             },
           },
         },
-        question_groups: {
-          where: { deleted: false },
-          include: {
-            questions: {
-              where: { deleted: false },
-              include: {
-                question_options: {
-                  where: { deleted: false },
-                  orderBy: { ordering: 'asc' },
-                },
-                matching_sets: {
-                  include: {
-                    matching_options: {
-                      where: { deleted: false },
-                      orderBy: { ordering: 'asc' },
-                    },
-                  },
-                },
-              },
-              orderBy: { ordering: 'asc' },
-            },
-          },
-          orderBy: { ordering: 'asc' },
-        },
-        _count: {
-          select: {
-            questions: {
-              where: { deleted: false },
-            },
-          },
-        },
       },
     });
 
@@ -277,10 +226,36 @@ export class ReadingService {
       throw new NotFoundException('Reading exercise not found');
     }
 
-    // Get questions separately for better control
-    const questionsData = await this.prisma.questions.findMany({
+    // Get question groups with their questions and matching options
+    const questionGroupsData = await this.prisma.question_groups.findMany({
       where: {
         exercise_id: id,
+        deleted: false,
+      },
+      include: {
+        matching_options: {
+          where: { deleted: false },
+          orderBy: { ordering: 'asc' },
+        },
+        questions: {
+          where: { deleted: false },
+          include: {
+            question_options: {
+              where: { deleted: false },
+              orderBy: { ordering: 'asc' },
+            },
+          },
+          orderBy: { ordering: 'asc' },
+        },
+      },
+      orderBy: { ordering: 'asc' },
+    });
+
+    // Get ungrouped questions
+    const ungroupedQuestionsData = await this.prisma.questions.findMany({
+      where: {
+        exercise_id: id,
+        question_group_id: null,
         deleted: false,
       },
       include: {
@@ -288,30 +263,54 @@ export class ReadingService {
           where: { deleted: false },
           orderBy: { ordering: 'asc' },
         },
-        matching_sets: {
-          include: {
-            matching_options: {
-              where: { deleted: false },
-              orderBy: { ordering: 'asc' },
-            },
-          },
-        },
       },
       orderBy: { ordering: 'asc' },
     });
 
-    const questions: QuestionWithDetails[] = questionsData.map((question) =>
-      this.mapQuestionToDetails(question),
-    );
     const reading_passage = this.extractPassageInfo(exercise.content);
-    const question_groups = this.groupQuestionsByType(questions);
+
+    const question_groups = questionGroupsData.map((group) => ({
+      id: group.id,
+      group_title: group.group_title || undefined,
+      group_instruction: group.group_instruction,
+      passage_reference: group.passage_reference || undefined,
+      question_type: group.question_type,
+      question_range: group.question_range || undefined,
+      correct_answer_count: group.correct_answer_count,
+      ordering: group.ordering,
+      matching_options: group.matching_options.map((opt) => ({
+        id: opt.id,
+        option_text: opt.option_text,
+        ordering: opt.ordering,
+      })),
+      questions: group.questions.map((q) =>
+        this.mapQuestionToDetails(q as unknown as QuestionDetails),
+      ),
+    }));
+
+    const ungrouped_questions = ungroupedQuestionsData.map((q) =>
+      this.mapQuestionToDetails(q as unknown as QuestionDetails),
+    );
+
+    const all_questions = [
+      ...question_groups.flatMap((g) => g.questions),
+      ...ungrouped_questions,
+    ];
 
     return {
-      exercise,
+      id: exercise.id,
+      title: exercise.title,
+      instruction: exercise.instruction,
+      exercise_type: exercise.exercise_type,
+      skill_type: exercise.skill_type,
+      time_limit: exercise.time_limit,
+      passing_score: exercise.passing_score || undefined,
+      ordering: exercise.ordering,
       reading_passage,
-      questions,
       question_groups,
-      total_questions: questions.length,
+      ungrouped_questions,
+      total_questions: all_questions.length,
+      total_points: all_questions.reduce((sum, q) => sum + q.points, 0),
     };
   }
 
@@ -404,27 +403,12 @@ export class ReadingService {
             },
           },
         },
-        lessons: {
-          select: {
-            id: true,
-            title: true,
-            sections: {
-              select: {
-                id: true,
-                title: true,
-                courses: {
-                  select: {
-                    id: true,
-                    title: true,
-                  },
-                },
-              },
-            },
-          },
-        },
         _count: {
           select: {
             questions: {
+              where: { deleted: false },
+            },
+            question_groups: {
               where: { deleted: false },
             },
           },
@@ -433,7 +417,10 @@ export class ReadingService {
     });
 
     this.logger.log(`✅ Updated reading exercise: ${id}`);
-    return exercise;
+    return {
+      ...exercise,
+      reading_passage: this.extractPassageInfo(exercise.content),
+    };
   }
 
   /**
@@ -453,18 +440,46 @@ export class ReadingService {
     }
 
     await this.prisma.$transaction(async (tx) => {
-      // Get all questions for this exercise
-      const questionIds = await tx.questions.findMany({
+      // Get all question groups
+      const questionGroups = await tx.question_groups.findMany({
         where: { exercise_id: id, deleted: false },
         select: { id: true },
       });
 
-      if (questionIds.length > 0) {
-        const ids = questionIds.map((q) => q.id);
+      if (questionGroups.length > 0) {
+        const groupIds = questionGroups.map((g) => g.id);
+
+        // Soft delete matching options
+        await tx.matching_options.updateMany({
+          where: { set_id: { in: groupIds } },
+          data: {
+            deleted: true,
+            updated_at: new Date(),
+          },
+        });
+
+        // Soft delete question groups
+        await tx.question_groups.updateMany({
+          where: { exercise_id: id },
+          data: {
+            deleted: true,
+            updated_at: new Date(),
+          },
+        });
+      }
+
+      // Get all questions for this exercise
+      const questions = await tx.questions.findMany({
+        where: { exercise_id: id, deleted: false },
+        select: { id: true },
+      });
+
+      if (questions.length > 0) {
+        const questionIds = questions.map((q) => q.id);
 
         // Soft delete question options
         await tx.question_options.updateMany({
-          where: { question_id: { in: ids } },
+          where: { question_id: { in: questionIds } },
           data: {
             deleted: true,
             updated_at: new Date(),
@@ -510,6 +525,7 @@ export class ReadingService {
           title: string;
           passage_info: ReadingExerciseContent['reading_passage'];
           total_questions: number;
+          total_question_groups: number;
         }>;
       }>;
     }>
@@ -537,6 +553,9 @@ export class ReadingService {
                     questions: {
                       where: { deleted: false },
                     },
+                    question_groups: {
+                      where: { deleted: false },
+                    },
                   },
                 },
               },
@@ -561,6 +580,7 @@ export class ReadingService {
           title: exercise.title,
           passage_info: this.extractPassageInfo(exercise.content),
           total_questions: exercise._count.questions,
+          total_question_groups: exercise._count.question_groups,
         })),
       })),
     }));
@@ -584,66 +604,32 @@ export class ReadingService {
     return parsedContent?.reading_passage || null;
   }
 
-  private mapQuestionToDetails(
-    question: QuestionWithOptions,
-  ): QuestionWithDetails {
+  private mapQuestionToDetails(question: QuestionDetails): QuestionWithDetails {
     return {
       id: question.id,
       question_text: question.question_text,
       question_type: question.question_type,
       image_url: question.image_url || undefined,
       audio_url: question.audio_url || undefined,
+      audio_duration: question.audio_duration || undefined,
       reading_passage: question.reading_passage || undefined,
       explanation: question.explanation || undefined,
       points: Number(question.points),
-      correct_answer_count: Number(question.correct_answer_count) || 1,
       ordering: question.ordering || 0,
       difficulty_level: question.difficulty_level
         ? Number(question.difficulty_level)
         : undefined,
       question_group: question.question_group || undefined,
-      question_options: question.question_options.map((option) => ({
-        id: option.id,
-        option_text: option.option_text,
-        is_correct: option.is_correct ?? false,
-        ordering: option.ordering ?? 0,
-        point: Number(option.point ?? 0),
-        explanation: option.explanation || undefined,
-      })),
-      matching_sets: question.matching_sets
-        ? {
-            id: question.matching_sets?.id ?? '',
-            title: question.matching_sets?.title ?? '',
-            matching_options:
-              question.matching_sets?.matching_options?.map((option) => ({
-                id: option.id,
-                option_text: option.option_text,
-                ordering: option.ordering ?? 0,
-              })) ?? [],
-          }
-        : undefined,
+      question_group_id: question.question_group_id || undefined,
+      question_options:
+        question.question_options?.map((option: QuestionOptionDetails) => ({
+          id: option.id,
+          option_text: option.option_text,
+          is_correct: option.is_correct ?? false,
+          ordering: option.ordering ?? 0,
+          point: Number(option.point ?? 0),
+          explanation: option.explanation || undefined,
+        })) || [],
     };
-  }
-
-  private groupQuestionsByType(questions: QuestionWithDetails[]): Array<{
-    group_name: string;
-    questions: QuestionWithDetails[];
-  }> {
-    const groups = questions.reduce(
-      (acc, question) => {
-        const groupKey = question.question_group || 'default';
-        if (!acc[groupKey]) {
-          acc[groupKey] = [];
-        }
-        acc[groupKey].push(question);
-        return acc;
-      },
-      {} as Record<string, QuestionWithDetails[]>,
-    );
-
-    return Object.entries(groups).map(([groupName, questions]) => ({
-      group_name: groupName,
-      questions,
-    }));
   }
 }

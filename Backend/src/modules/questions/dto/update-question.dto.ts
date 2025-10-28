@@ -1,91 +1,48 @@
-import { ApiPropertyOptional } from '@nestjs/swagger';
+import { ApiProperty, PartialType } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import {
-  IsOptional,
-  IsString,
-  Length,
-  IsEnum,
-  IsInt,
-  Min,
-  IsNumber,
-  Max,
+  ArrayMinSize,
   IsArray,
+  IsNumber,
+  IsString,
+  Min,
   ValidateNested,
-  IsUUID,
 } from 'class-validator';
-import { QUESTION_TYPE, QuestionType } from 'src/modules/exercises/constants';
-import { CreateQuestionOptionDto } from 'src/modules/questions/dto/create-question.dto';
+import { CreateQuestionDto } from './create-question.dto';
 
-export class UpdateQuestionDto {
-  @ApiPropertyOptional()
-  @IsOptional()
+export class UpdateQuestionDto extends PartialType(CreateQuestionDto) {}
+
+class QuestionOrder {
+  @ApiProperty({
+    description: 'Question ID',
+    example: 'question-uuid-123',
+  })
   @IsString()
-  @Length(5, 2000)
-  question_text?: string;
+  id: string;
 
-  @ApiPropertyOptional({ enum: QUESTION_TYPE })
-  @IsOptional()
-  @IsEnum(QUESTION_TYPE)
-  question_type?: QuestionType;
-
-  @ApiPropertyOptional()
-  @IsOptional()
-  @IsString()
-  @Length(0, 50)
-  question_group?: string;
-
-  @ApiPropertyOptional()
-  @IsOptional()
-  @IsInt()
-  @Min(1)
-  correct_answer_count?: number;
-
-  @ApiPropertyOptional()
-  @IsOptional()
-  @IsNumber({ maxDecimalPlaces: 2 })
+  @ApiProperty({
+    description: 'New ordering value',
+    example: 0,
+    minimum: 0,
+  })
+  @IsNumber()
   @Min(0)
-  points?: number;
+  ordering: number;
+}
 
-  @ApiPropertyOptional()
-  @IsOptional()
-  @IsInt()
-  @Min(0)
-  ordering?: number;
-
-  @ApiPropertyOptional()
-  @IsOptional()
-  @IsNumber({ maxDecimalPlaces: 1 })
-  @Min(1)
-  @Max(9)
-  difficulty_level?: number;
-
-  @ApiPropertyOptional()
-  @IsOptional()
-  @IsString()
-  @Length(0, 1000)
-  explanation?: string;
-
-  @ApiPropertyOptional({ type: [CreateQuestionOptionDto] })
-  @IsOptional()
+export class ReorderQuestionsDto {
+  @ApiProperty({
+    description: 'Array of question IDs with their new ordering',
+    type: [QuestionOrder],
+    example: [
+      { id: 'question-uuid-1', ordering: 0 },
+      { id: 'question-uuid-2', ordering: 1 },
+      { id: 'question-uuid-3', ordering: 2 },
+    ],
+  })
   @IsArray()
+  @ArrayMinSize(1)
   @ValidateNested({ each: true })
-  @Type(() => CreateQuestionOptionDto)
-  options?: CreateQuestionOptionDto[];
-
-  @ApiPropertyOptional()
-  @IsOptional()
-  @IsString()
-  @Length(0, 200)
-  correct_answer?: string;
-
-  @ApiPropertyOptional()
-  @IsOptional()
-  @IsArray()
-  @IsString({ each: true })
-  alternative_answers?: string[];
-
-  @ApiPropertyOptional()
-  @IsOptional()
-  @IsUUID(4)
-  matching_set_id?: string;
+  @Type(() => QuestionOrder)
+  questions: QuestionOrder[];
 }

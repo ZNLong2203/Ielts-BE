@@ -1,4 +1,3 @@
-// src/modules/reading/questions.service.ts
 import {
   BadRequestException,
   ConflictException,
@@ -6,22 +5,17 @@ import {
   Logger,
   NotFoundException,
 } from '@nestjs/common';
-import { matching_sets, Prisma } from '@prisma/client';
+import { Prisma } from '@prisma/client';
 import { FileType } from 'src/common/constants';
 import { QUESTION_TYPE } from 'src/modules/exercises/constants';
-import { CreateQuestionDto } from 'src/modules/questions/dto/create-question.dto';
-import { UpdateQuestionDto } from 'src/modules/questions/dto/update-question.dto';
 import {
-  MatchingOptionDetails,
   QuestionDetails,
-  QuestionOptionDetails,
-} from 'src/modules/questions/types/types';
-import {
   QuestionWithDetails,
-  SKILL_TYPE,
-} from 'src/modules/reading/types/reading.types';
+} from 'src/modules/questions/types/types';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { FilesService } from '../files/files.service';
+import { CreateQuestionDto } from './dto/create-question.dto';
+import { UpdateQuestionDto } from './dto/update-question.dto';
 
 @Injectable()
 export class QuestionsService {
@@ -33,170 +27,85 @@ export class QuestionsService {
   ) {}
 
   /**
-   * 📝 Create Question for Reading Exercise
+   * 📝 Create Question for Question Group
    */
   async createQuestion(createDto: CreateQuestionDto) {
-    // Validate exercise exists and is reading type
-    const exercise = await this.prisma.exercises.findFirst({
-      where: {
-        id: createDto.exercise_id,
-        skill_type: SKILL_TYPE.READING,
-        deleted: false,
-      },
-      include: {
-        test_sections: {
-          select: {
-            id: true,
-            section_name: true,
-            mock_tests: {
-              select: {
-                id: true,
-                title: true,
-              },
-            },
-          },
-        },
-      },
-    });
-
-    if (!exercise) {
-      throw new NotFoundException('Reading exercise not found');
-    }
-
-    // Validate ordering uniqueness within exercise
-    if (createDto.ordering !== undefined) {
-      const existingQuestion = await this.prisma.questions.findFirst({
+    // Validate question group exists
+    let questionGroup: {
+      id: string;
+      exercise_id: string | null;
+      question_type: string;
+    } | null = null;
+    if (createDto.question_group_id) {
+      questionGroup = await this.prisma.question_groups.findFirst({
         where: {
-          exercise_id: createDto.exercise_id,
-          ordering: createDto.ordering,
+          id: createDto.question_group_id,
           deleted: false,
+        },
+        select: {
+          id: true,
+          exercise_id: true,
+          question_type: true,
         },
       });
 
-      if (existingQuestion) {
-        throw new ConflictException(
-          `Question with ordering ${createDto.ordering} already exists in this exercise`,
+      if (!questionGroup || !questionGroup.exercise_id) {
+        throw new NotFoundException(
+          'Question group not found or does not belong to any exercise',
         );
       }
-    }
 
-    // Validate question type specific requirements
-    await this.validateQuestionTypeRequirements(createDto);
-
-    // Validate and check total correct answers + new answers do not exceed 40 for section reading
-    // Count new answers by calculating total options marked correct, do not use correct_answer_count from DTO
-    let newCorrectAnswers = 0;
-    if (createDto.options && createDto.options.length > 0) {
-      newCorrectAnswers = (createDto.options || []).filter(
-        (opt) => opt.is_correct,
-      ).length;
-    } else if (
-      [QUESTION_TYPE.FILL_BLANK, QUESTION_TYPE.TRUE_FALSE].includes(
-        createDto.question_type,
-      )
-    ) {
-      newCorrectAnswers = 1;
-    }
-
-    createDto.correct_answer_count = newCorrectAnswers || 1;
-    const allQuestionsInSection = await this.prisma.questions.findMany({
-      where: {
-        exercises: {
-          test_section_id: exercise.test_section_id,
-          skill_type: SKILL_TYPE.READING,
-          deleted: false,
-        },
-        deleted: false,
-      },
-      select: {
-        correct_answer_count: true,
-      },
-    });
-
-    const totalCorrectAnswers =
-      allQuestionsInSection.reduce(
-        (sum, q) => sum + (q.correct_answer_count || 0),
-        0,
-      ) + newCorrectAnswers;
-
-    if (totalCorrectAnswers > 40) {
+      // For MATCHING type, question must belong to a group
+      if (
+        createDto.question_type === QUESTION_TYPE.MATCHING &&
+        questionGroup.question_type !== QUESTION_TYPE.MATCHING
+      ) {
+        throw new BadRequestException(
+          'MATCHING questions must belong to a MATCHING question group',
+        );
+      }
+    } else if (createDto.question_type === QUESTION_TYPE.MATCHING) {
       throw new BadRequestException(
-        `Total correct answers in this reading section cannot exceed 40. Current total including this question would be ${totalCorrectAnswers}.`,
+        'MATCHING questions require a question_group_id',
       );
     }
 
-    return await this.prisma.$transaction(async (tx) => {
-      // Handle matching questions
-      let matchingSetId = createDto.matching_set_id;
-      if (
-        createDto.question_type === QUESTION_TYPE.MATCHING &&
-        !matchingSetId
-      ) {
-        matchingSetId = await this.createParagraphMatchingSet(
-          tx,
-          createDto.question_group || 'Questions',
-        );
-      }
+    // Validate question type specific requirements
+    this.validateQuestionTypeRequirements(createDto);
 
+    return await this.prisma.$transaction(async (tx) => {
       // Get next ordering if not provided
-      const ordering =
-        createDto.ordering ??
-        (await this.getNextOrdering(tx, createDto.exercise_id));
+      const ordering = await this.getNextOrdering(
+        tx,
+        createDto.question_group_id || '',
+      );
 
       // Create question
       const question = await tx.questions.create({
         data: {
-          exercise_id: createDto.exercise_id,
-          matching_set_id: matchingSetId,
-          question_text: createDto.question_text,
+          exercise_id: questionGroup?.exercise_id || null,
+          question_group_id: createDto.question_group_id,
           question_type: createDto.question_type,
-          question_group: createDto.question_group,
-          correct_answer_count: newCorrectAnswers,
-          points: createDto.points || 1,
+          question_text: createDto.question_text,
+          reading_passage: createDto.reading_passage,
           ordering: ordering,
+          points: createDto.points || 1,
           difficulty_level: createDto.difficulty_level,
+          question_group: createDto.question_group,
           explanation: createDto.explanation,
-        },
-        include: {
-          exercises: {
-            select: {
-              id: true,
-              title: true,
-              skill_type: true,
-              test_section_id: true,
-              lesson_id: true,
-            },
-          },
-          question_options: {
-            where: { deleted: false },
-            orderBy: { ordering: 'asc' },
-          },
-          matching_sets: {
-            include: {
-              matching_options: {
-                where: { deleted: false },
-                orderBy: { ordering: 'asc' },
-              },
-            },
-          },
+          image_url: createDto.image_url,
+          audio_url: createDto.audio_url,
+          audio_duration: createDto.audio_duration,
         },
       });
 
-      // Create options for multiple choice questions
+      // Create question options if provided
       if (createDto.options && createDto.options.length > 0) {
-        await this.createQuestionOptions(
-          tx,
-          question.id,
-          createDto.options as QuestionOptionDetails[],
-        );
+        await this.createQuestionOptions(tx, question.id, createDto.options);
       }
 
-      // Handle fill blank and true/false questions
-      if (
-        [QUESTION_TYPE.FILL_BLANK, QUESTION_TYPE.TRUE_FALSE].includes(
-          createDto.question_type,
-        )
-      ) {
+      // Create correct answer options for FILL_BLANK
+      if (createDto.question_type === QUESTION_TYPE.FILL_BLANK) {
         await this.createCorrectAnswerOptions(
           tx,
           question.id,
@@ -205,40 +114,31 @@ export class QuestionsService {
         );
       }
 
-      // Update exercise metadata
-      await this.updateExerciseMetadata(tx, createDto.exercise_id);
+      // update correct_answer_count in question group
+      if (createDto.question_group_id) {
+        const correctAnswersCount = await tx.question_options.count({
+          where: {
+            questions: {
+              question_group_id: createDto.question_group_id,
+              deleted: false,
+            },
+            is_correct: true,
+            deleted: false,
+          },
+        });
+
+        await tx.question_groups.update({
+          where: { id: createDto.question_group_id },
+          data: { correct_answer_count: correctAnswersCount },
+        });
+      }
 
       this.logger.log(
-        `✅ Created question for exercise: ${createDto.exercise_id}`,
+        `✅ Created question for group: ${question.question_group_id}`,
       );
 
-      // Refetch question with all includes
-      return await tx.questions.findUniqueOrThrow({
-        where: { id: question.id },
-        include: {
-          exercises: {
-            select: {
-              id: true,
-              title: true,
-              skill_type: true,
-              test_section_id: true,
-              lesson_id: true,
-            },
-          },
-          question_options: {
-            where: { deleted: false },
-            orderBy: { ordering: 'asc' },
-          },
-          matching_sets: {
-            include: {
-              matching_options: {
-                where: { deleted: false },
-                orderBy: { ordering: 'asc' },
-              },
-            },
-          },
-        },
-      });
+      // Return complete question details
+      return await this.getQuestionById(question.id);
     });
   }
 
@@ -250,18 +150,18 @@ export class QuestionsService {
     const exercise = await this.prisma.exercises.findFirst({
       where: {
         id: exerciseId,
-        skill_type: SKILL_TYPE.READING,
         deleted: false,
       },
       select: {
         id: true,
         title: true,
         skill_type: true,
+        exercise_type: true,
       },
     });
 
     if (!exercise) {
-      throw new NotFoundException('Reading exercise not found');
+      throw new NotFoundException('Exercise not found');
     }
 
     const questionsData = await this.prisma.questions.findMany({
@@ -270,29 +170,57 @@ export class QuestionsService {
         deleted: false,
       },
       include: {
-        question_options: {
-          where: { deleted: false },
-          orderBy: { ordering: 'asc' },
-        },
-        matching_sets: {
-          include: {
+        question_groups: {
+          select: {
+            id: true,
+            image_url: true,
+            group_title: true,
+            group_instruction: true,
+            passage_reference: true,
+            question_type: true,
+            question_range: true,
+            correct_answer_count: true,
+            ordering: true,
             matching_options: {
               where: { deleted: false },
               orderBy: { ordering: 'asc' },
             },
           },
         },
+        question_options: {
+          where: { deleted: false },
+          orderBy: { ordering: 'asc' },
+        },
       },
       orderBy: { ordering: 'asc' },
     });
 
-    const questions: QuestionDetails[] = questionsData.map((question) =>
+    const questions: QuestionWithDetails[] = questionsData.map((question) =>
       this.mapQuestionToDetails(question as unknown as QuestionDetails),
     );
 
+    // Group questions by question_group_id if they exist
+    const groupedQuestions: Record<string, QuestionWithDetails[]> = {};
+    const ungroupedQuestions: QuestionWithDetails[] = [];
+
+    questions.forEach((q) => {
+      if (q.question_group_id) {
+        const groupId = q.question_group_id;
+        if (!groupedQuestions[groupId]) {
+          groupedQuestions[groupId] = [];
+        }
+        groupedQuestions[groupId].push(q);
+      } else {
+        ungroupedQuestions.push(q);
+      }
+    });
+
     return {
       questions,
+      grouped_questions: groupedQuestions,
+      ungrouped_questions: ungroupedQuestions,
       total_questions: questions.length,
+      total_points: questions.reduce((sum, q) => sum + Number(q.points), 0),
       exercise_info: exercise,
     };
   }
@@ -309,43 +237,29 @@ export class QuestionsService {
             id: true,
             title: true,
             skill_type: true,
-            test_sections: {
-              select: {
-                id: true,
-                section_name: true,
-                mock_tests: {
-                  select: {
-                    id: true,
-                    title: true,
-                  },
-                },
-              },
-            },
-            lessons: {
-              select: {
-                id: true,
-                title: true,
-                sections: {
-                  select: {
-                    id: true,
-                    title: true,
-                  },
-                },
-              },
+            exercise_type: true,
+          },
+        },
+        question_groups: {
+          select: {
+            id: true,
+            image_url: true,
+            group_title: true,
+            group_instruction: true,
+            passage_reference: true,
+            question_type: true,
+            question_range: true,
+            correct_answer_count: true,
+            ordering: true,
+            matching_options: {
+              where: { deleted: false },
+              orderBy: { ordering: 'asc' },
             },
           },
         },
         question_options: {
           where: { deleted: false },
           orderBy: { ordering: 'asc' },
-        },
-        matching_sets: {
-          include: {
-            matching_options: {
-              where: { deleted: false },
-              orderBy: { ordering: 'asc' },
-            },
-          },
         },
       },
     });
@@ -374,6 +288,12 @@ export class QuestionsService {
             test_section_id: true,
           },
         },
+        question_groups: {
+          select: {
+            id: true,
+            question_type: true,
+          },
+        },
       },
     });
 
@@ -381,8 +301,39 @@ export class QuestionsService {
       throw new NotFoundException('Question not found');
     }
 
-    if (existingQuestion?.exercises?.skill_type !== SKILL_TYPE.READING) {
-      throw new BadRequestException('Can only update reading questions');
+    // Validate question group if provided
+    if (updateDto.question_group_id) {
+      const questionGroup = await this.prisma.question_groups.findFirst({
+        where: {
+          id: updateDto.question_group_id,
+          exercise_id: existingQuestion.exercise_id,
+          deleted: false,
+        },
+      });
+
+      if (!questionGroup) {
+        throw new NotFoundException(
+          'Question group not found or does not belong to any exercise',
+        );
+      }
+
+      // For MATCHING type, question must belong to a MATCHING group
+      if (
+        (updateDto.question_type || existingQuestion.question_type) ===
+          QUESTION_TYPE.MATCHING &&
+        questionGroup.question_type !== QUESTION_TYPE.MATCHING
+      ) {
+        throw new BadRequestException(
+          'MATCHING questions must belong to a MATCHING question group',
+        );
+      }
+    } else if (
+      (updateDto.question_type || existingQuestion.question_type) ===
+      QUESTION_TYPE.MATCHING
+    ) {
+      throw new BadRequestException(
+        'MATCHING questions require a question_group_id',
+      );
     }
 
     // Validate ordering uniqueness if being updated
@@ -411,108 +362,49 @@ export class QuestionsService {
       updateDto.question_type &&
       updateDto.question_type !== existingQuestion.question_type
     ) {
-      await this.validateQuestionTypeRequirements({
-        ...updateDto,
-        exercise_id: existingQuestion.exercise_id,
-        question_text:
-          updateDto.question_text || existingQuestion.question_text,
-        question_type: updateDto.question_type,
-      } as CreateQuestionDto);
-    }
-
-    // Validate and check total correct answers + new answers - old answers do not exceed 40 for section reading
-    let newCorrectAnswers = 0;
-    if (updateDto.options && updateDto.options.length > 0) {
-      newCorrectAnswers = (updateDto.options || []).filter(
-        (opt) => opt.is_correct,
-      ).length;
-    } else if (
-      [QUESTION_TYPE.FILL_BLANK, QUESTION_TYPE.TRUE_FALSE].includes(
-        updateDto.question_type || existingQuestion.question_type,
-      )
-    ) {
-      newCorrectAnswers = 1;
-    } else {
-      newCorrectAnswers = existingQuestion.correct_answer_count || 0;
-    }
-
-    const allQuestionsInSection = await this.prisma.questions.findMany({
-      where: {
-        exercises: {
-          test_section_id: existingQuestion.exercises.test_section_id,
-          skill_type: SKILL_TYPE.READING,
-          deleted: false,
-        },
-        deleted: false,
-        id: { not: id },
-      },
-      select: {
-        correct_answer_count: true,
-      },
-    });
-
-    const totalCorrectAnswers =
-      allQuestionsInSection.reduce(
-        (sum, q) => sum + (q.correct_answer_count || 0),
-        0,
-      ) +
-      newCorrectAnswers -
-      (existingQuestion.correct_answer_count || 0);
-
-    if (totalCorrectAnswers > 40) {
-      throw new BadRequestException(
-        `Total correct answers in this reading section cannot exceed 40. Current total including this update would be ${totalCorrectAnswers}.`,
-      );
+      this.validateQuestionTypeRequirements(updateDto);
     }
 
     return await this.prisma.$transaction(async (tx) => {
-      if (!existingQuestion.exercise_id) {
-        throw new BadRequestException('Question is not linked to any exercise');
-      }
       // Update question
-      const updatedQuestion = await tx.questions.update({
+      await tx.questions.update({
         where: { id },
         data: {
-          question_text: updateDto.question_text,
+          question_group_id: updateDto.question_group_id,
           question_type: updateDto.question_type,
-          question_group: updateDto.question_group,
-          correct_answer_count: newCorrectAnswers,
-          points: updateDto.points,
+          question_text: updateDto.question_text,
+          reading_passage: updateDto.reading_passage,
           ordering: updateDto.ordering,
+          points: updateDto.points,
           difficulty_level: updateDto.difficulty_level,
+          question_group: updateDto.question_group,
           explanation: updateDto.explanation,
-          matching_set_id: updateDto.matching_set_id,
+          image_url: updateDto.image_url,
+          audio_url: updateDto.audio_url,
+          audio_duration: updateDto.audio_duration,
           updated_at: new Date(),
         },
       });
 
-      // Update options if provided
-      if (updateDto.options && updateDto.options.length > 0) {
+      // Update question options if provided
+      if (updateDto.options !== undefined) {
         // Delete existing options
         await tx.question_options.updateMany({
           where: { question_id: id },
-          data: {
-            deleted: true,
-            updated_at: new Date(),
-          },
+          data: { deleted: true },
         });
 
         // Create new options
-        await this.createQuestionOptions(
-          tx,
-          id,
-          updateDto.options as QuestionOptionDetails[],
-        );
+        if (updateDto.options.length > 0) {
+          await this.createQuestionOptions(tx, id, updateDto.options);
+        }
       }
 
-      // Handle correct answer updates for fill_blank and true_false
-      if (updateDto.correct_answer !== undefined) {
+      // Update correct answer options for FILL_BLANK
+      if (updateDto.question_type === QUESTION_TYPE.FILL_BLANK) {
         await tx.question_options.updateMany({
           where: { question_id: id },
-          data: {
-            deleted: true,
-            updated_at: new Date(),
-          },
+          data: { deleted: true },
         });
 
         await this.createCorrectAnswerOptions(
@@ -523,33 +415,10 @@ export class QuestionsService {
         );
       }
 
-      // Update exercise metadata
-      await this.updateExerciseMetadata(tx, existingQuestion.exercise_id);
-
       this.logger.log(`✅ Updated question: ${id}`);
 
-      // Return updated question with all includes
-      const questionWithIncludes = await tx.questions.findUniqueOrThrow({
-        where: { id },
-        include: {
-          question_options: {
-            where: { deleted: false },
-            orderBy: { ordering: 'asc' },
-          },
-          matching_sets: {
-            include: {
-              matching_options: {
-                where: { deleted: false },
-                orderBy: { ordering: 'asc' },
-              },
-            },
-          },
-        },
-      });
-
-      return this.mapQuestionToDetails(
-        questionWithIncludes as unknown as QuestionDetails,
-      );
+      // Return complete question details
+      return await this.getQuestionById(id);
     });
   }
 
@@ -559,13 +428,10 @@ export class QuestionsService {
   async deleteQuestion(id: string): Promise<void> {
     const question = await this.prisma.questions.findFirst({
       where: { id, deleted: false },
-      include: {
-        exercises: {
-          select: {
-            id: true,
-            skill_type: true,
-          },
-        },
+      select: {
+        id: true,
+        exercise_id: true,
+        question_group_id: true,
       },
     });
 
@@ -573,14 +439,7 @@ export class QuestionsService {
       throw new NotFoundException('Question not found');
     }
 
-    if (question?.exercises?.skill_type !== SKILL_TYPE.READING) {
-      throw new BadRequestException('Can only delete reading questions');
-    }
-
     await this.prisma.$transaction(async (tx) => {
-      if (!question.exercise_id) {
-        throw new BadRequestException('Question is not linked to any exercise');
-      }
       // Soft delete question options
       await tx.question_options.updateMany({
         where: { question_id: id },
@@ -598,9 +457,6 @@ export class QuestionsService {
           updated_at: new Date(),
         },
       });
-
-      // Update exercise metadata
-      await this.updateExerciseMetadata(tx, question.exercise_id);
     });
 
     this.logger.log(`✅ Deleted question: ${id}`);
@@ -615,23 +471,10 @@ export class QuestionsService {
   ): Promise<QuestionWithDetails> {
     const question = await this.prisma.questions.findFirst({
       where: { id, deleted: false },
-      include: {
-        exercises: {
-          select: {
-            skill_type: true,
-          },
-        },
-      },
     });
 
     if (!question) {
       throw new NotFoundException('Question not found');
-    }
-
-    if (question?.exercises?.skill_type !== SKILL_TYPE.READING) {
-      throw new BadRequestException(
-        'Can only upload images for reading questions',
-      );
     }
 
     try {
@@ -650,35 +493,66 @@ export class QuestionsService {
         }
       }
 
-      const updatedQuestion = await this.prisma.questions.update({
+      await this.prisma.questions.update({
         where: { id },
         data: {
           image_url: uploadResult.url,
           updated_at: new Date(),
         },
-        include: {
-          question_options: {
-            where: { deleted: false },
-            orderBy: { ordering: 'asc' },
-          },
-          matching_sets: {
-            include: {
-              matching_options: {
-                where: { deleted: false },
-                orderBy: { ordering: 'asc' },
-              },
-            },
-          },
-        },
       });
 
       this.logger.log(`✅ Uploaded image for question: ${id}`);
-      return this.mapQuestionToDetails(
-        updatedQuestion as unknown as QuestionDetails,
-      );
+      return this.getQuestionById(id);
     } catch (error) {
       this.logger.error('Error uploading question image:', error);
       throw new BadRequestException('Failed to upload image');
+    }
+  }
+
+  /**
+   * 🎵 Upload Audio for Question
+   */
+  async uploadQuestionAudio(
+    id: string,
+    file: Express.Multer.File,
+  ): Promise<QuestionWithDetails> {
+    const question = await this.prisma.questions.findFirst({
+      where: { id, deleted: false },
+    });
+
+    if (!question) {
+      throw new NotFoundException('Question not found');
+    }
+
+    try {
+      const uploadResult = await this.filesService.uploadFile(
+        file.buffer,
+        file.originalname,
+        FileType.AUDIO,
+      );
+
+      // Delete old audio if exists
+      if (question.audio_url) {
+        try {
+          await this.filesService.deleteFiles([question.audio_url]);
+        } catch (error) {
+          this.logger.warn(`Failed to delete old audio: ${question.audio_url}`);
+        }
+      }
+
+      await this.prisma.questions.update({
+        where: { id },
+        data: {
+          audio_url: uploadResult.url,
+          updated_at: new Date(),
+        },
+      });
+
+      this.logger.log(`✅ Uploaded audio for question: ${id}`);
+      return this.getQuestionById(id);
+    } catch (error) {
+      this.logger.error('Error uploading question audio:', error);
+      throw new BadRequestException('Failed to upload audio');
     }
   }
 
@@ -692,13 +566,12 @@ export class QuestionsService {
     const exercise = await this.prisma.exercises.findFirst({
       where: {
         id: exerciseId,
-        skill_type: SKILL_TYPE.READING,
         deleted: false,
       },
     });
 
     if (!exercise) {
-      throw new NotFoundException('Reading exercise not found');
+      throw new NotFoundException('Exercise not found');
     }
 
     // Validate all questions belong to this exercise
@@ -744,128 +617,91 @@ export class QuestionsService {
 
   // ======= PRIVATE HELPER METHODS =======
 
-  private async validateQuestionTypeRequirements(
-    dto: CreateQuestionDto,
-  ): Promise<void> {
+  private validateQuestionTypeRequirements(
+    dto: CreateQuestionDto | UpdateQuestionDto,
+  ) {
     switch (dto.question_type) {
-      case QUESTION_TYPE.MULTIPLE_CHOICE: {
+      case QUESTION_TYPE.MULTIPLE_CHOICE:
         if (!dto.options || dto.options.length < 2) {
           throw new BadRequestException(
-            'Multiple choice questions must have at least 2 options',
-          );
-        }
-        const correctOptions = dto.options.filter((opt) => opt.is_correct);
-        if (
-          dto.question_type === QUESTION_TYPE.MULTIPLE_CHOICE &&
-          correctOptions.length !== 1
-        ) {
-          throw new BadRequestException(
-            'Single choice questions must have exactly 1 correct option',
-          );
-        }
-        if (
-          dto.question_type === QUESTION_TYPE.MULTIPLE_CHOICE &&
-          correctOptions.length < 1
-        ) {
-          throw new BadRequestException(
-            'Multiple choice questions must have at least 1 correct option',
+            'Multiple choice questions require at least 2 options',
           );
         }
         break;
-      }
 
       case QUESTION_TYPE.TRUE_FALSE:
-        if (
-          !dto.correct_answer ||
-          !['true', 'false'].includes(dto.correct_answer.toLowerCase())
-        ) {
+        if (!dto.options || dto.options.length !== 2) {
           throw new BadRequestException(
-            'True/False questions must have correct_answer as "true" or "false"',
+            'True/False questions must have exactly 2 options',
           );
         }
         break;
 
       case QUESTION_TYPE.FILL_BLANK:
-        if (!dto.correct_answer || dto.correct_answer.trim().length === 0) {
+        if (!dto.correct_answer) {
           throw new BadRequestException(
-            'Fill blank questions must have a correct_answer',
+            'Fill in the blank questions require a correct answer',
           );
         }
         break;
 
       case QUESTION_TYPE.MATCHING:
-        // Matching questions can optionally have a matching_set_id
-        if (dto.matching_set_id) {
-          const matchingSet: matching_sets | null =
-            await this.prisma.matching_sets.findFirst({
-              where: { id: dto.matching_set_id, deleted: false },
-            });
-          if (!matchingSet) {
-            throw new BadRequestException('Invalid matching_set_id');
-          }
+        if (!dto.question_group_id) {
+          throw new BadRequestException(
+            'MATCHING questions require a question_group_id',
+          );
         }
+        // Matching options are managed at the question_group level
         break;
 
+      case QUESTION_TYPE.ESSAY:
+      case QUESTION_TYPE.SPEAKING:
+        // These types don't require options
+        break;
       default:
-        // Other question types are valid
-        break;
+        throw new BadRequestException('Invalid question type');
     }
-  }
-
-  private async createParagraphMatchingSet(
-    tx: Prisma.TransactionClient,
-    groupName: string,
-  ): Promise<string> {
-    const matchingSet = await tx.matching_sets.create({
-      data: {
-        title: `Paragraph Matching - ${groupName}`,
-      },
-    });
-
-    // Create A, B, C, D, E options
-    const paragraphLabels = ['A', 'B', 'C', 'D', 'E'];
-    for (const [index, label] of paragraphLabels.entries()) {
-      await tx.matching_options.create({
-        data: {
-          set_id: matchingSet.id,
-          option_text: label,
-          ordering: index + 1,
-        },
-      });
-    }
-
-    return matchingSet.id;
   }
 
   private async getNextOrdering(
     tx: Prisma.TransactionClient,
-    exerciseId: string,
+    groupId: string,
   ): Promise<number> {
+    if (!groupId) {
+      return 0;
+    }
     const lastQuestion = await tx.questions.findFirst({
       where: {
-        exercise_id: exerciseId,
+        question_group_id: groupId,
         deleted: false,
       },
       orderBy: { ordering: 'desc' },
     });
 
-    return (lastQuestion?.ordering || 0) + 1;
+    return (lastQuestion?.ordering || -1) + 1;
   }
 
   private async createQuestionOptions(
     tx: Prisma.TransactionClient,
     questionId: string,
-    options: QuestionOptionDetails[],
+    options: Array<{
+      option_text: string;
+      is_correct: boolean;
+      ordering?: number;
+      point?: number;
+      explanation?: string;
+    }>,
   ): Promise<void> {
-    for (const [index, optionDto] of options.entries()) {
+    for (let i = 0; i < options.length; i++) {
+      const option = options[i];
       await tx.question_options.create({
         data: {
           question_id: questionId,
-          option_text: optionDto.option_text,
-          is_correct: optionDto.is_correct || false,
-          ordering: optionDto.ordering ?? index + 1,
-          point: optionDto.point || 1,
-          explanation: optionDto.explanation,
+          option_text: option.option_text,
+          is_correct: option.is_correct,
+          ordering: option.ordering ?? i,
+          point: option.point ?? 1,
+          explanation: option.explanation,
         },
       });
     }
@@ -883,109 +719,128 @@ export class QuestionsService {
           question_id: questionId,
           option_text: correctAnswer,
           is_correct: true,
-          ordering: 1,
+          ordering: 0,
+          point: 1,
         },
       });
+    }
 
-      // Add alternative answers
-      if (alternativeAnswers && alternativeAnswers.length > 0) {
-        for (const [index, altAnswer] of alternativeAnswers.entries()) {
-          await tx.question_options.create({
-            data: {
-              question_id: questionId,
-              option_text: altAnswer,
-              is_correct: true,
-              ordering: index + 2,
-            },
-          });
-        }
+    if (alternativeAnswers && alternativeAnswers.length > 0) {
+      for (let i = 0; i < alternativeAnswers.length; i++) {
+        await tx.question_options.create({
+          data: {
+            question_id: questionId,
+            option_text: alternativeAnswers[i],
+            is_correct: true,
+            ordering: i + 1,
+            point: 1,
+          },
+        });
       }
     }
-  }
-
-  private async updateExerciseMetadata(
-    tx: Prisma.TransactionClient,
-    exerciseId: string,
-  ): Promise<void> {
-    // Get current question count and types
-    const questionsData = await tx.questions.findMany({
-      where: {
-        exercise_id: exerciseId,
-        deleted: false,
-      },
-      select: {
-        question_type: true,
-      },
-    });
-
-    const questionTypes = [
-      ...new Set(questionsData.map((q) => q.question_type)),
-    ];
-
-    // Get current exercise content
-    const exercise = await tx.exercises.findUniqueOrThrow({
-      where: { id: exerciseId },
-      select: { content: true },
-    });
-
-    const existingContent = exercise.content as any;
-
-    await tx.exercises.update({
-      where: { id: exerciseId },
-      data: {
-        content: {
-          ...existingContent,
-          exercise_metadata: {
-            ...existingContent.exercise_metadata,
-            total_questions: questionsData.length,
-            question_types: questionTypes,
-            updated_at: new Date(),
-          },
-        },
-        updated_at: new Date(),
-      },
-    });
   }
 
   private mapQuestionToDetails(question: QuestionDetails): QuestionWithDetails {
     return {
       id: question.id,
-      question_text: question.question_text,
+      exercise_id: question.exercise_id,
+      question_group_id: question.question_group_id,
       question_type: question.question_type,
-      image_url: question.image_url || undefined,
-      audio_url: question.audio_url || undefined,
-      reading_passage: question.reading_passage || undefined,
-      explanation: question.explanation || undefined,
-      points: Number(question.points),
-      correct_answer_count: question.correct_answer_count,
+      question_text: question.question_text,
+      reading_passage: question.reading_passage,
       ordering: question.ordering,
-      difficulty_level: question.difficulty_level
-        ? Number(question.difficulty_level)
-        : undefined,
-      question_group: question.question_group || undefined,
-      question_options:
-        question.question_options?.map((option: QuestionOptionDetails) => ({
-          id: option.id,
-          option_text: option.option_text,
-          is_correct: option.is_correct,
-          ordering: option.ordering,
-          point: Number(option.point),
-          explanation: option.explanation || undefined,
-        })) || [],
-      matching_sets: question.matching_sets
-        ? {
-            id: question.matching_sets.id,
-            title: question.matching_sets.title || '',
-            matching_options:
-              question.matching_sets.matching_options?.map(
-                (option: MatchingOptionDetails) => ({
-                  id: option.id,
-                  option_text: option.option_text,
-                  ordering: option.ordering,
-                }),
-              ) || [],
-          }
-        : undefined,
+      points: question.points,
+      difficulty_level: question.difficulty_level,
+      question_group: question.question_group,
+      explanation: question.explanation,
+      image_url: question.image_url,
+      audio_url: question.audio_url,
+      audio_duration: question.audio_duration,
+      group: question.question_groups,
+      options: question.question_options || [],
+      created_at: question.created_at,
+      updated_at: question.updated_at,
     };
+  }
+
+  /**
+   * Count number correct answers by total options marked correct by sectionId
+   * Know: section -> exercises -> question groups -> questions -> question_options
+   * or: section -> exercises -> questions -> question_options
+   */
+  async countCorrectAnswersBySection(sectionId: string): Promise<number> {
+    const exercises = await this.prisma.exercises.findMany({
+      where: {
+        test_section_id: sectionId,
+        deleted: false,
+      },
+      select: {
+        id: true,
+      },
+    });
+
+    const exerciseIds = exercises.map((ex) => ex.id);
+
+    const correctAnswersCount = await this.prisma.question_options.count({
+      where: {
+        questions: {
+          exercise_id: { in: exerciseIds },
+          deleted: false,
+        },
+        is_correct: true,
+        deleted: false,
+      },
+    });
+
+    return correctAnswersCount;
+  }
+
+  /**
+   * Calculate total correct answers for section when add new question or update question
+   * @param sectionId
+   * @param newCorrectAnswers
+   * @param oldQuestionId (provide if update else undefined)
+   */
+  async calculateTotalCorrectAnswersForSection(
+    sectionId: string,
+    newCorrectAnswers: number,
+    oldQuestionId?: string,
+  ): Promise<number> {
+    const exercises = await this.prisma.exercises.findMany({
+      where: {
+        test_section_id: sectionId,
+        deleted: false,
+      },
+      select: {
+        id: true,
+      },
+    });
+
+    const exerciseIds = exercises.map((ex) => ex.id);
+
+    let existingCorrectAnswers = 0;
+    if (oldQuestionId) {
+      existingCorrectAnswers = await this.prisma.question_options.count({
+        where: {
+          question_id: oldQuestionId,
+          is_correct: true,
+          deleted: false,
+        },
+      });
+    }
+
+    const totalCorrectAnswers = await this.prisma.question_options.count({
+      where: {
+        questions: {
+          exercise_id: { in: exerciseIds },
+          deleted: false,
+          id: oldQuestionId ? { not: oldQuestionId } : undefined,
+        },
+        is_correct: true,
+        deleted: false,
+      },
+    });
+
+    return totalCorrectAnswers - existingCorrectAnswers + newCorrectAnswers;
   }
 }

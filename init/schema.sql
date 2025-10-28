@@ -304,9 +304,17 @@ CREATE TABLE exercises (
     )
 );
 
-CREATE TABLE matching_sets (
+CREATE TABLE question_groups (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    title VARCHAR(100),
+    exercise_id UUID REFERENCES exercises(id) ON DELETE CASCADE,
+    image_url VARCHAR(500),
+    group_title VARCHAR(255), -- "Questions 1-4", "Questions 5-10"
+    group_instruction TEXT NOT NULL, -- "Which paragraph contains each of the following pieces of information?"
+    passage_reference TEXT, -- "The text has 5 paragraphs (A - E)"
+    question_type VARCHAR(20) NOT NULL, -- multiple_choice, essay, speaking, true_false, fill_blank, matching
+    ordering INTEGER DEFAULT 0,
+    question_range VARCHAR(20), -- "1-4", "5-10" for display
+    correct_answer_count INTEGER DEFAULT 1,
     deleted BOOLEAN DEFAULT FALSE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
@@ -314,22 +322,9 @@ CREATE TABLE matching_sets (
 
 CREATE TABLE matching_options (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    set_id UUID REFERENCES matching_sets(id) ON DELETE CASCADE,
+    set_id UUID REFERENCES question_groups(id) ON DELETE CASCADE,
     option_text TEXT NOT NULL,
     ordering INTEGER DEFAULT 0,
-    deleted BOOLEAN DEFAULT FALSE,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-
-CREATE TABLE question_groups (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    exercise_id UUID REFERENCES exercises(id) ON DELETE CASCADE,
-    group_title VARCHAR(255), -- "Questions 1-4", "Questions 5-10"
-    group_instruction TEXT NOT NULL, -- "Which paragraph contains each of the following pieces of information?"
-    passage_reference TEXT, -- "The text has 5 paragraphs (A - E)"
-    ordering INTEGER DEFAULT 0,
-    question_range VARCHAR(20), -- "1-4", "5-10" for display
     deleted BOOLEAN DEFAULT FALSE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
@@ -339,7 +334,6 @@ CREATE TABLE questions (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     exercise_id UUID REFERENCES exercises(id) ON DELETE CASCADE,
     question_group_id UUID REFERENCES question_groups(id) ON DELETE SET NULL,
-    matching_set_id UUID REFERENCES matching_sets(id) ON DELETE SET NULL,
     question_text TEXT NOT NULL,
     question_type VARCHAR(20) NOT NULL, -- multiple_choice, essay, speaking, true_false, fill_blank, matching, summary_completion
     image_url VARCHAR(500), -- for images, videos, etc.
@@ -348,7 +342,6 @@ CREATE TABLE questions (
     reading_passage TEXT, -- for reading questions
     explanation TEXT,
     points DECIMAL(5,2) DEFAULT 1,
-    correct_answer_count INTEGER DEFAULT 1,
     ordering INTEGER DEFAULT 0,
     difficulty_level DECIMAL(3,1), -- band (e.g., 5.0, 6.5, 7.0)
     question_group VARCHAR(50), -- for grouping related questions (e.g., "Passage 1", "Task 1")

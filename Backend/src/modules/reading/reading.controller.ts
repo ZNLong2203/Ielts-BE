@@ -1,4 +1,3 @@
-// src/modules/reading/reading.controller.ts
 import {
   Body,
   Controller,
@@ -7,45 +6,39 @@ import {
   HttpCode,
   HttpStatus,
   Param,
-  ParseFilePipeBuilder,
-  ParseUUIDPipe,
   Post,
   Put,
-  UploadedFile,
-  UseInterceptors,
-  ValidationPipe,
 } from '@nestjs/common';
-import { FileInterceptor } from '@nestjs/platform-express';
 import {
-  ApiBody,
-  ApiConsumes,
+  ApiBearerAuth,
   ApiOperation,
   ApiParam,
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
-import { MessageResponse, Public } from 'src/decorator/customize';
-import { CreateReadingExerciseDto } from 'src/modules/reading/dto/create-reading.dto';
-import { UpdateReadingExerciseDto } from 'src/modules/reading/dto/update-reading.dto';
+import { CreateReadingExerciseDto } from './dto/create-reading.dto';
+import { UpdateReadingExerciseDto } from './dto/update-reading.dto';
 import { ReadingService } from './reading.service';
 
-@ApiTags('📚 Reading Exercises')
-@Controller('reading/exercises')
+@ApiTags('Reading Exercises')
+@ApiBearerAuth()
+@Controller('reading')
 export class ReadingController {
   constructor(private readonly readingService: ReadingService) {}
 
-  /**
-   * 📚 Create Reading Exercise in Test Section
-   */
   @Post()
   @ApiOperation({
-    summary: 'Create reading exercise in test section',
+    summary: 'Create reading exercise',
     description:
-      'Creates a new reading exercise with passage content in a test section',
+      'Create a new reading exercise with passage in a mock test section',
   })
   @ApiResponse({
     status: HttpStatus.CREATED,
     description: 'Reading exercise created successfully',
+  })
+  @ApiResponse({
+    status: HttpStatus.BAD_REQUEST,
+    description: 'Invalid input data',
   })
   @ApiResponse({
     status: HttpStatus.NOT_FOUND,
@@ -53,33 +46,21 @@ export class ReadingController {
   })
   @ApiResponse({
     status: HttpStatus.CONFLICT,
-    description: 'Exercise with this title already exists in test section',
+    description: 'Exercise with this title already exists',
   })
-  async createReadingExercise(
-    @Body(new ValidationPipe({ transform: true }))
-    createDto: CreateReadingExerciseDto,
-  ) {
-    const exercise = await this.readingService.createReadingExercise(createDto);
-    return {
-      success: true,
-      statusCode: HttpStatus.CREATED,
-      message: 'Reading exercise created successfully',
-      data: exercise,
-    };
+  async createReadingExercise(@Body() createDto: CreateReadingExerciseDto) {
+    return this.readingService.createReadingExercise(createDto);
   }
 
-  /**
-   * 📖 Get Reading Exercises by Test Section
-   */
-  @Get('test-sections/:testSectionId')
+  @Get('test-section/:testSectionId')
   @ApiOperation({
     summary: 'Get reading exercises by test section',
-    description:
-      'Retrieves all reading exercises in a specific test section with pagination',
+    description: 'Retrieve all reading exercises in a specific test section',
   })
   @ApiParam({
     name: 'testSectionId',
-    description: 'Test section UUID',
+    description: 'Test Section ID',
+    type: 'string',
   })
   @ApiResponse({
     status: HttpStatus.OK,
@@ -89,66 +70,67 @@ export class ReadingController {
     status: HttpStatus.NOT_FOUND,
     description: 'Test section not found',
   })
-  async getExercisesByTestSection(
-    @Param('testSectionId', ParseUUIDPipe) testSectionId: string,
+  async getReadingExercisesByTestSection(
+    @Param('testSectionId') testSectionId: string,
   ) {
-    const result =
-      await this.readingService.getReadingExercisesByTestSection(testSectionId);
-    return {
-      success: true,
-      statusCode: HttpStatus.OK,
-      message: 'Reading exercises retrieved successfully',
-      ...result,
-    };
+    return this.readingService.getReadingExercisesByTestSection(testSectionId);
   }
 
-  /**
-   * 🔍 Get Reading Exercise by ID
-   */
-  @Get(':id')
+  @Get('mock-tests')
   @ApiOperation({
-    summary: 'Get reading exercise by ID',
+    summary: 'Get all mock tests with reading sections',
     description:
-      'Retrieves detailed information about a reading exercise including questions',
-  })
-  @ApiParam({
-    name: 'id',
-    description: 'Exercise UUID',
+      'Retrieve all mock tests that contain reading sections and their exercises',
   })
   @ApiResponse({
     status: HttpStatus.OK,
-    description: 'Reading exercise retrieved successfully',
+    description: 'Mock tests with reading sections retrieved successfully',
+  })
+  async getMockTestsWithReadingSections() {
+    return this.readingService.getMockTestsWithReadingSections();
+  }
+
+  @Get(':id')
+  @ApiOperation({
+    summary: 'Get reading exercise details',
+    description:
+      'Retrieve detailed information of a reading exercise including passage, question groups, and questions',
+  })
+  @ApiParam({
+    name: 'id',
+    description: 'Reading Exercise ID',
+    type: 'string',
+  })
+  @ApiResponse({
+    status: HttpStatus.OK,
+    description: 'Reading exercise details retrieved successfully',
   })
   @ApiResponse({
     status: HttpStatus.NOT_FOUND,
     description: 'Reading exercise not found',
   })
-  async getReadingExerciseById(@Param('id', ParseUUIDPipe) id: string) {
-    const result = await this.readingService.getReadingExerciseById(id);
-    return {
-      success: true,
-      statusCode: HttpStatus.OK,
-      message: 'Reading exercise retrieved successfully',
-      data: result,
-    };
+  async getReadingExerciseById(@Param('id') id: string) {
+    return this.readingService.getReadingExerciseById(id);
   }
 
-  /**
-   * ✏️ Update Reading Exercise
-   */
   @Put(':id')
   @ApiOperation({
     summary: 'Update reading exercise',
     description:
-      'Updates reading exercise information including passage content',
+      'Update reading exercise information including passage content',
   })
   @ApiParam({
     name: 'id',
-    description: 'Exercise UUID',
+    description: 'Reading Exercise ID',
+    type: 'string',
   })
   @ApiResponse({
     status: HttpStatus.OK,
     description: 'Reading exercise updated successfully',
+  })
+  @ApiResponse({
+    status: HttpStatus.BAD_REQUEST,
+    description: 'Invalid input data',
   })
   @ApiResponse({
     status: HttpStatus.NOT_FOUND,
@@ -156,74 +138,36 @@ export class ReadingController {
   })
   @ApiResponse({
     status: HttpStatus.CONFLICT,
-    description: 'Exercise with this title already exists in test section',
+    description: 'Exercise with this title already exists',
   })
   async updateReadingExercise(
-    @Param('id', ParseUUIDPipe) id: string,
-    @Body(new ValidationPipe({ transform: true }))
-    updateDto: UpdateReadingExerciseDto,
+    @Param('id') id: string,
+    @Body() updateDto: UpdateReadingExerciseDto,
   ) {
-    const exercise = await this.readingService.updateReadingExercise(
-      id,
-      updateDto,
-    );
-    return {
-      success: true,
-      statusCode: HttpStatus.OK,
-      message: 'Reading exercise updated successfully',
-      data: exercise,
-    };
+    return this.readingService.updateReadingExercise(id, updateDto);
   }
 
-  /**
-   * 🗑️ Delete Reading Exercise
-   */
   @Delete(':id')
+  @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({
     summary: 'Delete reading exercise',
-    description: 'Soft deletes a reading exercise and all its questions',
+    description:
+      'Soft delete a reading exercise and all its questions, question groups, and options',
   })
   @ApiParam({
     name: 'id',
-    description: 'Exercise UUID',
+    description: 'Reading Exercise ID',
+    type: 'string',
   })
   @ApiResponse({
-    status: HttpStatus.OK,
+    status: HttpStatus.NO_CONTENT,
     description: 'Reading exercise deleted successfully',
   })
   @ApiResponse({
     status: HttpStatus.NOT_FOUND,
     description: 'Reading exercise not found',
   })
-  async deleteReadingExercise(@Param('id', ParseUUIDPipe) id: string) {
-    await this.readingService.deleteReadingExercise(id);
-    return {
-      success: true,
-      statusCode: HttpStatus.OK,
-      message: 'Reading exercise deleted successfully',
-    };
-  }
-
-  /**
-   * 📊 Get All Mock Tests with Reading Sections
-   */
-  @Get()
-  @ApiOperation({
-    summary: 'Get all mock tests with reading sections',
-    description:
-      'Retrieves all mock tests that contain reading sections with their exercises',
-  })
-  @ApiResponse({
-    status: HttpStatus.OK,
-    description: 'Mock tests with reading sections retrieved successfully',
-  })
-  async getMockTestsWithReadingSections() {
-    const data = await this.readingService.getMockTestsWithReadingSections();
-    return {
-      success: true,
-      statusCode: HttpStatus.OK,
-      message: 'Mock tests with reading sections retrieved successfully',
-      data,
-    };
+  async deleteReadingExercise(@Param('id') id: string) {
+    return this.readingService.deleteReadingExercise(id);
   }
 }

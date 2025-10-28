@@ -8,6 +8,7 @@ import { CouponsModule } from 'src/modules/coupons/coupons.module';
 import { MockTestsModule } from 'src/modules/mock-tests/mock-tests.module';
 import { OrdersModule } from 'src/modules/orders/orders.module';
 import { PaymentsModule } from 'src/modules/payments/payments.module';
+import { QuestionGroupsModule } from 'src/modules/question-groups/question-groups.module';
 import { QuestionsModule } from 'src/modules/questions/questions.module';
 import { SectionsModule } from 'src/modules/sections/sections.module';
 import { AppController } from './app.controller';
@@ -89,6 +90,7 @@ import { UtilsModule } from './utils/utils.module';
     LearningModule,
     MockTestsModule,
     QuestionsModule,
+    QuestionGroupsModule,
   ],
   controllers: [AppController, DatabaseController],
   providers: [

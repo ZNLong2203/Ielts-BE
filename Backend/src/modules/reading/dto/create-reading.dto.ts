@@ -1,155 +1,154 @@
-// src/modules/reading/dto/create-reading-exercise.dto.ts
-import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { ApiProperty } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import {
-  ArrayMinSize,
   IsArray,
-  IsInt,
+  IsNotEmpty,
   IsNumber,
   IsOptional,
   IsString,
-  IsUUID,
-  Length,
   Max,
   Min,
   ValidateNested,
 } from 'class-validator';
 
-export class ParagraphDto {
+class ParagraphDto {
   @ApiProperty({
-    description: 'Paragraph identifier (A, B, C, D, E)',
-    example: 'A',
+    description: 'Paragraph ID',
+    example: 'para-1',
   })
   @IsString()
-  @Length(1, 1)
+  @IsNotEmpty()
   id: string;
 
   @ApiProperty({
-    description: 'Paragraph content',
-    example: 'The ping of a text message has never sounded so sweet...',
+    description: 'Paragraph label (A, B, C, etc.)',
+    example: 'A',
   })
   @IsString()
-  @Length(10, 5000)
+  @IsNotEmpty()
+  label: string;
+
+  @ApiProperty({
+    description: 'Paragraph content',
+    example: 'This is the first paragraph...',
+  })
+  @IsString()
+  @IsNotEmpty()
   content: string;
 }
 
-export class CreateReadingPassageDto {
+class ReadingPassageDto {
   @ApiProperty({
-    description: 'Reading passage title',
-    example: 'Money Transfers by Mobile',
+    description: 'Passage title',
+    example: 'The History of Coffee',
   })
   @IsString()
-  @Length(5, 255)
+  @IsNotEmpty()
   title: string;
 
   @ApiProperty({
-    description: 'Full reading passage content',
-    example: 'A. The ping of a text message has never sounded so sweet...',
+    description: 'Full passage content',
+    example: 'Coffee is one of the most popular beverages...',
   })
   @IsString()
-  @Length(100, 10000)
+  @IsNotEmpty()
   content: string;
 
-  @ApiPropertyOptional({
-    description: 'Paragraph sections',
+  @ApiProperty({
+    description: 'Paragraphs (optional - for paragraph matching questions)',
     type: [ParagraphDto],
+    required: false,
   })
-  @IsOptional()
   @IsArray()
+  @IsOptional()
   @ValidateNested({ each: true })
   @Type(() => ParagraphDto)
-  @ArrayMinSize(0)
   paragraphs?: ParagraphDto[];
 
-  @ApiPropertyOptional({
-    description: 'Word count of the passage',
+  @ApiProperty({
+    description: 'Word count (auto-calculated if not provided)',
     example: 450,
-    minimum: 100,
-    maximum: 2000,
+    required: false,
   })
+  @IsNumber()
   @IsOptional()
-  @IsInt()
-  @Min(100)
-  @Max(2000)
+  @Min(0)
   word_count?: number;
 
-  @ApiPropertyOptional({
-    description: 'Difficulty level (IELTS band)',
+  @ApiProperty({
+    description: 'Difficulty level (IELTS band: 0.0 - 9.0)',
     example: 6.5,
-    minimum: 1,
-    maximum: 9,
+    required: false,
   })
+  @IsNumber()
   @IsOptional()
-  @IsNumber({ maxDecimalPlaces: 1 })
-  @Min(1)
+  @Min(0)
   @Max(9)
   difficulty_level?: number;
 }
 
 export class CreateReadingExerciseDto {
   @ApiProperty({
-    description: 'Test section ID that this exercise belongs to',
-    format: 'uuid',
+    description: 'Test section ID',
+    example: 'test-section-uuid-123',
   })
-  @IsUUID(4)
+  @IsString()
+  @IsNotEmpty()
   test_section_id: string;
 
   @ApiProperty({
     description: 'Exercise title',
-    example: 'Reading Passage 1',
+    example: 'Reading Passage 1 - The History of Coffee',
   })
   @IsString()
-  @Length(5, 255)
+  @IsNotEmpty()
   title: string;
 
-  @ApiPropertyOptional({
-    description: 'Exercise instructions',
+  @ApiProperty({
+    description: 'Exercise instruction',
     example: 'Read the passage and answer the questions below.',
+    required: false,
   })
-  @IsOptional()
   @IsString()
-  @Length(0, 1000)
+  @IsOptional()
   instruction?: string;
 
   @ApiProperty({
     description: 'Reading passage content',
-    type: CreateReadingPassageDto,
+    type: ReadingPassageDto,
   })
   @ValidateNested()
-  @Type(() => CreateReadingPassageDto)
-  passage: CreateReadingPassageDto;
+  @Type(() => ReadingPassageDto)
+  passage: ReadingPassageDto;
 
-  @ApiPropertyOptional({
+  @ApiProperty({
     description: 'Time limit in minutes',
     example: 20,
-    minimum: 1,
-    maximum: 120,
+    required: false,
   })
+  @IsNumber()
   @IsOptional()
-  @IsInt()
   @Min(1)
-  @Max(120)
   time_limit?: number;
 
-  @ApiPropertyOptional({
+  @ApiProperty({
     description: 'Passing score percentage',
     example: 70,
-    minimum: 0,
-    maximum: 100,
+    required: false,
   })
+  @IsNumber()
   @IsOptional()
-  @IsNumber({ maxDecimalPlaces: 2 })
   @Min(0)
   @Max(100)
   passing_score?: number;
 
-  @ApiPropertyOptional({
-    description: 'Exercise ordering',
-    example: 1,
-    minimum: 0,
+  @ApiProperty({
+    description: 'Ordering within test section',
+    example: 0,
+    required: false,
   })
+  @IsNumber()
   @IsOptional()
-  @IsInt()
   @Min(0)
   ordering?: number;
 }

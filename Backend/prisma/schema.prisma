@@ -410,30 +410,27 @@ model question_options {
 }
 
 model questions {
-  id                   String             @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  exercise_id          String?            @db.Uuid
-  question_group_id    String?            @db.Uuid
-  matching_set_id      String?            @db.Uuid
-  question_text        String
-  question_type        String             @db.VarChar(20)
-  image_url            String?            @db.VarChar(500)
-  audio_url            String?            @db.VarChar(500)
-  audio_duration       Int?
-  reading_passage      String?
-  explanation          String?
-  points               Decimal?           @default(1) @db.Decimal(5, 2)
-  correct_answer_count Int?               @default(1)
-  ordering             Int?               @default(0)
-  difficulty_level     Decimal?           @db.Decimal(3, 1)
-  question_group       String?            @db.VarChar(50)
-  deleted              Boolean?           @default(false)
-  created_at           DateTime?          @default(now()) @db.Timestamp(6)
-  updated_at           DateTime?          @default(now()) @db.Timestamp(6)
-  question_answers     question_answers[]
-  question_options     question_options[]
-  exercises            exercises?         @relation(fields: [exercise_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
-  matching_sets        matching_sets?     @relation(fields: [matching_set_id], references: [id], onUpdate: NoAction)
-  question_groups      question_groups?   @relation(fields: [question_group_id], references: [id], onUpdate: NoAction)
+  id                String             @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  exercise_id       String?            @db.Uuid
+  question_group_id String?            @db.Uuid
+  question_text     String
+  question_type     String             @db.VarChar(20)
+  image_url         String?            @db.VarChar(500)
+  audio_url         String?            @db.VarChar(500)
+  audio_duration    Int?
+  reading_passage   String?
+  explanation       String?
+  points            Decimal?           @default(1) @db.Decimal(5, 2)
+  ordering          Int?               @default(0)
+  difficulty_level  Decimal?           @db.Decimal(3, 1)
+  question_group    String?            @db.VarChar(50)
+  deleted           Boolean?           @default(false)
+  created_at        DateTime?          @default(now()) @db.Timestamp(6)
+  updated_at        DateTime?          @default(now()) @db.Timestamp(6)
+  question_answers  question_answers[]
+  question_options  question_options[]
+  exercises         exercises?         @relation(fields: [exercise_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  question_groups   question_groups?   @relation(fields: [question_group_id], references: [id], onUpdate: NoAction)
 }
 
 model teachers {
@@ -715,24 +712,14 @@ model writing_assessments {
 }
 
 model matching_options {
-  id            String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  set_id        String?        @db.Uuid
+  id            String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  set_id        String?          @db.Uuid
   option_text   String
-  ordering      Int?           @default(0)
-  deleted       Boolean?       @default(false)
-  created_at    DateTime?      @default(now()) @db.Timestamp(6)
-  updated_at    DateTime?      @default(now()) @db.Timestamp(6)
-  matching_sets matching_sets? @relation(fields: [set_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
-}
-
-model matching_sets {
-  id               String             @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  title            String?            @db.VarChar(100)
-  deleted          Boolean?           @default(false)
-  created_at       DateTime?          @default(now()) @db.Timestamp(6)
-  updated_at       DateTime?          @default(now()) @db.Timestamp(6)
-  matching_options matching_options[]
-  questions        questions[]
+  ordering      Int?             @default(0)
+  deleted       Boolean?         @default(false)
+  created_at    DateTime?        @default(now()) @db.Timestamp(6)
+  updated_at    DateTime?        @default(now()) @db.Timestamp(6)
+  matching_sets question_groups? @relation(fields: [set_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
 }
 
 model blog_comment_likes {
@@ -748,16 +735,20 @@ model blog_comment_likes {
 }
 
 model question_groups {
-  id                String      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  exercise_id       String?     @db.Uuid
-  group_title       String?     @db.VarChar(255)
-  group_instruction String
-  passage_reference String?
-  ordering          Int?        @default(0)
-  question_range    String?     @db.VarChar(20)
-  deleted           Boolean?    @default(false)
-  created_at        DateTime?   @default(now()) @db.Timestamp(6)
-  updated_at        DateTime?   @default(now()) @db.Timestamp(6)
-  exercises         exercises?  @relation(fields: [exercise_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
-  questions         questions[]
+  id                   String             @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  exercise_id          String?            @db.Uuid
+  image_url            String?            @db.VarChar(500)
+  group_title          String?            @db.VarChar(255)
+  group_instruction    String
+  passage_reference    String?
+  question_type        String             @db.VarChar(20)
+  ordering             Int?               @default(0)
+  question_range       String?            @db.VarChar(20)
+  correct_answer_count Int?               @default(1)
+  deleted              Boolean?           @default(false)
+  created_at           DateTime?          @default(now()) @db.Timestamp(6)
+  updated_at           DateTime?          @default(now()) @db.Timestamp(6)
+  matching_options     matching_options[]
+  exercises            exercises?         @relation(fields: [exercise_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  questions            questions[]
 }
