@@ -16,6 +16,7 @@ import {
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
+import { Public } from 'src/decorator/customize';
 import { CreateReadingExerciseDto } from './dto/create-reading.dto';
 import { UpdateReadingExerciseDto } from './dto/update-reading.dto';
 import { ReadingService } from './reading.service';
@@ -48,6 +49,7 @@ export class ReadingController {
     status: HttpStatus.CONFLICT,
     description: 'Exercise with this title already exists',
   })
+  @Public()
   async createReadingExercise(@Body() createDto: CreateReadingExerciseDto) {
     return this.readingService.createReadingExercise(createDto);
   }
@@ -70,6 +72,7 @@ export class ReadingController {
     status: HttpStatus.NOT_FOUND,
     description: 'Test section not found',
   })
+  @Public()
   async getReadingExercisesByTestSection(
     @Param('testSectionId') testSectionId: string,
   ) {
@@ -86,6 +89,7 @@ export class ReadingController {
     status: HttpStatus.OK,
     description: 'Mock tests with reading sections retrieved successfully',
   })
+  @Public()
   async getMockTestsWithReadingSections() {
     return this.readingService.getMockTestsWithReadingSections();
   }
@@ -109,6 +113,7 @@ export class ReadingController {
     status: HttpStatus.NOT_FOUND,
     description: 'Reading exercise not found',
   })
+  @Public()
   async getReadingExerciseById(@Param('id') id: string) {
     return this.readingService.getReadingExerciseById(id);
   }
@@ -140,6 +145,7 @@ export class ReadingController {
     status: HttpStatus.CONFLICT,
     description: 'Exercise with this title already exists',
   })
+  @Public()
   async updateReadingExercise(
     @Param('id') id: string,
     @Body() updateDto: UpdateReadingExerciseDto,
@@ -167,6 +173,7 @@ export class ReadingController {
     status: HttpStatus.NOT_FOUND,
     description: 'Reading exercise not found',
   })
+  @Public()
   async deleteReadingExercise(@Param('id') id: string) {
     return this.readingService.deleteReadingExercise(id);
   }

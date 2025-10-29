@@ -301,6 +301,18 @@ export class ExerciseService {
   }
 
   /**
+   * Get all exercises by lesson id
+   */
+  async getExercisesByLessonId(lessonId: string): Promise<Exercise[]> {
+    return await this.prisma.exercises.findMany({
+      where: {
+        lesson_id: lessonId,
+        deleted: false,
+      },
+    });
+  }
+
+  /**
    * 🔍 Get exercise by ID
    */
   async getExerciseById(exerciseId: string): Promise<any> {

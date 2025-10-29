@@ -20,6 +20,7 @@ import {
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
+import { Public } from 'src/decorator/customize';
 import { CreateQuestionDto } from './dto/create-question.dto';
 import {
   ReorderQuestionsDto,
@@ -51,6 +52,7 @@ export class QuestionsController {
     status: HttpStatus.NOT_FOUND,
     description: 'Exercise not found',
   })
+  @Public()
   async createQuestion(@Body() createDto: CreateQuestionDto) {
     return this.questionsService.createQuestion(createDto);
   }
@@ -73,6 +75,7 @@ export class QuestionsController {
     status: HttpStatus.NOT_FOUND,
     description: 'Exercise not found',
   })
+  @Public()
   async getQuestionsByExercise(@Param('exerciseId') exerciseId: string) {
     return this.questionsService.getQuestionsByExercise(exerciseId);
   }
@@ -96,6 +99,7 @@ export class QuestionsController {
     status: HttpStatus.NOT_FOUND,
     description: 'Question not found',
   })
+  @Public()
   async getQuestionById(@Param('id') id: string) {
     return this.questionsService.getQuestionById(id);
   }
@@ -122,6 +126,7 @@ export class QuestionsController {
     status: HttpStatus.NOT_FOUND,
     description: 'Question not found',
   })
+  @Public()
   async updateQuestion(
     @Param('id') id: string,
     @Body() updateDto: UpdateQuestionDto,
@@ -148,6 +153,7 @@ export class QuestionsController {
     status: HttpStatus.NOT_FOUND,
     description: 'Question not found',
   })
+  @Public()
   async deleteQuestion(@Param('id') id: string) {
     return this.questionsService.deleteQuestion(id);
   }
@@ -172,6 +178,7 @@ export class QuestionsController {
     status: HttpStatus.NOT_FOUND,
     description: 'Question not found',
   })
+  @Public()
   async uploadQuestionImage(
     @Param('id') id: string,
     @UploadedFile() file: Express.Multer.File,
@@ -200,6 +207,7 @@ export class QuestionsController {
     status: HttpStatus.NOT_FOUND,
     description: 'Question not found',
   })
+  @Public()
   async uploadQuestionAudio(
     @Param('id') id: string,
     @UploadedFile() file: Express.Multer.File,
@@ -231,6 +239,7 @@ export class QuestionsController {
     status: HttpStatus.NOT_FOUND,
     description: 'Exercise not found',
   })
+  @Public()
   async reorderQuestions(
     @Param('exerciseId') exerciseId: string,
     @Body() reorderDto: ReorderQuestionsDto,

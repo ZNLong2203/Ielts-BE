@@ -117,6 +117,41 @@ export class ExerciseController {
   }
 
   /**
+   * 🔍 Get all exercises by lesson ID
+   */
+  @Get()
+  @ApiOperation({
+    summary: 'Get all exercises for a lesson',
+    description: 'Retrieve all exercises associated with a specific lesson.',
+  })
+  @ApiParam({
+    name: 'lessonId',
+    description: 'Lesson ID',
+    type: 'string',
+    format: 'uuid',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Exercises retrieved successfully',
+    type: ApiResponseDto<ExerciseResponseDto[]>,
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'Lesson not found',
+  })
+  @Public()
+  @MessageResponse('Exercises retrieved successfully')
+  async getExercises(@Param('lessonId', ParseUUIDPipe) lessonId: string) {
+    const exercises =
+      await this.exerciseService.getExercisesByLessonId(lessonId);
+
+    return {
+      success: true,
+      data: exercises,
+    };
+  }
+
+  /**
    * 🔍 Get exercise by ID (includes questions)
    */
   @Get(':exerciseId')

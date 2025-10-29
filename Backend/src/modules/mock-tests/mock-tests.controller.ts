@@ -21,6 +21,7 @@ import {
 } from '@nestjs/swagger';
 import { Request } from 'express';
 import { PaginationQueryDto } from 'src/common/dto/pagination-query.dto';
+import { Public } from 'src/decorator/customize';
 import { CreateMockTestDto } from './dto/create-mock-test.dto';
 import { UpdateMockTestDto } from './dto/update-mock-test.dto';
 import { MockTestsService } from './mock-tests.service';
@@ -47,6 +48,7 @@ export class MockTestsController {
     status: HttpStatus.CONFLICT,
     description: 'Mock test with this title already exists',
   })
+  @Public()
   async create(
     @Body(new ValidationPipe({ transform: true })) createDto: CreateMockTestDto,
   ) {
@@ -77,6 +79,7 @@ export class MockTestsController {
     status: HttpStatus.OK,
     description: 'Mock tests retrieved successfully',
   })
+  @Public()
   async findAll(@Query() query: PaginationQueryDto, @Req() req: Request) {
     const result = await this.mockTestsService.findAll(query, req.query);
     return {
@@ -105,6 +108,7 @@ export class MockTestsController {
     status: HttpStatus.NOT_FOUND,
     description: 'Mock test not found',
   })
+  @Public()
   async findOne(@Param('id', ParseUUIDPipe) id: string) {
     const mockTest = await this.mockTestsService.findOne(id);
     return {
@@ -136,6 +140,7 @@ export class MockTestsController {
     status: HttpStatus.CONFLICT,
     description: 'Mock test with this title already exists',
   })
+  @Public()
   async update(
     @Param('id', ParseUUIDPipe) id: string,
     @Body(new ValidationPipe({ transform: true })) updateDto: UpdateMockTestDto,
@@ -167,6 +172,7 @@ export class MockTestsController {
     status: HttpStatus.NOT_FOUND,
     description: 'Mock test not found',
   })
+  @Public()
   async remove(@Param('id', ParseUUIDPipe) id: string) {
     await this.mockTestsService.remove(id);
     return {
@@ -188,6 +194,7 @@ export class MockTestsController {
     status: HttpStatus.OK,
     description: 'Statistics retrieved successfully',
   })
+  @Public()
   async getStatistics() {
     const stats = await this.mockTestsService.getStatistics();
     return {

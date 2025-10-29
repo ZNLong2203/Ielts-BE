@@ -21,6 +21,7 @@ import {
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
+import { Public } from 'src/decorator/customize';
 import { CreateQuestionGroupDto } from './dto/create-question-group.dto';
 import {
   ReorderQuestionGroupsDto,
@@ -52,6 +53,7 @@ export class QuestionGroupsController {
     status: HttpStatus.NOT_FOUND,
     description: 'Exercise not found',
   })
+  @Public()
   async createQuestionGroup(@Body() createDto: CreateQuestionGroupDto) {
     return this.questionGroupsService.createQuestionGroup(createDto);
   }
@@ -74,6 +76,7 @@ export class QuestionGroupsController {
     status: HttpStatus.NOT_FOUND,
     description: 'Exercise not found',
   })
+  @Public()
   async getQuestionGroupsByExercise(@Param('exerciseId') exerciseId: string) {
     return this.questionGroupsService.getQuestionGroupsByExercise(exerciseId);
   }
@@ -97,6 +100,7 @@ export class QuestionGroupsController {
     status: HttpStatus.NOT_FOUND,
     description: 'Question group not found',
   })
+  @Public()
   async getQuestionGroupById(@Param('id') id: string) {
     return this.questionGroupsService.getQuestionGroupById(id);
   }
@@ -124,6 +128,7 @@ export class QuestionGroupsController {
     status: HttpStatus.NOT_FOUND,
     description: 'Question group not found',
   })
+  @Public()
   async updateQuestionGroup(
     @Param('id') id: string,
     @Body() updateDto: UpdateQuestionGroupDto,
@@ -155,6 +160,7 @@ export class QuestionGroupsController {
     status: HttpStatus.NOT_FOUND,
     description: 'Question group not found',
   })
+  @Public()
   async deleteQuestionGroup(@Param('id') id: string) {
     return this.questionGroupsService.deleteQuestionGroup(id);
   }
@@ -179,6 +185,7 @@ export class QuestionGroupsController {
     status: HttpStatus.NOT_FOUND,
     description: 'Question group not found',
   })
+  @Public()
   async uploadQuestionGroupImage(
     @Param('id') id: string,
     @UploadedFile(
@@ -222,6 +229,7 @@ export class QuestionGroupsController {
     status: HttpStatus.NOT_FOUND,
     description: 'Exercise not found',
   })
+  @Public()
   async reorderQuestionGroups(
     @Param('exerciseId') exerciseId: string,
     @Body() reorderDto: ReorderQuestionGroupsDto,
