@@ -1,4 +1,4 @@
-// multiple_choice, essay, speaking, true_false, fill_blank, matching, summary_completion
+// multiple_choice, essay, speaking, true_false, fill_blank, matching
 export const QUESTION_TYPE = {
   MULTIPLE_CHOICE: 'multiple_choice',
   DROPLIST: 'droplist',
