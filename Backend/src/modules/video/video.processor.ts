@@ -30,7 +30,7 @@ export class VideoProcessor extends WorkerHost {
       job.data;
 
     const isAudio =
-      mimetype?.startsWith('audio/') || /\.(mp3|wav|aac)$/i.test(fileName); // 🟩 detect audio
+      mimetype?.startsWith('audio/') || /\.(mp3|wav|aac)$/i.test(fileName); // detect audio
     const baseTmpDir = path.resolve(process.cwd(), '../temp');
     const tempDir = path.join(
       baseTmpDir,
@@ -124,7 +124,7 @@ export class VideoProcessor extends WorkerHost {
             },
           });
           this.logger.log(
-            `✅ Updated lesson ${lesson.id} with video duration: ${cached}s`,
+            `Updated lesson ${lesson.id} with video duration: ${cached}s`,
           );
 
           // Remove cached duration after updating
@@ -132,9 +132,9 @@ export class VideoProcessor extends WorkerHost {
         }
       }
 
-      this.logger.log(`✅ HLS processing completed for: ${fileName}`);
+      this.logger.log(`HLS processing completed for: ${fileName}`);
     } catch (error) {
-      this.logger.error(`❌ HLS processing failed for: ${fileName}`, error);
+      this.logger.error(`HLS processing failed for: ${fileName}`, error);
       await this.updateProgress(
         fileName,
         {
@@ -168,17 +168,17 @@ export class VideoProcessor extends WorkerHost {
         stream.pipe(writeStream);
 
         writeStream.on('finish', () => {
-          this.logger.log(`✅ Downloaded video to temp: ${localPath}`);
+          this.logger.log(`Downloaded video to temp: ${localPath}`);
           resolve();
         });
 
         writeStream.on('error', (error) => {
-          this.logger.error(`❌ Download failed: ${error}`);
+          this.logger.error(`Download failed: ${error}`);
           reject(error);
         });
 
         stream.on('error', (error) => {
-          this.logger.error(`❌ Stream error: ${error}`);
+          this.logger.error(`Stream error: ${error}`);
           reject(error);
         });
       });
@@ -200,7 +200,7 @@ export class VideoProcessor extends WorkerHost {
       isAudio ? 'segment_%04d.aac' : 'segment_%04d.ts',
     );
 
-    // ✅ Handle async setup BEFORE Promise constructor
+    // Handle async setup BEFORE Promise constructor
     try {
       const ffmpegInstance = await this.dockerFFmpegConfig.getFFmpegInstance();
 
@@ -212,11 +212,11 @@ export class VideoProcessor extends WorkerHost {
       const containerSegmentPattern =
         this.dockerFFmpegConfig.convertToContainerPath(segmentPattern);
 
-      // ✅ Now use synchronous Promise constructor
+      // Now use synchronous Promise constructor
       return new Promise((resolve, reject) => {
         const ff = ffmpegInstance(containerInputPath);
         if (isAudio) {
-          // 🟩 Audio-only HLS config
+          // Audio-only HLS config
           ff.outputOptions([
             '-vn',
             '-acodec aac',
@@ -256,7 +256,7 @@ export class VideoProcessor extends WorkerHost {
         ff.output(containerOutputPlaylist)
           .on('start', () => {
             this.logger.log(
-              `🎬 FFmpeg started for ${fileName} (${isAudio ? 'audio' : 'video'})`,
+              `FFmpeg started for ${fileName} (${isAudio ? 'audio' : 'video'})`,
             );
             void this.updateProgress(
               fileName,
@@ -290,7 +290,7 @@ export class VideoProcessor extends WorkerHost {
             }
           })
           .on('end', () => {
-            this.logger.log(`✅ HLS conversion completed for ${fileName}`);
+            this.logger.log(`HLS conversion completed for ${fileName}`);
             void this.updateProgress(
               fileName,
               {
@@ -304,7 +304,7 @@ export class VideoProcessor extends WorkerHost {
             resolve();
           })
           .on('error', (error) => {
-            this.logger.error(`❌ FFmpeg error for ${fileName}:`, error);
+            this.logger.error(`FFmpeg error for ${fileName}:`, error);
             void this.updateProgress(
               fileName,
               {
@@ -395,7 +395,7 @@ export class VideoProcessor extends WorkerHost {
         );
 
         this.logger.debug(
-          `📤 Uploaded HLS file ${uploadedCount}/${totalFiles}: ${file}`,
+          `Uploaded HLS file ${uploadedCount}/${totalFiles}: ${file}`,
         );
       }
     }
@@ -411,7 +411,7 @@ export class VideoProcessor extends WorkerHost {
         `${isAudio ? 'audio' : 'video'}:${fileName}:progress`,
       );
 
-      // ✅ Handle startTime properly - convert string to Date if needed
+      // Handle startTime properly - convert string to Date if needed
       let startTime = new Date();
       if (current?.startTime) {
         startTime =
@@ -425,12 +425,12 @@ export class VideoProcessor extends WorkerHost {
         stage: 'converting',
         progress: 0,
         message: '',
-        startTime, // ✅ Use properly converted Date
+        startTime, // Use properly converted Date
         ...current,
         ...updates,
       };
 
-      // ✅ Calculate estimated completion only if we have valid progress and startTime
+      // Calculate estimated completion only if we have valid progress and startTime
       if (
         updated.progress > 0 &&
         updated.stage === 'converting' &&
@@ -474,22 +474,22 @@ export class VideoProcessor extends WorkerHost {
 
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
       try {
-        // ✅ Add delay before cleanup to allow file handles to release
+        // Add delay before cleanup to allow file handles to release
         if (attempt === 1) {
           await new Promise((resolve) => setTimeout(resolve, 1000));
         }
 
-        // ✅ Check if directory exists
+        // Check if directory exists
         const exists = await fs.promises
           .access(tempDir)
           .then(() => true)
           .catch(() => false);
         if (!exists) {
-          this.logger.log(`✅ Temp directory already cleaned: ${tempDir}`);
+          this.logger.log(`Temp directory already cleaned: ${tempDir}`);
           return;
         }
 
-        // ✅ Try standard recursive deletion with enhanced options
+        // Try standard recursive deletion with enhanced options
         await fs.promises.rm(tempDir, {
           recursive: true,
           force: true,
@@ -497,7 +497,7 @@ export class VideoProcessor extends WorkerHost {
           retryDelay: 1000,
         });
 
-        this.logger.log(`✅ Cleaned up temp directory: ${tempDir}`);
+        this.logger.log(`Cleaned up temp directory: ${tempDir}`);
         return;
       } catch (error) {
         this.logger.warn(
@@ -511,14 +511,14 @@ export class VideoProcessor extends WorkerHost {
             setTimeout(resolve, retryDelay * attempt),
           );
         } else {
-          // ✅ Last resort: Force cleanup using system command
+          // Last resort: Force cleanup using system command
           try {
             this.forceCleanupDirectory(tempDir);
-            this.logger.log(`✅ Force cleanup successful: ${tempDir}`);
+            this.logger.log(`Force cleanup successful: ${tempDir}`);
             return;
           } catch (forceError) {
             this.logger.error(
-              `❌ All cleanup methods failed for ${tempDir}:`,
+              `All cleanup methods failed for ${tempDir}:`,
               forceError,
             );
             // Don't throw - allow job to complete
@@ -529,7 +529,7 @@ export class VideoProcessor extends WorkerHost {
   }
 
   /**
-   * ✅ Force cleanup using system commands
+   * Force cleanup using system commands
    */
   private forceCleanupDirectory(dirPath: string) {
     try {
