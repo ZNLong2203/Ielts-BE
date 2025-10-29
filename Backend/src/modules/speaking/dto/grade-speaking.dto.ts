@@ -55,6 +55,20 @@ export class GradeSpeakingDto {
   @IsString()
   @IsOptional()
   targetDuration?: string; // Expected duration for the part (e.g., "4-5 minutes for Part 2")
+
+  @IsOptional()
+  pronunciationAnalysis?: {
+    transcription: string;
+    metrics: {
+      speechRate: number;
+      pauseCount: number;
+      averageWordLength: number;
+      stressPatternMatch: number;
+    };
+    stressFeedback: string[];
+    pronunciationScore: number;
+    detailedFeedback: string;
+  };
 }
 
 export class SpeakingGradeResponse {
@@ -113,4 +127,22 @@ export class TranscribeAndGradeResponse {
   audioUrl: string;
   transcription: string;
   grading: SpeakingGradeResponse;
+  pronunciationAnalysis?: {
+    transcription: string;
+    words: Array<{
+      word: string;
+      expectedStress: number[];
+      phonemes: string[];
+      syllableCount: number;
+    }>;
+    metrics: {
+      speechRate: number;
+      pauseCount: number;
+      averageWordLength: number;
+      stressPatternMatch: number;
+    };
+    stressFeedback: string[];
+    pronunciationScore: number;
+    detailedFeedback: string;
+  };
 }

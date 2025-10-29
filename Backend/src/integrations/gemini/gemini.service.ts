@@ -83,6 +83,7 @@ export class GeminiService {
       questions,
       additionalInstructions,
       targetDuration,
+      pronunciationAnalysis,
     } = dto;
 
     const partInstructions = this.getPartInstructions(partType);
@@ -104,6 +105,24 @@ export class GeminiService {
 
    ${targetDuration ? `TARGET DURATION: ${targetDuration}` : ''}
    ${additionalInstructions ? `ADDITIONAL INSTRUCTIONS: ${additionalInstructions}` : ''}
+   ${
+     pronunciationAnalysis
+       ? `
+    PRONUNCIATION ANALYSIS DATA (from audio analysis):
+    - Speech Rate: ${pronunciationAnalysis.metrics.speechRate} words per minute
+    - Estimated Pauses: ${pronunciationAnalysis.metrics.pauseCount}
+    - Average Word Length: ${pronunciationAnalysis.metrics.averageWordLength} phonemes
+    - Stress Pattern Match: ${pronunciationAnalysis.metrics.stressPatternMatch}%
+    - Pronunciation Score: ${pronunciationAnalysis.pronunciationScore}/100
+    - Stress Feedback: ${pronunciationAnalysis.stressFeedback.join('; ')}
+    - Detailed Analysis: ${pronunciationAnalysis.detailedFeedback}
+    
+    IMPORTANT: Use this pronunciation analysis data to inform your pronunciation score (0-9 band scale).
+    Consider the speech rate, stress patterns, and pronunciation feedback when assessing pronunciation.
+    The pronunciation score above (0-100) should be converted to IELTS band scale (0-9).
+    `
+       : ''
+   }
 
    Please provide a detailed assessment in the following JSON format:
    {
@@ -127,11 +146,28 @@ export class GeminiService {
 
    Focus on:
    1. Fluency and Coherence: Speech rate, self-correction, effort in production, organization and development of ideas
+     ${
+       pronunciationAnalysis
+         ? `   - Consider the speech rate (${pronunciationAnalysis.metrics.speechRate} WPM) and pause count when assessing fluency`
+         : ''
+     }
    2. Lexical Resource: Vocabulary range, flexibility, word formation, paraphrase ability
    3. Grammatical Range and Accuracy: Grammar variety, complexity, correctness
    4. Pronunciation: Intelligibility, phonetic features, stress and rhythm, intonation
+     ${
+       pronunciationAnalysis
+         ? `   - USE the pronunciation analysis data provided above to inform your pronunciation score
+     - Consider the stress pattern match (${pronunciationAnalysis.metrics.stressPatternMatch}%) and pronunciation score (${pronunciationAnalysis.pronunciationScore}/100)
+     - Convert the pronunciation analysis insights into IELTS band scale (0-9)`
+         : ''
+     }
 
    Provide constructive feedback that helps the student improve their speaking skills.
+   ${
+     pronunciationAnalysis
+       ? `   - Include specific feedback about stress patterns, speech rate, and pronunciation based on the analysis data`
+       : ''
+   }
     `;
   }
 
