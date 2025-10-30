@@ -96,7 +96,7 @@ export class ListeningService {
         },
       });
     } catch (error) {
-      this.logger.error('Error uploading question audio', error);
+      this.logger.error('Error uploading exercise audio', error);
       throw new BadRequestException('Failed to upload audio');
     }
   }
