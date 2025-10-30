@@ -95,6 +95,7 @@ export interface ReadingExerciseWithDetails {
   exercise_type: string | null;
   skill_type: string | null;
   time_limit: number | null;
+  audio_url?: string | null;
   passing_score?: number | Decimal;
   ordering: number | null;
   reading_passage: ReadingPassage;

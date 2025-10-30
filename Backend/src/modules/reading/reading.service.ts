@@ -19,6 +19,7 @@ import {
   ReadingExerciseWithDetails,
   SKILL_TYPE,
 } from 'src/modules/reading/types/reading.types';
+import { VideoService } from 'src/modules/video/video.service';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { SkillType } from './types/reading.types';
 
@@ -26,7 +27,10 @@ import { SkillType } from './types/reading.types';
 export class ReadingService {
   private readonly logger = new Logger(ReadingService.name);
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly videoService: VideoService,
+  ) {}
 
   /**
    * 📚 Create Reading Exercise in test section
@@ -200,6 +204,9 @@ export class ReadingService {
         reading_passage: this.extractPassageInfo(ex.content),
         total_questions: ex._count.questions,
         total_question_groups: ex._count.question_groups,
+        audio_url: ex.audio_url
+          ? this.videoService.getVideoHLSUrl(ex.audio_url)
+          : null,
       })),
     };
   }
@@ -234,6 +241,12 @@ export class ReadingService {
 
     if (!exercise) {
       throw new NotFoundException('Reading exercise not found');
+    }
+
+    // get hls if audio_url exists
+    let hls_url: string | null = null;
+    if (exercise.audio_url) {
+      hls_url = await this.videoService.getVideoHLSUrl(exercise.audio_url);
     }
 
     // Get question groups with their questions and matching options
@@ -319,6 +332,7 @@ export class ReadingService {
       reading_passage,
       question_groups,
       ungrouped_questions,
+      audio_url: hls_url,
       total_questions: all_questions.length,
       total_points: all_questions.reduce((sum, q) => sum + q.points, 0),
     };
