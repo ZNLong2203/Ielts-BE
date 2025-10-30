@@ -5,7 +5,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
-import { SECTION_TYPE } from 'src/modules/mock-tests/constants';
+import { SECTION_TYPE, SectionType } from 'src/modules/mock-tests/constants';
 import {
   QuestionDetails,
   QuestionOptionDetails,
@@ -20,6 +20,7 @@ import {
   SKILL_TYPE,
 } from 'src/modules/reading/types/reading.types';
 import { PrismaService } from 'src/prisma/prisma.service';
+import { SkillType } from './types/reading.types';
 
 @Injectable()
 export class ReadingService {
@@ -30,12 +31,16 @@ export class ReadingService {
   /**
    * 📚 Create Reading Exercise in test section
    */
-  async createReadingExercise(createDto: CreateReadingExerciseDto) {
+  async createExercise(
+    createDto: CreateReadingExerciseDto,
+    sectionType: SectionType = SECTION_TYPE.READING,
+    skillType: SkillType = SKILL_TYPE.READING,
+  ) {
     // Validate test_section exists and is reading type
     const testSection = await this.prisma.test_sections.findFirst({
       where: {
         id: createDto.test_section_id,
-        section_type: SECTION_TYPE.READING,
+        section_type: sectionType,
         deleted: false,
       },
       include: {
@@ -83,7 +88,7 @@ export class ReadingService {
         ),
       },
       exercise_metadata: {
-        skill_type: SKILL_TYPE.READING,
+        skill_type: skillType,
         created_at: new Date(),
         total_questions: 0,
         question_types: [],
@@ -98,7 +103,7 @@ export class ReadingService {
         instruction: createDto.instruction || '',
         content: exerciseContent as unknown as Prisma.JsonObject,
         exercise_type: EXERCISE_TYPE.MOCK_TEST,
-        skill_type: SKILL_TYPE.READING,
+        skill_type: skillType,
         time_limit: createDto.time_limit || 20,
         max_attempts: 1, // Mock tests typically allow 1 attempt
         passing_score: createDto.passing_score || 70,
@@ -136,12 +141,16 @@ export class ReadingService {
   /**
    * 📖 Get Reading Exercises by test section
    */
-  async getReadingExercisesByTestSection(testSectionId: string) {
+  async getExercisesByTestSection(
+    testSectionId: string,
+    sectionType: SectionType = SECTION_TYPE.READING,
+    skillType: SkillType = SKILL_TYPE.READING,
+  ) {
     // Validate test section exists
     const testSection = await this.prisma.test_sections.findFirst({
       where: {
         id: testSectionId,
-        section_type: SECTION_TYPE.READING,
+        section_type: sectionType,
         deleted: false,
       },
       include: {
@@ -162,7 +171,7 @@ export class ReadingService {
     const exercises = await this.prisma.exercises.findMany({
       where: {
         test_section_id: testSectionId,
-        skill_type: SKILL_TYPE.READING,
+        skill_type: skillType,
         deleted: false,
       },
       include: {
@@ -198,13 +207,14 @@ export class ReadingService {
   /**
    * 🔍 Get Reading Exercise by ID with complete details
    */
-  async getReadingExerciseById(
+  async getExerciseById(
     id: string,
+    skillType: SkillType = SKILL_TYPE.READING,
   ): Promise<ReadingExerciseWithDetails> {
     const exercise = await this.prisma.exercises.findFirst({
       where: {
         id,
-        skill_type: SKILL_TYPE.READING,
+        skill_type: skillType,
         deleted: false,
       },
       include: {
@@ -317,11 +327,15 @@ export class ReadingService {
   /**
    * ✏️ Update Reading Exercise
    */
-  async updateReadingExercise(id: string, updateDto: UpdateReadingExerciseDto) {
+  async updateExercise(
+    id: string,
+    updateDto: UpdateReadingExerciseDto,
+    skillType: SkillType = SKILL_TYPE.READING,
+  ) {
     const existingExercise = await this.prisma.exercises.findFirst({
       where: {
         id,
-        skill_type: SKILL_TYPE.READING,
+        skill_type: skillType,
         deleted: false,
       },
     });
@@ -426,11 +440,14 @@ export class ReadingService {
   /**
    * 🗑️ Delete Reading Exercise (soft delete)
    */
-  async deleteReadingExercise(id: string): Promise<void> {
+  async deleteExercise(
+    id: string,
+    skillType: SkillType = SKILL_TYPE.READING,
+  ): Promise<void> {
     const exercise = await this.prisma.exercises.findFirst({
       where: {
         id,
-        skill_type: SKILL_TYPE.READING,
+        skill_type: skillType,
         deleted: false,
       },
     });
@@ -512,7 +529,10 @@ export class ReadingService {
   /**
    * 📊 Get All Mock Tests with Reading Sections
    */
-  async getMockTestsWithReadingSections(): Promise<
+  async getMockTestsWithSections(
+    sectionType: SectionType = SECTION_TYPE.READING,
+    skillType: SkillType = SKILL_TYPE.READING,
+  ): Promise<
     Array<{
       id: string;
       title: string;
@@ -538,13 +558,13 @@ export class ReadingService {
       include: {
         test_sections: {
           where: {
-            section_type: SECTION_TYPE.READING,
+            section_type: sectionType,
             deleted: false,
           },
           include: {
             exercises: {
               where: {
-                skill_type: SKILL_TYPE.READING,
+                skill_type: skillType,
                 deleted: false,
               },
               include: {

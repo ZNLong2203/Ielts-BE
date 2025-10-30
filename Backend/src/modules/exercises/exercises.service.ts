@@ -730,6 +730,10 @@ export class ExerciseService {
   }
 
   /**
+   * Get
+   */
+
+  /**
    * Upload image for question
    */
   async uploadQuestionImage(id: string, file: Express.Multer.File) {

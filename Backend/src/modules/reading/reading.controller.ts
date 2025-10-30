@@ -21,7 +21,7 @@ import { CreateReadingExerciseDto } from './dto/create-reading.dto';
 import { UpdateReadingExerciseDto } from './dto/update-reading.dto';
 import { ReadingService } from './reading.service';
 
-@ApiTags('Reading Exercises')
+@ApiTags('Reading Exercises + Passages')
 @ApiBearerAuth()
 @Controller('reading')
 export class ReadingController {
@@ -51,7 +51,7 @@ export class ReadingController {
   })
   @Public()
   async createReadingExercise(@Body() createDto: CreateReadingExerciseDto) {
-    return this.readingService.createReadingExercise(createDto);
+    return this.readingService.createExercise(createDto);
   }
 
   @Get('test-section/:testSectionId')
@@ -76,7 +76,7 @@ export class ReadingController {
   async getReadingExercisesByTestSection(
     @Param('testSectionId') testSectionId: string,
   ) {
-    return this.readingService.getReadingExercisesByTestSection(testSectionId);
+    return this.readingService.getExercisesByTestSection(testSectionId);
   }
 
   @Get('mock-tests')
@@ -91,7 +91,7 @@ export class ReadingController {
   })
   @Public()
   async getMockTestsWithReadingSections() {
-    return this.readingService.getMockTestsWithReadingSections();
+    return this.readingService.getMockTestsWithSections();
   }
 
   @Get(':id')
@@ -115,7 +115,7 @@ export class ReadingController {
   })
   @Public()
   async getReadingExerciseById(@Param('id') id: string) {
-    return this.readingService.getReadingExerciseById(id);
+    return this.readingService.getExerciseById(id);
   }
 
   @Put(':id')
@@ -150,7 +150,7 @@ export class ReadingController {
     @Param('id') id: string,
     @Body() updateDto: UpdateReadingExerciseDto,
   ) {
-    return this.readingService.updateReadingExercise(id, updateDto);
+    return this.readingService.updateExercise(id, updateDto);
   }
 
   @Delete(':id')
@@ -175,6 +175,6 @@ export class ReadingController {
   })
   @Public()
   async deleteReadingExercise(@Param('id') id: string) {
-    return this.readingService.deleteReadingExercise(id);
+    return this.readingService.deleteExercise(id);
   }
 }
