@@ -84,7 +84,7 @@ export class SpeakingService {
 
       // Analyze pronunciation and stress patterns
       const pronunciationAnalysis =
-        this.pronunciationAnalysisService.analyzePronunciation(
+        await this.pronunciationAnalysisService.analyzePronunciation(
           transcription,
           audioDuration,
         );

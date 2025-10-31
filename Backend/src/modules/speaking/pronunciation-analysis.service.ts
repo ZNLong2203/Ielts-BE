@@ -1,5 +1,4 @@
 import { Injectable } from '@nestjs/common';
-import * as pronouncing from 'cmu-pronouncing-dictionary';
 import * as WavDecoder from 'wav-decoder';
 
 export interface WordAnalysis {
@@ -27,22 +26,42 @@ export interface PronunciationAnalysisResult {
 
 @Injectable()
 export class PronunciationAnalysisService {
+  private pronouncingDictionary: Record<string, string> | null = null;
+
+  /**
+   * Load CMU pronouncing dictionary dynamically (ES Module)
+   */
+  private async loadDictionary(): Promise<Record<string, string>> {
+    if (!this.pronouncingDictionary) {
+      const pronouncing = await import('cmu-pronouncing-dictionary');
+      const module = pronouncing.default || pronouncing;
+      // CMU dictionary exports a dictionary object with word -> pronunciation mappings
+      this.pronouncingDictionary =
+        (module.dictionary as unknown as Record<string, string>) ||
+        (module as unknown as Record<string, string>);
+    }
+    return this.pronouncingDictionary;
+  }
+
   /**
    * Analyze pronunciation and stress patterns from transcription
    * @param transcription Transcribed text
    * @param audioDuration Audio duration in seconds
    * @returns Pronunciation analysis results
    */
-  analyzePronunciation(
+  async analyzePronunciation(
     transcription: string,
     audioDuration?: number,
-  ): PronunciationAnalysisResult {
+  ): Promise<PronunciationAnalysisResult> {
     const words = this.extractWords(transcription);
     const wordAnalyses: WordAnalysis[] = [];
 
+    // Load dictionary if not already loaded
+    const pronouncing = await this.loadDictionary();
+
     // Analyze each word
     for (const word of words) {
-      const analysis = this.analyzeWord(word);
+      const analysis = this.analyzeWord(word, pronouncing);
       if (analysis) {
         wordAnalyses.push(analysis);
       }
@@ -80,7 +99,10 @@ export class PronunciationAnalysisService {
   /**
    * Analyze individual word for stress and pronunciation patterns
    */
-  private analyzeWord(word: string): WordAnalysis | null {
+  private analyzeWord(
+    word: string,
+    dictionary: Record<string, string>,
+  ): WordAnalysis | null {
     const cleanWord = word.toLowerCase().replace(/[.,!?;:()"'"]/g, '');
 
     if (!cleanWord) {
@@ -88,9 +110,9 @@ export class PronunciationAnalysisService {
     }
 
     // Get pronunciation from CMU dictionary
-    const pronunciation = pronouncing.dictionary[cleanWord];
+    const pronunciation = dictionary[cleanWord];
 
-    if (!pronunciation) {
+    if (!pronunciation || typeof pronunciation !== 'string') {
       // Word not found in dictionary - might be proper noun or misspelling
       // Estimate based on common patterns
       return {
@@ -357,9 +379,12 @@ export class PronunciationAnalysisService {
     // If it's a WAV file, we can parse it
     if (fileName.toLowerCase().endsWith('.wav')) {
       try {
-        const decoded = await WavDecoder.decode(audioBuffer);
+        const decoder = WavDecoder as {
+          decode: (buffer: Buffer) => Promise<{ duration: number }>;
+        };
+        const decoded = await decoder.decode(audioBuffer);
         return decoded.duration;
-      } catch (error) {
+      } catch {
         // If decoding fails, return undefined
         return undefined;
       }
