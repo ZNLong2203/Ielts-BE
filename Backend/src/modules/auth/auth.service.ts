@@ -81,6 +81,17 @@ export class AuthService {
     return res.redirect(`${frontendUrl}/auth/verify-email?status=success`);
   }
 
+  async verifyAccessToken(token: string) {
+    try {
+      const payload = await this.jwtService.verifyAsync<IJwtPayload>(token, {
+        secret: this.configService.get<string>('JWT_ACCESS_SECRET'),
+      });
+      return payload;
+    } catch (e) {
+      return null;
+    }
+  }
+
   async resetTeacherPassword(token: string, dto: ResetTeacherPasswordDto) {
     const user = await this.usersService.resetTeacherPassword(token, dto);
 

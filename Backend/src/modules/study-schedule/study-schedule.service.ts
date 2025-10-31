@@ -1,26 +1,1201 @@
-import { Injectable } from '@nestjs/common';
-import { CreateStudyScheduleDto } from './dto/create-study-schedule.dto';
-import { UpdateStudyScheduleDto } from './dto/update-study-schedule.dto';
+import {
+  BadRequestException,
+  Injectable,
+  Logger,
+  NotFoundException,
+} from '@nestjs/common';
+import { Prisma, study_schedules } from '@prisma/client';
+import {
+  addDays,
+  addMinutes,
+  addWeeks,
+  differenceInMinutes,
+  endOfMonth,
+  endOfWeek,
+  format,
+  getDay,
+  isAfter,
+  isBefore,
+  parse,
+  startOfMonth,
+  startOfWeek,
+} from 'date-fns';
+import {
+  BulkCreateScheduleDto,
+  CompleteScheduleDto,
+  CreateScheduleDto,
+} from 'src/modules/study-schedule/dto/create-study-schedule.dto';
+import { UpdateScheduleDto } from 'src/modules/study-schedule/dto/update-study-schedule.dto';
+import {
+  ComboProgressData,
+  REMINDER_STATUS,
+  ReminderStatusType,
+  SCHEDULE_STATUS,
+  ScheduleStatusType,
+  StudyAnalytics,
+  StudyScheduleDetails,
+  WeeklyScheduleSummary,
+} from 'src/modules/study-schedule/types/types';
+import { PrismaService } from 'src/prisma/prisma.service';
 
 @Injectable()
 export class StudyScheduleService {
-  create(createStudyScheduleDto: CreateStudyScheduleDto) {
-    return 'This action adds a new studySchedule';
+  private readonly logger = new Logger(StudyScheduleService.name);
+
+  constructor(private readonly prisma: PrismaService) {}
+
+  /**
+   * 📅 Create Single Study Schedule
+   */
+  async createSchedule(
+    userId: string,
+    createDto: CreateScheduleDto,
+  ): Promise<StudyScheduleDetails> {
+    // Validate course enrollment
+    const enrollment = await this.validateEnrollment(
+      userId,
+      createDto.course_id,
+      createDto.combo_id,
+    );
+
+    // Validate lesson if provided
+    if (createDto.lesson_id) {
+      await this.validateLesson(createDto.lesson_id, createDto.course_id);
+    }
+
+    // Calculate duration
+    const duration = this.calculateDuration(
+      createDto.start_time,
+      createDto.end_time,
+    );
+
+    if (duration <= 0) {
+      throw new BadRequestException('End time must be after start time');
+    }
+
+    // Check schedule conflicts
+    const hasConflict = await this.checkScheduleConflict(
+      userId,
+      createDto.scheduled_date,
+      createDto.start_time,
+      createDto.end_time,
+    );
+
+    if (hasConflict) {
+      throw new BadRequestException(
+        'You already have a study session scheduled at this time',
+      );
+    }
+
+    // Create schedule
+    const schedule = await this.prisma.study_schedules.create({
+      data: {
+        user_id: userId,
+        combo_id: createDto.combo_id,
+        course_id: createDto.course_id,
+        lesson_id: createDto.lesson_id,
+        scheduled_date: new Date(createDto.scheduled_date),
+        start_time: createDto.start_time,
+        end_time: createDto.end_time,
+        duration,
+        study_goal: createDto.study_goal,
+        notes: createDto.notes,
+        reminder_enabled: createDto.reminder_enabled ?? true,
+        reminder_minutes_before: createDto.reminder_minutes_before ?? 30,
+        status: SCHEDULE_STATUS.SCHEDULED,
+      },
+      include: this.getScheduleIncludes(),
+    });
+
+    // Create reminder if enabled
+    if (schedule.reminder_enabled) {
+      await this.createReminder(schedule);
+    }
+
+    this.logger.log(
+      `✅ Created study schedule for user ${userId} on ${createDto.scheduled_date}`,
+    );
+
+    return this.mapScheduleToDetails(schedule);
   }
 
-  findAll() {
-    return `This action returns all studySchedule`;
+  /**
+   * 📅🔄 Bulk Create Schedules for Combo
+   */
+  async bulkCreateSchedules(
+    userId: string,
+    bulkDto: BulkCreateScheduleDto,
+  ): Promise<{ created_count: number; schedules: StudyScheduleDetails[] }> {
+    // Validate combo enrollment
+    const comboEnrollment = await this.prisma.combo_enrollments.findFirst({
+      where: {
+        user_id: userId,
+        combo_id: bulkDto.combo_id,
+        deleted: false,
+      },
+      include: {
+        combo_courses: {
+          select: {
+            id: true,
+            name: true,
+            course_ids: true,
+          },
+        },
+      },
+    });
+
+    if (!comboEnrollment) {
+      throw new NotFoundException(
+        'Combo not found or you are not enrolled in this combo',
+      );
+    }
+
+    const combo = comboEnrollment.combo_courses;
+    const courseIds = combo?.course_ids as unknown as string[];
+
+    // Get all courses in combo
+    const courses = await this.prisma.courses.findMany({
+      where: {
+        id: { in: courseIds },
+        deleted: false,
+      },
+      orderBy: { skill_focus: 'asc' },
+    });
+
+    if (courses.length === 0) {
+      throw new BadRequestException('No courses found in this combo');
+    }
+
+    // Generate schedules
+    const schedulesToCreate: any[] = [];
+    const startDate = new Date();
+    const totalWeeks = bulkDto.weeks_count;
+    const sessionsPerWeek = bulkDto.time_slots.length;
+    const totalSessions = totalWeeks * sessionsPerWeek;
+    const coursesPerSession = Math.ceil(courses.length / totalSessions);
+
+    let currentWeek = 0;
+    let courseIndex = 0;
+
+    // Day name to number mapping
+    const dayMap: { [key: string]: number } = {
+      sunday: 0,
+      monday: 1,
+      tuesday: 2,
+      wednesday: 3,
+      thursday: 4,
+      friday: 5,
+      saturday: 6,
+    };
+
+    while (currentWeek < totalWeeks && courseIndex < courses.length) {
+      const weekStart = addWeeks(startDate, currentWeek);
+
+      for (const timeSlot of bulkDto.time_slots) {
+        if (courseIndex >= courses.length) break;
+
+        const dayNumber = dayMap[timeSlot.day.toLowerCase()];
+        const sessionDate = addDays(
+          weekStart,
+          (dayNumber - getDay(weekStart) + 7) % 7,
+        );
+
+        // Check if date is not in the past
+        if (isAfter(sessionDate, new Date())) {
+          const course = courses[courseIndex];
+          const duration = this.calculateDuration(
+            timeSlot.start_time,
+            timeSlot.end_time,
+          );
+
+          schedulesToCreate.push({
+            user_id: userId,
+            combo_id: bulkDto.combo_id,
+            course_id: course.id,
+            scheduled_date: sessionDate,
+            start_time: timeSlot.start_time,
+            end_time: timeSlot.end_time,
+            duration,
+            study_goal: `Study ${course.title}`,
+            reminder_enabled: bulkDto.reminder_enabled ?? true,
+            reminder_minutes_before: bulkDto.reminder_minutes_before ?? 30,
+            status: SCHEDULE_STATUS.SCHEDULED,
+          });
+        }
+
+        courseIndex++;
+      }
+
+      currentWeek++;
+    }
+
+    // Bulk insert schedules
+    const createdSchedules = await this.prisma.$transaction(
+      schedulesToCreate.map((data: study_schedules) =>
+        this.prisma.study_schedules.create({
+          data,
+          include: this.getScheduleIncludes(),
+        }),
+      ),
+    );
+
+    // Create reminders for enabled schedules
+    const reminderPromises = createdSchedules
+      .filter((s) => s.reminder_enabled)
+      .map((s) => this.createReminder(s));
+
+    await Promise.all(reminderPromises);
+
+    this.logger.log(
+      `✅ Bulk created ${createdSchedules.length} schedules for combo ${bulkDto.combo_id}`,
+    );
+
+    return {
+      created_count: createdSchedules.length,
+      schedules: createdSchedules.map((s) => this.mapScheduleToDetails(s)),
+    };
   }
 
-  findOne(id: number) {
-    return `This action returns a #${id} studySchedule`;
+  /**
+   * 📖 Get My Schedules
+   */
+  async getMySchedules(
+    userId: string,
+    filters?: {
+      date?: string;
+      week?: string;
+      month?: string;
+      status?: ScheduleStatusType;
+      combo_id?: string;
+      course_id?: string;
+    },
+  ): Promise<StudyScheduleDetails[]> {
+    const where: Prisma.study_schedulesWhereInput = {
+      user_id: userId,
+      deleted: false,
+    };
+
+    // Filter by specific date
+    if (filters?.date) {
+      where.scheduled_date = new Date(filters.date);
+    }
+
+    // Filter by week
+    if (filters?.week === 'current') {
+      const now = new Date();
+      where.scheduled_date = {
+        gte: startOfWeek(now, { weekStartsOn: 1 }),
+        lte: endOfWeek(now, { weekStartsOn: 1 }),
+      };
+    }
+
+    // Filter by month
+    if (filters?.month === 'current') {
+      const now = new Date();
+      where.scheduled_date = {
+        gte: startOfMonth(now),
+        lte: endOfMonth(now),
+      };
+    }
+
+    // Filter by status
+    if (filters?.status) {
+      where.status = filters.status;
+    }
+
+    // Filter by combo
+    if (filters?.combo_id) {
+      where.combo_id = filters.combo_id;
+    }
+
+    // Filter by course
+    if (filters?.course_id) {
+      where.course_id = filters.course_id;
+    }
+
+    const schedules = await this.prisma.study_schedules.findMany({
+      where,
+      include: this.getScheduleIncludes(),
+      orderBy: [{ scheduled_date: 'asc' }, { start_time: 'asc' }],
+    });
+
+    return schedules.map((s) => this.mapScheduleToDetails(s));
   }
 
-  update(id: number, updateStudyScheduleDto: UpdateStudyScheduleDto) {
-    return `This action updates a #${id} studySchedule`;
+  /**
+   * 📊 Get Weekly Schedule Summary
+   */
+  async getWeeklySchedule(
+    userId: string,
+    weekOffset: number = 0,
+  ): Promise<WeeklyScheduleSummary> {
+    const now = new Date();
+    const targetWeek = addWeeks(now, weekOffset);
+    const weekStart = startOfWeek(targetWeek, { weekStartsOn: 1 });
+    const weekEnd = endOfWeek(targetWeek, { weekStartsOn: 1 });
+
+    const schedules = await this.prisma.study_schedules.findMany({
+      where: {
+        user_id: userId,
+        scheduled_date: {
+          gte: weekStart,
+          lte: weekEnd,
+        },
+        deleted: false,
+      },
+      include: this.getScheduleIncludes(),
+      orderBy: [{ scheduled_date: 'asc' }, { start_time: 'asc' }],
+    });
+
+    const completed = schedules.filter(
+      (s) => s.status === SCHEDULE_STATUS.COMPLETED,
+    );
+    const missed = schedules.filter((s) => s.status === SCHEDULE_STATUS.MISSED);
+
+    const totalPlannedMinutes = schedules.reduce(
+      (sum, s) => sum + (s.duration || 0),
+      0,
+    );
+    const totalActualMinutes = completed.reduce(
+      (sum, s) => sum + (s.actual_duration || 0),
+      0,
+    );
+
+    return {
+      week_start: weekStart,
+      week_end: weekEnd,
+      total_sessions: schedules.length,
+      completed_sessions: completed.length,
+      missed_sessions: missed.length,
+      total_planned_hours: Number((totalPlannedMinutes / 60).toFixed(1)),
+      total_actual_hours: Number((totalActualMinutes / 60).toFixed(1)),
+      completion_rate:
+        schedules.length > 0
+          ? Number(((completed.length / schedules.length) * 100).toFixed(1))
+          : 0,
+      schedules: schedules.map((s) => this.mapScheduleToDetails(s)),
+    };
   }
 
-  remove(id: number) {
-    return `This action removes a #${id} studySchedule`;
+  /**
+   * 🔍 Get Schedule by ID
+   */
+  async getScheduleById(
+    userId: string,
+    scheduleId: string,
+  ): Promise<StudyScheduleDetails> {
+    const schedule = await this.prisma.study_schedules.findFirst({
+      where: {
+        id: scheduleId,
+        user_id: userId,
+        deleted: false,
+      },
+      include: this.getScheduleIncludes(),
+    });
+
+    if (!schedule) {
+      throw new NotFoundException('Study schedule not found');
+    }
+
+    return this.mapScheduleToDetails(schedule);
+  }
+
+  /**
+   * ✏️ Update Schedule
+   */
+  async updateSchedule(
+    userId: string,
+    scheduleId: string,
+    updateDto: UpdateScheduleDto,
+  ): Promise<StudyScheduleDetails> {
+    const existingSchedule = await this.prisma.study_schedules.findFirst({
+      where: {
+        id: scheduleId,
+        user_id: userId,
+        deleted: false,
+      },
+    });
+
+    if (!existingSchedule) {
+      throw new NotFoundException('Study schedule not found');
+    }
+
+    // Check if trying to update completed/missed schedule
+    if (
+      [SCHEDULE_STATUS.COMPLETED, SCHEDULE_STATUS.MISSED].includes(
+        existingSchedule.status as ScheduleStatusType,
+      ) &&
+      !updateDto.status
+    ) {
+      throw new BadRequestException('Cannot modify completed/missed schedule');
+    }
+
+    // Calculate new duration if times updated
+    let duration = existingSchedule.duration;
+    if (updateDto.start_time || updateDto.end_time) {
+      const startTime = this.formatTimeToString(
+        updateDto.start_time || existingSchedule.start_time,
+      );
+      const endTime = this.formatTimeToString(
+        updateDto.end_time || existingSchedule.end_time,
+      );
+      duration = this.calculateDuration(startTime, endTime);
+
+      if (duration <= 0) {
+        throw new BadRequestException('End time must be after start time');
+      }
+    }
+
+    // Check for schedule conflicts if date/time changed
+    if (
+      updateDto.scheduled_date ||
+      updateDto.start_time ||
+      updateDto.end_time
+    ) {
+      const startTime = this.formatTimeToString(
+        updateDto.start_time || existingSchedule.start_time,
+      );
+      const endTime = this.formatTimeToString(
+        updateDto.end_time || existingSchedule.end_time,
+      );
+      const hasConflict = await this.checkScheduleConflict(
+        userId,
+        updateDto.scheduled_date ||
+          format(existingSchedule.scheduled_date, 'yyyy-MM-dd'),
+        startTime,
+        endTime,
+        scheduleId,
+      );
+
+      if (hasConflict) {
+        throw new BadRequestException(
+          'You already have a study session scheduled at this time',
+        );
+      }
+    }
+
+    const updatedSchedule = await this.prisma.study_schedules.update({
+      where: { id: scheduleId },
+      data: {
+        combo_id: updateDto.combo_id,
+        course_id: updateDto.course_id,
+        lesson_id: updateDto.lesson_id,
+        scheduled_date: updateDto.scheduled_date
+          ? new Date(updateDto.scheduled_date)
+          : undefined,
+        start_time: updateDto.start_time,
+        end_time: updateDto.end_time,
+        duration,
+        study_goal: updateDto.study_goal,
+        notes: updateDto.notes,
+        reminder_enabled: updateDto.reminder_enabled,
+        reminder_minutes_before: updateDto.reminder_minutes_before,
+        status: updateDto.status,
+        updated_at: new Date(),
+      },
+      include: this.getScheduleIncludes(),
+    });
+
+    // Update reminder if time/date changed
+    if (
+      updateDto.scheduled_date ||
+      updateDto.start_time ||
+      updateDto.reminder_minutes_before !== undefined
+    ) {
+      await this.prisma.study_reminders.updateMany({
+        where: {
+          schedule_id: scheduleId,
+          status: REMINDER_STATUS.PENDING,
+        },
+        data: { deleted: true },
+      });
+
+      if (updatedSchedule.reminder_enabled) {
+        await this.createReminder(updatedSchedule);
+      }
+    }
+
+    this.logger.log(`✅ Updated schedule: ${scheduleId}`);
+    return this.mapScheduleToDetails(updatedSchedule);
+  }
+
+  /**
+   * ▶️ Start Study Session
+   */
+  async startSession(
+    userId: string,
+    scheduleId: string,
+  ): Promise<StudyScheduleDetails> {
+    const schedule = await this.prisma.study_schedules.findFirst({
+      where: {
+        id: scheduleId,
+        user_id: userId,
+        deleted: false,
+      },
+    });
+
+    if (!schedule) {
+      throw new NotFoundException('Study schedule not found');
+    }
+
+    if (schedule.status !== SCHEDULE_STATUS.SCHEDULED) {
+      throw new BadRequestException('Can only start scheduled sessions');
+    }
+
+    const updatedSchedule = await this.prisma.study_schedules.update({
+      where: { id: scheduleId },
+      data: {
+        actual_start_time: new Date(),
+        updated_at: new Date(),
+      },
+      include: this.getScheduleIncludes(),
+    });
+
+    this.logger.log(`▶️ Started study session: ${scheduleId}`);
+    return this.mapScheduleToDetails(updatedSchedule);
+  }
+
+  /**
+   * ✅ Complete Study Session
+   */
+  async completeSession(
+    userId: string,
+    scheduleId: string,
+    completeDto: CompleteScheduleDto,
+  ): Promise<StudyScheduleDetails> {
+    const schedule = await this.prisma.study_schedules.findFirst({
+      where: {
+        id: scheduleId,
+        user_id: userId,
+        deleted: false,
+      },
+    });
+
+    if (!schedule) {
+      throw new NotFoundException('Study schedule not found');
+    }
+
+    const now = new Date();
+    const actualDuration = schedule.actual_start_time
+      ? differenceInMinutes(now, new Date(schedule.actual_start_time))
+      : schedule.duration;
+
+    const completedSchedule = await this.prisma.study_schedules.update({
+      where: { id: scheduleId },
+      data: {
+        status: SCHEDULE_STATUS.COMPLETED,
+        actual_end_time: now,
+        actual_duration: actualDuration,
+        completion_percentage: completeDto.completion_percentage,
+        productivity_rating: completeDto.productivity_rating,
+        session_notes: completeDto.session_notes,
+        updated_at: now,
+      },
+      include: this.getScheduleIncludes(),
+    });
+
+    // Update enrollment progress check course id not null
+    if (!schedule.course_id) {
+      throw new BadRequestException('Invalid course associated with schedule');
+    }
+
+    // Update combo progress if applicable
+    if (schedule.combo_id) {
+      await this.updateComboProgress(userId, schedule.combo_id);
+    }
+
+    this.logger.log(`✅ Completed study session: ${scheduleId}`);
+    return this.mapScheduleToDetails(completedSchedule);
+  }
+
+  /**
+   * ❌ Cancel Schedule
+   */
+  async cancelSchedule(userId: string, scheduleId: string): Promise<void> {
+    const schedule = await this.prisma.study_schedules.findFirst({
+      where: {
+        id: scheduleId,
+        user_id: userId,
+        deleted: false,
+      },
+    });
+
+    if (!schedule) {
+      throw new NotFoundException('Study schedule not found');
+    }
+
+    if (schedule.status !== SCHEDULE_STATUS.SCHEDULED) {
+      throw new BadRequestException('Can only cancel scheduled sessions');
+    }
+
+    await this.prisma.study_schedules.update({
+      where: { id: scheduleId },
+      data: {
+        status: SCHEDULE_STATUS.CANCELLED,
+        updated_at: new Date(),
+      },
+    });
+
+    // Cancel reminder
+    await this.prisma.study_reminders.updateMany({
+      where: {
+        schedule_id: scheduleId,
+        status: REMINDER_STATUS.PENDING,
+      },
+      data: { deleted: true },
+    });
+
+    this.logger.log(`❌ Cancelled schedule: ${scheduleId}`);
+  }
+
+  /**
+   * 🗑️ Delete Schedule
+   */
+  async deleteSchedule(userId: string, scheduleId: string): Promise<void> {
+    const schedule = await this.prisma.study_schedules.findFirst({
+      where: {
+        id: scheduleId,
+        user_id: userId,
+        deleted: false,
+      },
+    });
+
+    if (!schedule) {
+      throw new NotFoundException('Study schedule not found');
+    }
+
+    await this.prisma.$transaction([
+      this.prisma.study_schedules.update({
+        where: { id: scheduleId },
+        data: {
+          deleted: true,
+          updated_at: new Date(),
+        },
+      }),
+      this.prisma.study_reminders.updateMany({
+        where: { schedule_id: scheduleId },
+        data: { deleted: true },
+      }),
+    ]);
+
+    this.logger.log(`🗑️ Deleted schedule: ${scheduleId}`);
+  }
+
+  /**
+   * 🔔 Get My Reminders
+   */
+  async getMyReminders(
+    userId: string,
+    filters?: {
+      status?: ReminderStatusType;
+      unread?: boolean;
+    },
+  ) {
+    const where: Prisma.study_remindersWhereInput = {
+      user_id: userId,
+      deleted: false,
+    };
+
+    if (filters?.status) {
+      where.status = filters.status;
+    }
+
+    if (filters?.unread) {
+      where.is_read = false;
+    }
+
+    const reminders = await this.prisma.study_reminders.findMany({
+      where,
+      include: {
+        study_schedules: {
+          include: {
+            courses: {
+              select: {
+                title: true,
+                thumbnail: true,
+              },
+            },
+            combo_courses: {
+              select: {
+                name: true,
+              },
+            },
+          },
+        },
+      },
+      orderBy: { scheduled_time: 'desc' },
+      take: 50,
+    });
+
+    return reminders;
+  }
+
+  /**
+   * ✅ Mark Reminder as Read
+   */
+  async markReminderAsRead(userId: string, reminderId: string): Promise<void> {
+    const reminder = await this.prisma.study_reminders.findFirst({
+      where: {
+        id: reminderId,
+        user_id: userId,
+        deleted: false,
+      },
+    });
+
+    if (!reminder) {
+      throw new NotFoundException('Reminder not found');
+    }
+
+    await this.prisma.study_reminders.update({
+      where: { id: reminderId },
+      data: {
+        is_read: true,
+        read_at: new Date(),
+      },
+    });
+
+    this.logger.log(`✅ Marked reminder as read: ${reminderId}`);
+  }
+
+  /**
+   * 📊 Get Study Analytics
+   */
+  async getStudyAnalytics(
+    userId: string,
+    period: 'week' | 'month' = 'week',
+  ): Promise<StudyAnalytics> {
+    const now = new Date();
+    const startDate =
+      period === 'week'
+        ? startOfWeek(now, { weekStartsOn: 1 })
+        : startOfMonth(now);
+    const endDate =
+      period === 'week' ? endOfWeek(now, { weekStartsOn: 1 }) : endOfMonth(now);
+
+    const schedules = await this.prisma.study_schedules.findMany({
+      where: {
+        user_id: userId,
+        scheduled_date: {
+          gte: startDate,
+          lte: endDate,
+        },
+        deleted: false,
+      },
+      include: {
+        courses: {
+          select: {
+            skill_focus: true,
+          },
+        },
+        combo_courses: true,
+      },
+    });
+
+    const completed = schedules.filter(
+      (s) => s.status === SCHEDULE_STATUS.COMPLETED,
+    );
+    const missed = schedules.filter((s) => s.status === SCHEDULE_STATUS.MISSED);
+    const cancelled = schedules.filter(
+      (s) => s.status === SCHEDULE_STATUS.CANCELLED,
+    );
+
+    const totalStudyMinutes = completed.reduce(
+      (sum, s) => sum + (s.actual_duration || 0),
+      0,
+    );
+
+    // Most studied skill
+    const skillCounts: { [key: string]: number } = {};
+    completed.forEach((s) => {
+      const skill = s.courses?.skill_focus || 'general';
+      skillCounts[skill] = (skillCounts[skill] || 0) + 1;
+    });
+    const mostStudiedSkill = Object.keys(skillCounts).sort(
+      (a, b) => skillCounts[b] - skillCounts[a],
+    )[0];
+
+    // Combo progress
+    const comboProgressMap = new Map<string, ComboProgressData>();
+    schedules.forEach((s) => {
+      if (s.combo_id && s.combo_courses) {
+        if (!comboProgressMap.has(s.combo_id)) {
+          comboProgressMap.set(s.combo_id, {
+            combo_id: s.combo_id,
+            combo_name: s.combo_courses.name,
+            completed: 0,
+            total: 0,
+          });
+        }
+        const progress = comboProgressMap.get(s.combo_id)!;
+        progress.total++;
+        if (s.status === SCHEDULE_STATUS.COMPLETED) {
+          progress.completed++;
+        }
+      }
+    });
+
+    const comboProgress = Array.from(comboProgressMap.values()).map((p) => ({
+      combo_id: p.combo_id,
+      combo_name: p.combo_name,
+      completed_courses: p.completed,
+      total_courses: p.total,
+      progress_percentage: p.total > 0 ? (p.completed / p.total) * 100 : 0,
+    }));
+
+    return {
+      period,
+      total_sessions: schedules.length,
+      completed_sessions: completed.length,
+      missed_sessions: missed.length,
+      cancelled_sessions: cancelled.length,
+      total_study_hours: (totalStudyMinutes / 60).toFixed(1),
+      avg_completion_percentage:
+        completed.length > 0
+          ? (
+              completed.reduce(
+                (sum, s) => sum + Number(s.completion_percentage),
+                0,
+              ) / completed.length
+            ).toFixed(1)
+          : '0',
+      avg_productivity_rating:
+        completed.filter((s) => s.productivity_rating).length > 0
+          ? (
+              completed
+                .filter((s) => s.productivity_rating)
+                .reduce((sum, s) => sum + (s.productivity_rating || 0), 0) /
+              completed.filter((s) => s.productivity_rating).length
+            ).toFixed(1)
+          : null,
+      most_studied_skill: mostStudiedSkill,
+      combo_progress: comboProgress.length > 0 ? comboProgress : undefined,
+    };
+  }
+
+  // ==================== PRIVATE HELPER METHODS ====================
+
+  private calculateDuration(startTime: string, endTime: string): number {
+    const start = parse(startTime, 'HH:mm', new Date());
+    const end = parse(endTime, 'HH:mm', new Date());
+    return differenceInMinutes(end, start);
+  }
+
+  private formatTimeToString(time: string | Date): string {
+    if (typeof time === 'string') {
+      return time;
+    }
+    return format(time, 'HH:mm');
+  }
+
+  private async checkScheduleConflict(
+    userId: string,
+    date: string,
+    startTime: string,
+    endTime: string,
+    excludeScheduleId?: string,
+  ): Promise<boolean> {
+    const where: Prisma.study_schedulesWhereInput = {
+      user_id: userId,
+      scheduled_date: new Date(date),
+      status: SCHEDULE_STATUS.SCHEDULED,
+      deleted: false,
+    };
+
+    if (excludeScheduleId) {
+      where.id = { not: excludeScheduleId };
+    }
+
+    const existingSchedules = await this.prisma.study_schedules.findMany({
+      where,
+    });
+
+    const newStart = parse(startTime, 'HH:mm', new Date());
+    const newEnd = parse(endTime, 'HH:mm', new Date());
+
+    return existingSchedules.some((schedule) => {
+      const startTime = this.formatTimeToString(schedule.start_time);
+      const endTime = this.formatTimeToString(schedule.end_time);
+      const existingStart = parse(startTime, 'HH:mm', new Date());
+      const existingEnd = parse(endTime, 'HH:mm', new Date());
+
+      return (
+        (isAfter(newStart, existingStart) && isBefore(newStart, existingEnd)) ||
+        (isAfter(newEnd, existingStart) && isBefore(newEnd, existingEnd)) ||
+        (isBefore(newStart, existingStart) && isAfter(newEnd, existingEnd))
+      );
+    });
+  }
+
+  private async validateEnrollment(
+    userId: string,
+    courseId: string,
+    comboId?: string,
+  ) {
+    if (comboId) {
+      // Check combo enrollment
+      const comboEnrollment = await this.prisma.combo_enrollments.findFirst({
+        where: {
+          user_id: userId,
+          combo_id: comboId,
+          deleted: false,
+        },
+        include: {
+          combo_courses: true,
+        },
+      });
+
+      if (!comboEnrollment) {
+        throw new NotFoundException('Combo not found or not enrolled');
+      }
+
+      // Check if course belongs to combo
+      const courseIds = comboEnrollment.combo_courses?.course_ids as string[];
+      if (!courseIds.includes(courseId)) {
+        throw new BadRequestException('Course does not belong to this combo');
+      }
+
+      return comboEnrollment;
+    }
+
+    // Check individual course enrollment
+    const enrollment = await this.prisma.enrollments.findFirst({
+      where: {
+        user_id: userId,
+        course_id: courseId,
+        deleted: false,
+      },
+      include: {
+        courses: true,
+      },
+    });
+
+    if (!enrollment) {
+      throw new NotFoundException('Course not found or not enrolled');
+    }
+
+    return enrollment;
+  }
+
+  private async validateLesson(lessonId: string, courseId: string) {
+    const lesson = await this.prisma.lessons.findFirst({
+      where: {
+        id: lessonId,
+        deleted: false,
+        sections: {
+          course_id: courseId,
+          deleted: false,
+        },
+      },
+    });
+
+    if (!lesson) {
+      throw new NotFoundException(
+        'Lesson not found or does not belong to this course',
+      );
+    }
+
+    return lesson;
+  }
+
+  private async createReminder(schedule: study_schedules) {
+    const startTime = this.formatTimeToString(schedule.start_time);
+    const scheduledDateTime = new Date(
+      `${format(new Date(schedule.scheduled_date), 'yyyy-MM-dd')}T${startTime}`,
+    );
+
+    // check if reminder time not null
+    if (!schedule.reminder_minutes_before) {
+      return;
+    }
+
+    const reminderTime = addMinutes(
+      scheduledDateTime,
+      -schedule.reminder_minutes_before,
+    );
+
+    if (isAfter(reminderTime, new Date())) {
+      await this.prisma.study_reminders.create({
+        data: {
+          user_id: schedule.user_id,
+          schedule_id: schedule.id,
+          title: `📚 Study Session Reminder`,
+          message: `Your study session "${schedule.study_goal || 'Study Session'}" starts in ${schedule.reminder_minutes_before} minutes!`,
+          scheduled_time: reminderTime,
+          status: REMINDER_STATUS.PENDING,
+        },
+      });
+
+      this.logger.log(
+        `🔔 Created reminder for schedule ${schedule.id} at ${format(reminderTime, 'yyyy-MM-dd HH:mm')}`,
+      );
+    }
+  }
+
+  private async updateComboProgress(userId: string, comboId: string) {
+    const comboEnrollment = await this.prisma.combo_enrollments.findFirst({
+      where: {
+        user_id: userId,
+        combo_id: comboId,
+        deleted: false,
+      },
+      include: {
+        combo_courses: true,
+      },
+    });
+
+    if (!comboEnrollment) return;
+
+    const courseIds = comboEnrollment.combo_courses?.course_ids as string[];
+
+    // Count completed courses
+    const completedCourses = await this.prisma.enrollments.count({
+      where: {
+        user_id: userId,
+        course_id: { in: courseIds },
+        progress_percentage: 100,
+        deleted: false,
+      },
+    });
+
+    const overallProgress =
+      courseIds.length > 0 ? (completedCourses / courseIds.length) * 100 : 0;
+
+    await this.prisma.combo_enrollments.update({
+      where: { id: comboEnrollment.id },
+      data: {
+        overall_progress_percentage: overallProgress,
+      },
+    });
+  }
+
+  private getScheduleIncludes() {
+    return {
+      courses: {
+        select: {
+          id: true,
+          title: true,
+          thumbnail: true,
+          skill_focus: true,
+        },
+      },
+      lessons: {
+        select: {
+          id: true,
+          title: true,
+          lesson_type: true,
+        },
+      },
+      combo_courses: {
+        select: {
+          id: true,
+          name: true,
+          target_band_range: true,
+        },
+      },
+      study_reminders: {
+        where: { deleted: false },
+        orderBy: { created_at: 'desc' as const },
+        take: 1,
+      },
+    };
+  }
+
+  private mapScheduleToDetails(
+    schedule: Prisma.study_schedulesGetPayload<{
+      include: {
+        courses: {
+          select: {
+            id: true;
+            title: true;
+            thumbnail: true;
+            skill_focus: true;
+          };
+        };
+        lessons: {
+          select: {
+            id: true;
+            title: true;
+            lesson_type: true;
+          };
+        };
+        combo_courses: {
+          select: {
+            id: true;
+            name: true;
+            target_band_range: true;
+          };
+        };
+        study_reminders: {
+          where: { deleted: false };
+          orderBy: { created_at: 'desc' };
+          take: 1;
+        };
+      };
+    }>,
+  ): StudyScheduleDetails {
+    return {
+      id: schedule.id,
+      user_id: schedule.user_id,
+      combo_id: schedule.combo_id,
+      course_id: schedule.course_id,
+      lesson_id: schedule.lesson_id,
+      scheduled_date: schedule.scheduled_date,
+      start_time: schedule.start_time,
+      end_time: schedule.end_time,
+      duration: schedule.duration,
+      study_goal: schedule.study_goal,
+      notes: schedule.notes,
+      status: schedule.status,
+      actual_start_time: schedule.actual_start_time,
+      actual_end_time: schedule.actual_end_time,
+      actual_duration: schedule.actual_duration,
+      completion_percentage: Number(schedule.completion_percentage || 0),
+      productivity_rating: schedule.productivity_rating,
+      session_notes: schedule.session_notes,
+      reminder_enabled: schedule.reminder_enabled,
+      reminder_minutes_before: schedule.reminder_minutes_before,
+      reminder_sent: schedule.reminder_sent,
+      created_at: schedule.created_at,
+      updated_at: schedule.updated_at,
+
+      // Related data - properly mapped
+      combo: schedule.combo_courses
+        ? {
+            id: schedule.combo_courses.id,
+            name: schedule.combo_courses.name,
+            target_band_range: schedule.combo_courses.target_band_range,
+          }
+        : undefined,
+
+      course: schedule.courses
+        ? {
+            id: schedule.courses.id,
+            title: schedule.courses.title,
+            thumbnail: schedule.courses.thumbnail,
+            skill_focus: schedule.courses.skill_focus,
+          }
+        : undefined,
+
+      lesson: schedule.lessons
+        ? {
+            id: schedule.lessons.id,
+            title: schedule.lessons.title,
+            lesson_type: schedule.lessons.lesson_type,
+          }
+        : undefined,
+
+      // Map reminders array (take first one or undefined)
+      reminders:
+        schedule.study_reminders?.length > 0
+          ? schedule.study_reminders.map((reminder) => ({
+              id: reminder.id,
+              title: reminder.title,
+              message: reminder.message,
+              scheduled_time: reminder.scheduled_time,
+              status: reminder.status,
+              is_read: reminder.is_read,
+            }))
+          : undefined,
+    };
   }
 }

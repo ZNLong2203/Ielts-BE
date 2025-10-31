@@ -1,0 +1,206 @@
+<html lang='en'>
+  <head>
+    <meta charset='UTF-8' />
+    <meta name='viewport' content='width=device-width, initial-scale=1.0' />
+    <title>Study Reminder</title>
+  </head>
+  <body
+    style="margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f4f7fa;"
+  >
+    <table
+      width='100%'
+      cellpadding='0'
+      cellspacing='0'
+      style='background-color: #f4f7fa; padding: 40px 0;'
+    >
+      <tr>
+        <td align='center'>
+          <table
+            width='600'
+            cellpadding='0'
+            cellspacing='0'
+            style='background-color: #ffffff; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); overflow: hidden;'
+          >
+
+            <!-- Header -->
+            <tr>
+              <td
+                style='background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 40px 30px; text-align: center;'
+              >
+                <h1
+                  style='margin: 0; color: #ffffff; font-size: 28px; font-weight: 600;'
+                >
+                  📚 Study Session Reminder
+                </h1>
+              </td>
+            </tr>
+
+            <!-- Content -->
+            <tr>
+              <td style='padding: 40px 30px;'>
+                <p
+                  style='margin: 0 0 20px; font-size: 16px; color: #333333; line-height: 1.6;'
+                >
+                  Hi
+                  <strong style='color: #667eea;'>{{userName}}</strong>,
+                </p>
+
+                <p
+                  style='margin: 0 0 30px; font-size: 16px; color: #666666; line-height: 1.6;'
+                >
+                  This is a friendly reminder that your study session is
+                  starting soon! 🎯
+                </p>
+
+                <!-- Course Details Card -->
+                <table
+                  width='100%'
+                  cellpadding='0'
+                  cellspacing='0'
+                  style='background: linear-gradient(135deg, #f5f7fa 0%, #e8ecf1 100%); border-radius: 10px; padding: 25px; margin-bottom: 30px;'
+                >
+                  {{#if thumbnail}}
+                    <tr>
+                      <td align='center' style='padding-bottom: 20px;'>
+                        <img
+                          src='{{thumbnail}}'
+                          alt='Course'
+                          style='max-width: 100%; height: auto; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);'
+                        />
+                      </td>
+                    </tr>
+                  {{/if}}
+
+                  <tr>
+                    <td>
+                      <table width='100%' cellpadding='8' cellspacing='0'>
+                        <tr>
+                          <td style='width: 40px; vertical-align: top;'>
+                            <span style='font-size: 24px;'>📖</span>
+                          </td>
+                          <td>
+                            <p
+                              style='margin: 0; font-size: 14px; color: #888888; font-weight: 500;'
+                            >COURSE</p>
+                            <p
+                              style='margin: 5px 0 0; font-size: 18px; color: #333333; font-weight: 600;'
+                            >{{course}}</p>
+                          </td>
+                        </tr>
+                        <tr>
+                          <td style='vertical-align: top;'>
+                            <span style='font-size: 24px;'>⏰</span>
+                          </td>
+                          <td>
+                            <p
+                              style='margin: 0; font-size: 14px; color: #888888; font-weight: 500;'
+                            >SCHEDULED TIME</p>
+                            <p
+                              style='margin: 5px 0 0; font-size: 18px; color: #667eea; font-weight: 600;'
+                            >{{scheduledTime}}</p>
+                          </td>
+                        </tr>
+                        {{#if studyGoal}}
+                          <tr>
+                            <td style='vertical-align: top;'>
+                              <span style='font-size: 24px;'>🎯</span>
+                            </td>
+                            <td>
+                              <p
+                                style='margin: 0; font-size: 14px; color: #888888; font-weight: 500;'
+                              >YOUR GOAL</p>
+                              <p
+                                style='margin: 5px 0 0; font-size: 16px; color: #555555; line-height: 1.5;'
+                              >{{studyGoal}}</p>
+                            </td>
+                          </tr>
+                        {{/if}}
+                      </table>
+                    </td>
+                  </tr>
+                </table>
+
+                <!-- CTA Button -->
+                <table
+                  width='100%'
+                  cellpadding='0'
+                  cellspacing='0'
+                  style='margin-bottom: 30px;'
+                >
+                  <tr>
+                    <td align='center'>
+                      <a
+                        href='{{dashboardUrl}}'
+                        style='display: inline-block; padding: 16px 40px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: #ffffff; text-decoration: none; border-radius: 8px; font-size: 16px; font-weight: 600; box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4); transition: all 0.3s;'
+                      >
+                        📚 Go to Dashboard
+                      </a>
+                    </td>
+                  </tr>
+                </table>
+
+                <!-- Tips Section -->
+                <table
+                  width='100%'
+                  cellpadding='0'
+                  cellspacing='0'
+                  style='background-color: #fff8e1; border-left: 4px solid #ffc107; padding: 20px; border-radius: 8px; margin-bottom: 30px;'
+                >
+                  <tr>
+                    <td>
+                      <p
+                        style='margin: 0 0 10px; font-size: 14px; color: #ff8f00; font-weight: 600;'
+                      >💡 STUDY TIPS</p>
+                      <ul
+                        style='margin: 0; padding-left: 20px; font-size: 14px; color: #666666; line-height: 1.8;'
+                      >
+                        <li>Find a quiet, distraction-free environment</li>
+                        <li>Have your study materials ready</li>
+                        <li>Stay hydrated and take short breaks</li>
+                        <li>Focus on understanding, not just memorizing</li>
+                      </ul>
+                    </td>
+                  </tr>
+                </table>
+
+                <p
+                  style='margin: 0 0 10px; font-size: 16px; color: #333333; line-height: 1.6;'
+                >
+                  Good luck with your study session! 🚀
+                </p>
+
+                <p
+                  style='margin: 0; font-size: 14px; color: #999999; line-height: 1.6;'
+                >
+                  Best regards,<br />
+                  <strong style='color: #667eea;'>IELTS Learning Platform Team</strong>
+                </p>
+              </td>
+            </tr>
+
+            <!-- Footer -->
+            <tr>
+              <td
+                style='background-color: #f8f9fa; padding: 30px; text-align: center; border-top: 1px solid #e0e0e0;'
+              >
+                <p style='margin: 0 0 15px; font-size: 12px; color: #999999;'>
+                  This is an automated reminder for your scheduled study
+                  session.
+                </p>
+                <p style='margin: 0 0 15px; font-size: 12px; color: #999999;'>
+                  <a
+                    href='{{unsubscribeUrl}}'
+                    style='color: #667eea; text-decoration: none;'
+                  >Manage notification settings</a>
+                </p>
+                <p style='margin: 0; font-size: 12px; color: #cccccc;'>
+                  © 2025 IELTS Learning Platform. All rights reserved.
+                </p>
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </table>
+  </body>
+</html>

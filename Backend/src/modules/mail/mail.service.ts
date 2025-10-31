@@ -1,13 +1,20 @@
 import { MailerService } from '@nestjs-modules/mailer';
-import { BadRequestException, Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable, Logger } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
+import { format } from 'date-fns';
 import { UsersService } from 'src/modules/users/users.service';
 
 @Injectable()
 export class MailService {
+  private readonly dashboardUrl: string;
+  private readonly logger = new Logger(MailService.name);
   constructor(
     private readonly mailerService: MailerService,
     private readonly usersService: UsersService,
-  ) {}
+    private readonly configService: ConfigService,
+  ) {
+    this.dashboardUrl = this.configService.get('FRONTEND_URL') + '/dashboard';
+  }
 
   async sendVerificationEmail(id: string, to: string, token: string) {
     try {
@@ -49,6 +56,41 @@ export class MailService {
       });
     } catch (e) {
       throw new BadRequestException(e);
+    }
+  }
+
+  async sendStudyReminder(data: {
+    to: string;
+    userName: string;
+    course: string;
+    scheduledTime: Date;
+    studyGoal?: string;
+    thumbnail?: string;
+  }) {
+    try {
+      await this.mailerService.sendMail({
+        to: data.to,
+        subject: `📚 Study Reminder: ${data.course}`,
+        template: 'reminder-schedule',
+        context: {
+          userName: data.userName,
+          course: data.course,
+          scheduledTime: format(
+            data.scheduledTime,
+            'HH:mm, EEEE, MMMM dd, yyyy',
+          ),
+          studyGoal: data.studyGoal,
+          thumbnail: data.thumbnail,
+          dashboardUrl: this.dashboardUrl,
+          unsubscribeUrl: `${this.dashboardUrl}/settings/notifications`,
+        },
+      });
+
+      this.logger.log(`Email reminder sent to ${data.to}`);
+    } catch (error) {
+      const e = error as Error;
+      this.logger.error(`Failed to send email to ${data.to}: ${e.message}`);
+      throw error;
     }
   }
 }
