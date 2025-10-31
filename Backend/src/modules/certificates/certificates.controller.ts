@@ -1,4 +1,10 @@
-import { Controller, Get, Post, Body } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  UnauthorizedException,
+} from '@nestjs/common';
 import {
   ApiTags,
   ApiBearerAuth,
@@ -6,7 +12,11 @@ import {
   ApiResponse,
   ApiBody,
 } from '@nestjs/swagger';
-import { CurrentUser, MessageResponse, Public } from 'src/decorator/customize';
+import {
+  CurrentUser,
+  MessageResponse,
+  SkipCheckPermission,
+} from 'src/decorator/customize';
 import { MESSAGE } from 'src/common/message';
 import { IUser } from 'src/interface/users.interface';
 import { CertificatesService } from './certificates.service';
@@ -19,7 +29,7 @@ export class CertificatesController {
   constructor(private readonly certificatesService: CertificatesService) {}
 
   @Get()
-  @Public()
+  @SkipCheckPermission()
   @ApiOperation({
     summary: 'Get all certificates for current user',
     description:
@@ -49,11 +59,14 @@ export class CertificatesController {
   })
   @MessageResponse(MESSAGE.CERTIFICATE.CERTIFICATE_RETRIEVED)
   async getCertificates(@CurrentUser() user: IUser) {
+    if (!user || !user.id) {
+      throw new UnauthorizedException('User authentication required');
+    }
     return this.certificatesService.getCertificates(user.id);
   }
 
   @Post('generate')
-  @Public()
+  @SkipCheckPermission()
   @ApiOperation({
     summary: 'Generate a certificate for a completed combo',
     description:
@@ -117,6 +130,9 @@ export class CertificatesController {
     @CurrentUser() user: IUser,
     @Body() generateDto: GenerateCertificateDto,
   ) {
+    if (!user || !user.id) {
+      throw new UnauthorizedException('User authentication required');
+    }
     return this.certificatesService.generateCertificate(user.id, generateDto);
   }
 }
