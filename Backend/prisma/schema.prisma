@@ -42,9 +42,10 @@ model users {
   orders                   orders[]
   section_progress         section_progress[]
   students                 students?
+  study_reminders          study_reminders[]
+  study_schedules          study_schedules[]
   teachers                 teachers?
   test_results             test_results[]
-  user_learning_paths      user_learning_paths[]
   user_progress            user_progress[]
   user_submissions         user_submissions[]
   writing_assessments      writing_assessments[]
@@ -196,6 +197,7 @@ model courses {
   order_items        order_items[]
   section_progress   section_progress[]
   sections           sections[]
+  study_schedules    study_schedules[]
   user_progress      user_progress[]
 
   @@index([category_id], map: "idx_courses_category")
@@ -248,24 +250,6 @@ model exercises {
   writing_assessments writing_assessments[]
 }
 
-model learning_paths {
-  id                  String                @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  name                String                @db.VarChar(255)
-  description         String?
-  target_band_score   Decimal?              @db.Decimal(2, 1)
-  skill_focus         String?               @db.VarChar(20)
-  difficulty_level    String?               @db.VarChar(20)
-  estimated_duration  Int?
-  course_sequence     String[]              @db.Uuid
-  prerequisites       String[]
-  created_by          String?               @db.Uuid
-  deleted             Boolean?              @default(false)
-  created_at          DateTime?             @default(now()) @db.Timestamp(6)
-  updated_at          DateTime?             @default(now()) @db.Timestamp(6)
-  teachers            teachers?             @relation(fields: [created_by], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  user_learning_paths user_learning_paths[]
-}
-
 model lesson_notes {
   id         String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   user_id    String?   @db.Uuid
@@ -279,23 +263,24 @@ model lesson_notes {
 }
 
 model lessons {
-  id             String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  section_id     String?         @db.Uuid
-  title          String          @db.VarChar(255)
-  description    String?
-  lesson_type    String?         @default("video") @db.VarChar(20)
-  video_url      String?         @db.VarChar(500)
-  video_duration Int?
-  document_url   String?         @db.VarChar(500)
-  ordering       Int?            @default(0)
-  is_preview     Boolean?        @default(false)
-  deleted        Boolean?        @default(false)
-  created_at     DateTime?       @default(now()) @db.Timestamp(6)
-  updated_at     DateTime?       @default(now()) @db.Timestamp(6)
-  exercises      exercises[]
-  lesson_notes   lesson_notes[]
-  sections       sections?       @relation(fields: [section_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
-  user_progress  user_progress[]
+  id              String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  section_id      String?           @db.Uuid
+  title           String            @db.VarChar(255)
+  description     String?
+  lesson_type     String?           @default("video") @db.VarChar(20)
+  video_url       String?           @db.VarChar(500)
+  video_duration  Int?
+  document_url    String?           @db.VarChar(500)
+  ordering        Int?              @default(0)
+  is_preview      Boolean?          @default(false)
+  deleted         Boolean?          @default(false)
+  created_at      DateTime?         @default(now()) @db.Timestamp(6)
+  updated_at      DateTime?         @default(now()) @db.Timestamp(6)
+  exercises       exercises[]
+  lesson_notes    lesson_notes[]
+  sections        sections?         @relation(fields: [section_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  study_schedules study_schedules[]
+  user_progress   user_progress[]
 
   @@index([section_id], map: "idx_lessons_section")
 }
@@ -453,7 +438,6 @@ model teachers {
   created_at       DateTime?          @default(now()) @db.Timestamp(6)
   updated_at       DateTime?          @default(now()) @db.Timestamp(6)
   courses          courses[]
-  learning_paths   learning_paths[]
   section_results  section_results[]
   users            users?             @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
   user_submissions user_submissions[]
@@ -481,23 +465,6 @@ model test_results {
   section_results  section_results[]
   mock_tests       mock_tests?       @relation(fields: [mock_test_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
   users            users?            @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
-}
-
-model user_learning_paths {
-  id                   String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  user_id              String?         @db.Uuid
-  learning_path_id     String?         @db.Uuid
-  current_course_index Int?            @default(0)
-  progress_percentage  Decimal?        @default(0) @db.Decimal(5, 2)
-  started_at           DateTime?       @default(now()) @db.Timestamp(6)
-  estimated_completion DateTime?       @db.Date
-  actual_completion    DateTime?       @db.Timestamp(6)
-  is_active            Boolean?        @default(true)
-  deleted              Boolean?        @default(false)
-  created_at           DateTime?       @default(now()) @db.Timestamp(6)
-  updated_at           DateTime?       @default(now()) @db.Timestamp(6)
-  learning_paths       learning_paths? @relation(fields: [learning_path_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  users                users?          @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
 }
 
 model user_progress {
@@ -584,6 +551,7 @@ model combo_courses {
   combo_enrollments   combo_enrollments[]
   coupon_usage        coupon_usage[]
   order_items         order_items[]
+  study_schedules     study_schedules[]
 }
 
 model combo_enrollments {
@@ -754,4 +722,54 @@ model question_groups {
   matching_options     matching_options[]
   exercises            exercises?         @relation(fields: [exercise_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
   questions            questions[]
+}
+
+model study_reminders {
+  id              String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id         String?          @db.Uuid
+  schedule_id     String?          @db.Uuid
+  title           String           @db.VarChar(255)
+  message         String
+  scheduled_time  DateTime         @db.Timestamp(6)
+  sent_at         DateTime?        @db.Timestamp(6)
+  status          String?          @default("pending") @db.VarChar(20)
+  is_read         Boolean?         @default(false)
+  read_at         DateTime?        @db.Timestamp(6)
+  deleted         Boolean?         @default(false)
+  created_at      DateTime?        @default(now()) @db.Timestamp(6)
+  updated_at      DateTime?        @default(now()) @db.Timestamp(6)
+  study_schedules study_schedules? @relation(fields: [schedule_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  users           users?           @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+}
+
+model study_schedules {
+  id                      String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id                 String?           @db.Uuid
+  combo_id                String?           @db.Uuid
+  course_id               String?           @db.Uuid
+  lesson_id               String?           @db.Uuid
+  scheduled_date          DateTime          @db.Date
+  start_time              DateTime          @db.Time(6)
+  end_time                DateTime          @db.Time(6)
+  duration                Int?
+  study_goal              String?
+  notes                   String?
+  status                  String?           @default("scheduled") @db.VarChar(20)
+  actual_start_time       DateTime?         @db.Timestamp(6)
+  actual_end_time         DateTime?         @db.Timestamp(6)
+  actual_duration         Int?
+  completion_percentage   Decimal?          @default(0) @db.Decimal(5, 2)
+  productivity_rating     Int?
+  session_notes           String?
+  reminder_enabled        Boolean?          @default(true)
+  reminder_minutes_before Int?              @default(30)
+  reminder_sent           Boolean?          @default(false)
+  deleted                 Boolean?          @default(false)
+  created_at              DateTime?         @default(now()) @db.Timestamp(6)
+  updated_at              DateTime?         @default(now()) @db.Timestamp(6)
+  study_reminders         study_reminders[]
+  combo_courses           combo_courses?    @relation(fields: [combo_id], references: [id], onUpdate: NoAction)
+  courses                 courses?          @relation(fields: [course_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  lessons                 lessons?          @relation(fields: [lesson_id], references: [id], onUpdate: NoAction)
+  users                   users?            @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
 }

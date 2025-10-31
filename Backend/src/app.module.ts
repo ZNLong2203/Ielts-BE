@@ -11,6 +11,7 @@ import { PaymentsModule } from 'src/modules/payments/payments.module';
 import { QuestionGroupsModule } from 'src/modules/question-groups/question-groups.module';
 import { QuestionsModule } from 'src/modules/questions/questions.module';
 import { SectionsModule } from 'src/modules/sections/sections.module';
+import { StudyScheduleModule } from 'src/modules/study-schedule/study-schedule.module';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { CaslModule } from './casl/casl.module';
@@ -41,7 +42,6 @@ import { WritingModule } from './modules/writing/writing.module';
 import { PrismaModule } from './prisma/prisma.module';
 import { RedisModule } from './redis/redis.module';
 import { UtilsModule } from './utils/utils.module';
-
 @Module({
   imports: [
     ConfigModule.forRoot({
@@ -91,6 +91,7 @@ import { UtilsModule } from './utils/utils.module';
     MockTestsModule,
     QuestionsModule,
     QuestionGroupsModule,
+    StudyScheduleModule,
   ],
   controllers: [AppController, DatabaseController],
   providers: [

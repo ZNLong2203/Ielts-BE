@@ -574,32 +574,62 @@ CREATE TABLE coupon_usage (
     UNIQUE(coupon_id, user_id, order_id)
 );
 
-CREATE TABLE learning_paths (
+CREATE TABLE study_schedules (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    name VARCHAR(255) NOT NULL,
-    description TEXT,
-    target_band_score DECIMAL(2,1),
-    skill_focus VARCHAR(20), -- general, reading, writing, listening, speaking
-    difficulty_level VARCHAR(20),
-    estimated_duration INTEGER, -- in weeks
-    course_sequence UUID[], -- ordered list of course IDs
-    prerequisites TEXT[],
-    created_by UUID REFERENCES teachers(id),
+    user_id UUID REFERENCES users(id) ON DELETE CASCADE,
+    
+    -- Link to combo or individual course
+    combo_id UUID REFERENCES combo_courses(id) ON DELETE SET NULL,
+    course_id UUID REFERENCES courses(id) ON DELETE CASCADE,
+    lesson_id UUID REFERENCES lessons(id) ON DELETE SET NULL,
+    
+    -- When to study
+    scheduled_date DATE NOT NULL,
+    start_time TIME NOT NULL,
+    end_time TIME NOT NULL,
+    duration INTEGER, -- in minutes (auto-calculated)
+    
+    -- Study plan
+    study_goal TEXT,
+    notes TEXT,
+    
+    -- Status tracking
+    status VARCHAR(20) DEFAULT 'scheduled', -- scheduled, completed, missed, cancelled
+    actual_start_time TIMESTAMP,
+    actual_end_time TIMESTAMP,
+    actual_duration INTEGER,
+    
+    -- Performance
+    completion_percentage DECIMAL(5,2) DEFAULT 0,
+    productivity_rating INTEGER, -- 1-5
+    session_notes TEXT,
+    
+    -- Reminder
+    reminder_enabled BOOLEAN DEFAULT TRUE,
+    reminder_minutes_before INTEGER DEFAULT 30,
+    reminder_sent BOOLEAN DEFAULT FALSE,
+    
     deleted BOOLEAN DEFAULT FALSE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE TABLE user_learning_paths (
+CREATE TABLE study_reminders (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id UUID REFERENCES users(id) ON DELETE CASCADE,
-    learning_path_id UUID REFERENCES learning_paths(id),
-    current_course_index INTEGER DEFAULT 0,
-    progress_percentage DECIMAL(5,2) DEFAULT 0,
-    started_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    estimated_completion DATE,
-    actual_completion TIMESTAMP,
-    is_active BOOLEAN DEFAULT TRUE,
+    schedule_id UUID REFERENCES study_schedules(id) ON DELETE CASCADE,
+    
+    title VARCHAR(255) NOT NULL,
+    message TEXT NOT NULL,
+    
+    scheduled_time TIMESTAMP NOT NULL,
+    sent_at TIMESTAMP,
+    
+    status VARCHAR(20) DEFAULT 'pending', -- pending, sent, failed
+    
+    is_read BOOLEAN DEFAULT FALSE,
+    read_at TIMESTAMP,
+    
     deleted BOOLEAN DEFAULT FALSE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
