@@ -52,7 +52,7 @@ export class StudyScheduleService {
     createDto: CreateScheduleDto,
   ): Promise<StudyScheduleDetails> {
     // Validate course enrollment
-    const enrollment = await this.validateEnrollment(
+    await this.validateEnrollment(
       userId,
       createDto.course_id,
       createDto.combo_id,
@@ -87,6 +87,10 @@ export class StudyScheduleService {
       );
     }
 
+    // Convert time strings to DateTime objects for Prisma
+    const startTimeDate = this.parseTimeString(createDto.start_time);
+    const endTimeDate = this.parseTimeString(createDto.end_time);
+
     // Create schedule
     const schedule = await this.prisma.study_schedules.create({
       data: {
@@ -95,8 +99,8 @@ export class StudyScheduleService {
         course_id: createDto.course_id,
         lesson_id: createDto.lesson_id,
         scheduled_date: new Date(createDto.scheduled_date),
-        start_time: createDto.start_time,
-        end_time: createDto.end_time,
+        start_time: startTimeDate,
+        end_time: endTimeDate,
         duration,
         study_goal: createDto.study_goal,
         notes: createDto.notes,
@@ -170,9 +174,6 @@ export class StudyScheduleService {
     const schedulesToCreate: any[] = [];
     const startDate = new Date();
     const totalWeeks = bulkDto.weeks_count;
-    const sessionsPerWeek = bulkDto.time_slots.length;
-    const totalSessions = totalWeeks * sessionsPerWeek;
-    const coursesPerSession = Math.ceil(courses.length / totalSessions);
 
     let currentWeek = 0;
     let courseIndex = 0;
@@ -208,13 +209,17 @@ export class StudyScheduleService {
             timeSlot.end_time,
           );
 
+          // Convert time strings to Date objects for Prisma
+          const startTimeDate = this.parseTimeString(timeSlot.start_time);
+          const endTimeDate = this.parseTimeString(timeSlot.end_time);
+
           schedulesToCreate.push({
             user_id: userId,
             combo_id: bulkDto.combo_id,
             course_id: course.id,
             scheduled_date: sessionDate,
-            start_time: timeSlot.start_time,
-            end_time: timeSlot.end_time,
+            start_time: startTimeDate,
+            end_time: endTimeDate,
             duration,
             study_goal: `Study ${course.title}`,
             reminder_enabled: bulkDto.reminder_enabled ?? true,
@@ -474,25 +479,53 @@ export class StudyScheduleService {
       }
     }
 
+    // Build update data object with only provided fields
+    const updateData: Record<string, unknown> = {
+      updated_at: new Date(),
+    };
+
+    // Add optional fields only if provided
+    if (updateDto.combo_id !== undefined) {
+      updateData.combo_id = updateDto.combo_id;
+    }
+    if (updateDto.course_id !== undefined) {
+      updateData.course_id = updateDto.course_id;
+    }
+    if (updateDto.lesson_id !== undefined) {
+      updateData.lesson_id = updateDto.lesson_id;
+    }
+    if (updateDto.scheduled_date) {
+      updateData.scheduled_date = new Date(updateDto.scheduled_date);
+    }
+    if (updateDto.start_time) {
+      updateData.start_time = this.parseTimeString(updateDto.start_time);
+    }
+    if (updateDto.end_time) {
+      updateData.end_time = this.parseTimeString(updateDto.end_time);
+    }
+    // Always update duration if times changed
+    if (updateDto.start_time || updateDto.end_time) {
+      updateData.duration = duration;
+    }
+    if (updateDto.study_goal !== undefined) {
+      updateData.study_goal = updateDto.study_goal;
+    }
+    if (updateDto.notes !== undefined) {
+      updateData.notes = updateDto.notes;
+    }
+    if (updateDto.reminder_enabled !== undefined) {
+      updateData.reminder_enabled = updateDto.reminder_enabled;
+    }
+    if (updateDto.reminder_minutes_before !== undefined) {
+      updateData.reminder_minutes_before = updateDto.reminder_minutes_before;
+    }
+    if (updateDto.status !== undefined) {
+      updateData.status = updateDto.status;
+    }
+
     const updatedSchedule = await this.prisma.study_schedules.update({
       where: { id: scheduleId },
-      data: {
-        combo_id: updateDto.combo_id,
-        course_id: updateDto.course_id,
-        lesson_id: updateDto.lesson_id,
-        scheduled_date: updateDto.scheduled_date
-          ? new Date(updateDto.scheduled_date)
-          : undefined,
-        start_time: updateDto.start_time,
-        end_time: updateDto.end_time,
-        duration,
-        study_goal: updateDto.study_goal,
-        notes: updateDto.notes,
-        reminder_enabled: updateDto.reminder_enabled,
-        reminder_minutes_before: updateDto.reminder_minutes_before,
-        status: updateDto.status,
-        updated_at: new Date(),
-      },
+      data: updateData,
       include: this.getScheduleIncludes(),
     });
 
@@ -887,6 +920,19 @@ export class StudyScheduleService {
     return format(time, 'HH:mm');
   }
 
+  /**
+   * Parse time string (HH:mm) to DateTime for Prisma Time field
+   */
+  private parseTimeString(timeString: string | Date): Date {
+    if (timeString instanceof Date) {
+      return timeString;
+    }
+    const [hours, minutes] = timeString.split(':').map(Number);
+    const date = new Date();
+    date.setHours(hours, minutes || 0, 0, 0);
+    return date;
+  }
+
   private async checkScheduleConflict(
     userId: string,
     date: string,
@@ -1089,7 +1135,6 @@ export class StudyScheduleService {
         select: {
           id: true,
           name: true,
-          target_band_range: true,
         },
       },
       study_reminders: {
@@ -1122,7 +1167,6 @@ export class StudyScheduleService {
           select: {
             id: true;
             name: true;
-            target_band_range: true;
           };
         };
         study_reminders: {
@@ -1163,7 +1207,6 @@ export class StudyScheduleService {
         ? {
             id: schedule.combo_courses.id,
             name: schedule.combo_courses.name,
-            target_band_range: schedule.combo_courses.target_band_range,
           }
         : undefined,
 

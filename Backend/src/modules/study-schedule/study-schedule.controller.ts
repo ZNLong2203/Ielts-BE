@@ -9,6 +9,7 @@ import {
   Post,
   Put,
   Query,
+  UseGuards,
 } from '@nestjs/common';
 import {
   ApiBearerAuth,
@@ -18,8 +19,10 @@ import {
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
-import { CurrentUser } from 'src/decorator/customize';
+import { CurrentUser, SkipCheckPermission } from 'src/decorator/customize';
 import { IUser } from 'src/interface/users.interface';
+import { JwtAuthGuard } from 'src/modules/auth/guards/jwt-auth.guard';
+import { PermissionGuard } from 'src/casl/guards/permission.guard';
 import {
   BulkCreateScheduleDto,
   CompleteScheduleDto,
@@ -36,6 +39,7 @@ import { StudyScheduleService } from './study-schedule.service';
 
 @ApiTags('Study Schedule')
 @ApiBearerAuth()
+@UseGuards(JwtAuthGuard, PermissionGuard)
 @Controller('study-schedule')
 export class StudyScheduleController {
   constructor(private readonly studyScheduleService: StudyScheduleService) {}
@@ -43,6 +47,7 @@ export class StudyScheduleController {
   // ==================== STUDY SCHEDULES ====================
 
   @Post()
+  @SkipCheckPermission()
   @ApiOperation({
     summary: 'Create study schedule',
     description: 'Student creates a single study schedule for a course/lesson',
@@ -67,6 +72,7 @@ export class StudyScheduleController {
   }
 
   @Post('bulk')
+  @SkipCheckPermission()
   @ApiOperation({
     summary: 'Bulk create schedules for combo',
     description:
@@ -92,6 +98,7 @@ export class StudyScheduleController {
   }
 
   @Get('my-schedules')
+  @SkipCheckPermission()
   @ApiOperation({
     summary: 'Get my study schedules',
     description: 'Get all study schedules of current user with filters',
@@ -156,6 +163,7 @@ export class StudyScheduleController {
   }
 
   @Get('weekly-schedule')
+  @SkipCheckPermission()
   @ApiOperation({
     summary: 'Get weekly schedule summary',
     description: 'Get detailed schedule and statistics for a specific week',
@@ -183,6 +191,7 @@ export class StudyScheduleController {
   }
 
   @Get('analytics')
+  @SkipCheckPermission()
   @ApiOperation({
     summary: 'Get study analytics',
     description: 'Get study statistics and analytics for week or month',
@@ -206,6 +215,7 @@ export class StudyScheduleController {
   }
 
   @Get(':id')
+  @SkipCheckPermission()
   @ApiOperation({
     summary: 'Get schedule details',
     description: 'Get detailed information of a study schedule',
@@ -228,6 +238,7 @@ export class StudyScheduleController {
   }
 
   @Put(':id')
+  @SkipCheckPermission()
   @ApiOperation({
     summary: 'Update study schedule',
     description:
@@ -259,6 +270,7 @@ export class StudyScheduleController {
   }
 
   @Post(':id/start')
+  @SkipCheckPermission()
   @ApiOperation({
     summary: 'Start study session',
     description: 'Mark study session as started and track actual start time',
@@ -285,6 +297,7 @@ export class StudyScheduleController {
   }
 
   @Post(':id/complete')
+  @SkipCheckPermission()
   @ApiOperation({
     summary: 'Complete study session',
     description:
@@ -312,6 +325,7 @@ export class StudyScheduleController {
   }
 
   @Post(':id/cancel')
+  @SkipCheckPermission()
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({
     summary: 'Cancel study schedule',
@@ -339,6 +353,7 @@ export class StudyScheduleController {
   }
 
   @Delete(':id')
+  @SkipCheckPermission()
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({
     summary: 'Delete study schedule',
@@ -364,6 +379,7 @@ export class StudyScheduleController {
   // ==================== REMINDERS ====================
 
   @Get('reminders/my-reminders')
+  @SkipCheckPermission()
   @ApiOperation({
     summary: 'Get my reminders',
     description: 'Get all reminders of current user with filters',
@@ -397,6 +413,7 @@ export class StudyScheduleController {
   }
 
   @Post('reminders/:id/read')
+  @SkipCheckPermission()
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({
     summary: 'Mark reminder as read',
@@ -425,6 +442,7 @@ export class StudyScheduleController {
   // ==================== COMBO-SPECIFIC ENDPOINTS ====================
 
   @Get('combo/:comboId/schedules')
+  @SkipCheckPermission()
   @ApiOperation({
     summary: 'Get schedules for specific combo',
     description: 'Get all study schedules for a specific combo',
@@ -448,6 +466,7 @@ export class StudyScheduleController {
   }
 
   @Get('combo/:comboId/progress')
+  @SkipCheckPermission()
   @ApiOperation({
     summary: 'Get combo study progress',
     description: 'Get study progress statistics for a specific combo',

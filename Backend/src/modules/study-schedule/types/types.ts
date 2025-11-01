@@ -42,7 +42,6 @@ export interface StudyScheduleDetails {
   combo?: {
     id: string;
     name: string;
-    target_band_range?: string | null;
   };
   course?: {
     id: string;
