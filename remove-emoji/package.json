@@ -5,8 +5,10 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "node main.js",
-    "dry-run": "node main.js --dry-run",
-    "verbose": "node main.js --dry-run --verbose"
+    "dry: default": "node main.js --no-prompt --dry-run",
+    "verbose:default": "node main.js --no-prompt --dry-run --verbose",
+    "exec:default": "node main.js --no-prompt",
+    "help": "node main.js --help"
   },
   "keywords": [],
   "author": "",
