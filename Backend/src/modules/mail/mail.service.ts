@@ -70,7 +70,7 @@ export class MailService {
     try {
       await this.mailerService.sendMail({
         to: data.to,
-        subject: `📚 Study Reminder: ${data.course}`,
+        subject: `Study Reminder: ${data.course}`,
         template: 'reminder-schedule',
         context: {
           userName: data.userName,

@@ -26,13 +26,13 @@ import { CreateMockTestDto } from './dto/create-mock-test.dto';
 import { UpdateMockTestDto } from './dto/update-mock-test.dto';
 import { MockTestsService } from './mock-tests.service';
 
-@ApiTags('🧪 Mock Tests')
+@ApiTags('Mock Tests')
 @Controller('mock-tests')
 export class MockTestsController {
   constructor(private readonly mockTestsService: MockTestsService) {}
 
   /**
-   * 📝 Create Mock Test
+   * Create Mock Test
    */
   @Post()
   @ApiOperation({
@@ -62,7 +62,7 @@ export class MockTestsController {
   }
 
   /**
-   * 📖 Get All Mock Tests
+   * Get All Mock Tests
    */
   @Get()
   @ApiOperation({
@@ -91,7 +91,7 @@ export class MockTestsController {
   }
 
   /**
-   * 🔍 Get Mock Test by ID
+   * Get Mock Test by ID
    */
   @Get(':id')
   @ApiOperation({
@@ -120,7 +120,7 @@ export class MockTestsController {
   }
 
   /**
-   * ✏️ Update Mock Test
+   * Update Mock Test
    */
   @Patch(':id')
   @ApiOperation({
@@ -155,7 +155,7 @@ export class MockTestsController {
   }
 
   /**
-   * 🗑️ Delete Mock Test
+   * Delete Mock Test
    */
   @Delete(':id')
   @ApiOperation({
@@ -183,7 +183,7 @@ export class MockTestsController {
   }
 
   /**
-   * 📊 Get Mock Test Statistics
+   * Get Mock Test Statistics
    */
   @Get('statistics/overview')
   @ApiOperation({

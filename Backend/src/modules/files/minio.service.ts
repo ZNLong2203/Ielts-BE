@@ -399,7 +399,7 @@ export class MinioService {
   }
 
   /**
-   * ✅ Generate presigned PUT URL for direct upload
+   * Generate presigned PUT URL for direct upload
    */
   async generatePresignedPutUrl(
     bucketName: string,
@@ -413,19 +413,19 @@ export class MinioService {
         expiresIn,
       );
 
-      this.logger.log(`✅ Generated presigned PUT URL: ${objectName}`);
+      this.logger.log(`Generated presigned PUT URL: ${objectName}`);
       return presignedUrl;
     } catch (error) {
       const e = error as Error;
       this.logger.error(
-        `❌ Failed to generate presigned PUT URL: ${e.message}`,
+        `Failed to generate presigned PUT URL: ${e.message}`,
       );
       throw new Error(`Failed to generate presigned URL: ${e.message}`);
     }
   }
 
   /**
-   * ✅ Get file as buffer
+   * Get file as buffer
    */
   async getFileBuffer(bucketName: string, objectName: string): Promise<Buffer> {
     try {
@@ -439,7 +439,7 @@ export class MinioService {
       });
     } catch (error) {
       const e = error as Error;
-      this.logger.error(`❌ Failed to get file buffer: ${e.message}`);
+      this.logger.error(`Failed to get file buffer: ${e.message}`);
       throw new Error(`Failed to get file: ${e.message}`);
     }
   }

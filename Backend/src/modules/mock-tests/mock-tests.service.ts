@@ -80,7 +80,7 @@ export class MockTestsService {
   ) {}
 
   /**
-   * 📝 Create Mock Test with Sections
+   * Create Mock Test with Sections
    */
   async create(createDto: CreateMockTestDto): Promise<MockTestWithIncludes> {
     // Check if test with same title exists
@@ -137,7 +137,7 @@ export class MockTestsService {
         await this.createDefaultSections(tx, mockTest.id, createDto.test_type);
       }
 
-      this.logger.log(`✅ Created mock test: ${mockTest.title}`);
+      this.logger.log(`Created mock test: ${mockTest.title}`);
 
       // Return with includes
       return await tx.mock_tests.findUniqueOrThrow({
@@ -175,7 +175,7 @@ export class MockTestsService {
   }
 
   /**
-   * 📖 Get All Mock Tests
+   * Get All Mock Tests
    */
   async findAll(query: PaginationQueryDto, rawQuery: Record<string, any>) {
     const whereCondition: Prisma.mock_testsWhereInput = {
@@ -206,7 +206,7 @@ export class MockTestsService {
   }
 
   /**
-   * 🔍 Get Mock Test by ID
+   * Get Mock Test by ID
    */
   async findOne(id: string): Promise<MockTestWithIncludes> {
     const mockTest = await this.prisma.mock_tests.findFirst({
@@ -252,7 +252,7 @@ export class MockTestsService {
   }
 
   /**
-   * ✏️ Update Mock Test
+   * Update Mock Test
    */
   async update(
     id: string,
@@ -321,12 +321,12 @@ export class MockTestsService {
       },
     });
 
-    this.logger.log(`✅ Updated mock test: ${id}`);
+    this.logger.log(`Updated mock test: ${id}`);
     return updatedTest;
   }
 
   /**
-   * 🗑️ Delete Mock Test (soft delete)
+   * Delete Mock Test (soft delete)
    */
   async remove(id: string): Promise<void> {
     const mockTest = await this.prisma.mock_tests.findFirst({
@@ -399,11 +399,11 @@ export class MockTestsService {
       });
     });
 
-    this.logger.log(`✅ Deleted mock test: ${id}`);
+    this.logger.log(`Deleted mock test: ${id}`);
   }
 
   /**
-   * 📊 Get Mock Test Statistics
+   * Get Mock Test Statistics
    */
   async getStatistics(): Promise<{
     total_tests: number;

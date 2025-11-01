@@ -112,21 +112,21 @@ export class DockerFFmpegConfigService {
       return normalizedPath;
     }
 
-    // ✅ Fix: Storage và tmp paths phải relative to docker-compose.yml location
+    //  Fix: Storage và tmp paths phải relative to docker-compose.yml location
     const dockerComposeDir = path.resolve(process.cwd(), '..'); // Parent directory
     const storagePath = path.resolve(dockerComposeDir, 'storage');
     const tmpPath = path.resolve(dockerComposeDir, 'temp'); // Project temp directory
 
-    this.logger.debug(`🔄 Converting path: ${normalizedPath}`);
-    this.logger.debug(`📁 Storage: ${storagePath}`);
-    this.logger.debug(`📂 Tmp: ${tmpPath}`);
-    this.logger.debug(`🐳 Docker compose dir: ${dockerComposeDir}`);
+    this.logger.debug(` Converting path: ${normalizedPath}`);
+    this.logger.debug(` Storage: ${storagePath}`);
+    this.logger.debug(` Tmp: ${tmpPath}`);
+    this.logger.debug(` Docker compose dir: ${dockerComposeDir}`);
 
     // Storage mapping
     if (normalizedPath.startsWith(storagePath)) {
       const relativePath = path.relative(storagePath, normalizedPath);
       const containerPath = `/data/${relativePath.replace(/\\/g, '/')}`;
-      this.logger.debug(`📦 Storage -> Container: ${containerPath}`);
+      this.logger.debug(` Storage -> Container: ${containerPath}`);
       return containerPath;
     }
 
@@ -134,13 +134,13 @@ export class DockerFFmpegConfigService {
     if (normalizedPath.startsWith(tmpPath)) {
       const relativePath = path.relative(tmpPath, normalizedPath);
       const containerPath = `/tmp/${relativePath.replace(/\\/g, '/')}`;
-      this.logger.debug(`🗂️ Tmp -> Container: ${containerPath}`);
+      this.logger.debug(` Tmp -> Container: ${containerPath}`);
       return containerPath;
     }
 
     // Already container path
     if (localPath.startsWith('/tmp/') || localPath.startsWith('/data/')) {
-      this.logger.debug(`📄 Already container path: ${localPath}`);
+      this.logger.debug(` Already container path: ${localPath}`);
       return localPath;
     }
 
@@ -148,7 +148,7 @@ export class DockerFFmpegConfigService {
     const fileName = path.basename(normalizedPath);
     const containerPath = `/tmp/${fileName}`;
     this.logger.warn(
-      `⚠️ Unmapped path, using fallback: ${normalizedPath} -> ${containerPath}`,
+      ` Unmapped path, using fallback: ${normalizedPath} -> ${containerPath}`,
     );
     return containerPath;
   }

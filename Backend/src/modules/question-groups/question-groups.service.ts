@@ -27,7 +27,7 @@ export class QuestionGroupsService {
   ) {}
 
   /**
-   * 📝 Create Question Group for Exercise
+   * Create Question Group for Exercise
    */
   async createQuestionGroup(createDto: CreateQuestionGroupDto) {
     // Validate exercise exists
@@ -111,7 +111,7 @@ export class QuestionGroupsService {
       }
 
       this.logger.log(
-        `✅ Created question group for exercise: ${createDto.exercise_id}`,
+        `Created question group for exercise: ${createDto.exercise_id}`,
       );
 
       // Return complete question group details
@@ -120,7 +120,7 @@ export class QuestionGroupsService {
   }
 
   /**
-   * 📖 Get Question Groups by Exercise ID
+   * Get Question Groups by Exercise ID
    */
   async getQuestionGroupsByExercise(exerciseId: string) {
     // Validate exercise exists
@@ -176,7 +176,7 @@ export class QuestionGroupsService {
   }
 
   /**
-   * 🔍 Get Question Group by ID
+   * Get Question Group by ID
    */
   async getQuestionGroupById(id: string): Promise<QuestionGroupWithDetails> {
     const questionGroup = await this.prisma.question_groups.findFirst({
@@ -216,7 +216,7 @@ export class QuestionGroupsService {
   }
 
   /**
-   * ✏️ Update Question Group
+   * Update Question Group
    */
   async updateQuestionGroup(
     id: string,
@@ -301,7 +301,7 @@ export class QuestionGroupsService {
         },
       });
 
-      this.logger.log(`✅ Updated question group: ${id}`);
+      this.logger.log(`Updated question group: ${id}`);
 
       // Return complete question group details
       return await this.getQuestionGroupById(id);
@@ -309,7 +309,7 @@ export class QuestionGroupsService {
   }
 
   /**
-   * 🗑️ Delete Question Group (soft delete)
+   * Delete Question Group (soft delete)
    */
   async deleteQuestionGroup(id: string): Promise<void> {
     const questionGroup = await this.prisma.question_groups.findFirst({
@@ -358,11 +358,11 @@ export class QuestionGroupsService {
       });
     });
 
-    this.logger.log(`✅ Deleted question group: ${id}`);
+    this.logger.log(`Deleted question group: ${id}`);
   }
 
   /**
-   * 🖼️ Upload Image for Question Group
+   * Upload Image for Question Group
    */
   async uploadQuestionGroupImage(
     id: string,
@@ -402,7 +402,7 @@ export class QuestionGroupsService {
         },
       });
 
-      this.logger.log(`✅ Uploaded image for question group: ${id}`);
+      this.logger.log(`Uploaded image for question group: ${id}`);
       return this.getQuestionGroupById(id);
     } catch (error) {
       this.logger.error('Error uploading question group image:', error);
@@ -411,7 +411,7 @@ export class QuestionGroupsService {
   }
 
   /**
-   * 🔄 Reorder Question Groups in Exercise
+   * Reorder Question Groups in Exercise
    */
   async reorderQuestionGroups(
     exerciseId: string,
@@ -465,7 +465,7 @@ export class QuestionGroupsService {
     });
 
     this.logger.log(
-      `✅ Reordered ${groupOrders.length} question groups in exercise: ${exerciseId}`,
+      ` Reordered ${groupOrders.length} question groups in exercise: ${exerciseId}`,
     );
   }
 

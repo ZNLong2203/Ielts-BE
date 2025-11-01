@@ -1,4 +1,4 @@
-import { Logger } from '@nestjs/common';
+import { Logger, OnModuleInit } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import {
   OnGatewayConnection,
@@ -23,7 +23,7 @@ export interface AuthenSocket extends Socket {
   namespace: '/notifications',
 })
 export class NotificationGateway
-  implements OnGatewayConnection, OnGatewayDisconnect
+  implements OnGatewayConnection, OnGatewayDisconnect, OnModuleInit
 {
   @WebSocketServer()
   server: Server;
@@ -35,6 +35,32 @@ export class NotificationGateway
     private readonly authService: AuthService,
     private readonly configService: ConfigService,
   ) {}
+
+  // log origin on module init
+  onModuleInit() {
+    const frontendUrl =
+      this.configService.get<string>('FRONTEND_URL') || 'http://localhost:3000';
+    const namespace = '/notifications';
+
+    // Log config khi init
+    this.logger.log(`WebSocket Gateway initialized`);
+    this.logger.log(`CORS allowed origin: ${frontendUrl}`);
+    this.logger.log(`Namespace: ${namespace}`);
+    this.logger.log(
+      `JWT Access Secret loaded: ${this.configService.get('JWT_ACCESS_SECRET') ? 'Yes' : 'No'}`,
+    );
+
+    // Middleware - log mỗi connection request
+    this.server.use((socket, next) => {
+      const origin = socket.handshake.headers.origin;
+      const userAgent = socket.handshake.headers['user-agent'];
+
+      this.logger.debug(`Connection from: ${origin || 'same-origin'}`);
+      this.logger.debug(`User-Agent: ${userAgent}`);
+
+      next();
+    });
+  }
 
   /**
    * Xử lý khi user connect
@@ -50,7 +76,7 @@ export class NotificationGateway
         (client.handshake.query?.token as string);
 
       if (!token) {
-        this.logger.warn(`❌ Client ${client.id} - No token provided`);
+        this.logger.warn(`Client ${client.id} - No token provided`);
         client.emit('error', { message: 'Authentication required' });
         client.disconnect();
         return;
@@ -62,7 +88,7 @@ export class NotificationGateway
       const userId = payload?.id;
 
       if (!userId) {
-        this.logger.warn(`❌ Client ${client.id} - Invalid token payload`);
+        this.logger.warn(`Client ${client.id} - Invalid token payload`);
         client.emit('error', { message: 'Invalid token' });
         client.disconnect();
         return;
@@ -76,7 +102,7 @@ export class NotificationGateway
       client.data.userId = userId;
 
       this.logger.log(
-        `✅ User ${userId} connected - Socket: ${client.id} - Devices: ${this.userSockets.get(userId)!.size}`,
+        `User ${userId} connected - Socket: ${client.id} - Devices: ${this.userSockets.get(userId)!.size}`,
       );
 
       client.emit('connected', {
@@ -85,7 +111,7 @@ export class NotificationGateway
       });
     } catch (error) {
       const e = error as Error;
-      this.logger.error(`❌ Connection error: ${e.message}`);
+      this.logger.error(`Connection error: ${e.message}`);
       client.emit('error', { message: 'Connection failed' });
       client.disconnect();
     }
@@ -104,10 +130,10 @@ export class NotificationGateway
 
       if (sockets.size === 0) {
         this.userSockets.delete(userId);
-        this.logger.log(`🔌 User ${userId} disconnected - All devices offline`);
+        this.logger.log(`User ${userId} disconnected - All devices offline`);
       } else {
         this.logger.log(
-          `🔌 User ${userId} disconnected - Socket: ${client.id} - Remaining: ${sockets.size}`,
+          `User ${userId} disconnected - Socket: ${client.id} - Remaining: ${sockets.size}`,
         );
       }
     }
@@ -127,13 +153,13 @@ export class NotificationGateway
       });
 
       this.logger.log(
-        `📤 Sent real-time notification to user ${userId} - ${socketIds.size} device(s)`,
+        `Sent real-time notification to user ${userId} - ${socketIds.size} device(s)`,
       );
       return true;
     }
 
     // User offline
-    this.logger.log(`💤 User ${userId} offline - Will send email`);
+    this.logger.log(`User ${userId} offline - Will send email`);
     return false;
   }
 

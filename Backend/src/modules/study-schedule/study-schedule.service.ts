@@ -45,7 +45,7 @@ export class StudyScheduleService {
   constructor(private readonly prisma: PrismaService) {}
 
   /**
-   * 📅 Create Single Study Schedule
+   * Create Single Study Schedule
    */
   async createSchedule(
     userId: string,
@@ -113,14 +113,14 @@ export class StudyScheduleService {
     }
 
     this.logger.log(
-      `✅ Created study schedule for user ${userId} on ${createDto.scheduled_date}`,
+      `Created study schedule for user ${userId} on ${createDto.scheduled_date}`,
     );
 
     return this.mapScheduleToDetails(schedule);
   }
 
   /**
-   * 📅🔄 Bulk Create Schedules for Combo
+   * Bulk Create Schedules for Combo
    */
   async bulkCreateSchedules(
     userId: string,
@@ -247,7 +247,7 @@ export class StudyScheduleService {
     await Promise.all(reminderPromises);
 
     this.logger.log(
-      `✅ Bulk created ${createdSchedules.length} schedules for combo ${bulkDto.combo_id}`,
+      `Bulk created ${createdSchedules.length} schedules for combo ${bulkDto.combo_id}`,
     );
 
     return {
@@ -257,7 +257,7 @@ export class StudyScheduleService {
   }
 
   /**
-   * 📖 Get My Schedules
+   * Get My Schedules
    */
   async getMySchedules(
     userId: string,
@@ -323,7 +323,7 @@ export class StudyScheduleService {
   }
 
   /**
-   * 📊 Get Weekly Schedule Summary
+   * Get Weekly Schedule Summary
    */
   async getWeeklySchedule(
     userId: string,
@@ -378,7 +378,7 @@ export class StudyScheduleService {
   }
 
   /**
-   * 🔍 Get Schedule by ID
+   * Get Schedule by ID
    */
   async getScheduleById(
     userId: string,
@@ -401,7 +401,7 @@ export class StudyScheduleService {
   }
 
   /**
-   * ✏️ Update Schedule
+   * Update Schedule
    */
   async updateSchedule(
     userId: string,
@@ -515,12 +515,12 @@ export class StudyScheduleService {
       }
     }
 
-    this.logger.log(`✅ Updated schedule: ${scheduleId}`);
+    this.logger.log(`Updated schedule: ${scheduleId}`);
     return this.mapScheduleToDetails(updatedSchedule);
   }
 
   /**
-   * ▶️ Start Study Session
+   * Start Study Session
    */
   async startSession(
     userId: string,
@@ -551,12 +551,12 @@ export class StudyScheduleService {
       include: this.getScheduleIncludes(),
     });
 
-    this.logger.log(`▶️ Started study session: ${scheduleId}`);
+    this.logger.log(`Started study session: ${scheduleId}`);
     return this.mapScheduleToDetails(updatedSchedule);
   }
 
   /**
-   * ✅ Complete Study Session
+   * Complete Study Session
    */
   async completeSession(
     userId: string,
@@ -604,12 +604,12 @@ export class StudyScheduleService {
       await this.updateComboProgress(userId, schedule.combo_id);
     }
 
-    this.logger.log(`✅ Completed study session: ${scheduleId}`);
+    this.logger.log(`Completed study session: ${scheduleId}`);
     return this.mapScheduleToDetails(completedSchedule);
   }
 
   /**
-   * ❌ Cancel Schedule
+   * Cancel Schedule
    */
   async cancelSchedule(userId: string, scheduleId: string): Promise<void> {
     const schedule = await this.prisma.study_schedules.findFirst({
@@ -645,11 +645,11 @@ export class StudyScheduleService {
       data: { deleted: true },
     });
 
-    this.logger.log(`❌ Cancelled schedule: ${scheduleId}`);
+    this.logger.log(`Cancelled schedule: ${scheduleId}`);
   }
 
   /**
-   * 🗑️ Delete Schedule
+   * Delete Schedule
    */
   async deleteSchedule(userId: string, scheduleId: string): Promise<void> {
     const schedule = await this.prisma.study_schedules.findFirst({
@@ -678,11 +678,11 @@ export class StudyScheduleService {
       }),
     ]);
 
-    this.logger.log(`🗑️ Deleted schedule: ${scheduleId}`);
+    this.logger.log(`Deleted schedule: ${scheduleId}`);
   }
 
   /**
-   * 🔔 Get My Reminders
+   * Get My Reminders
    */
   async getMyReminders(
     userId: string,
@@ -731,7 +731,7 @@ export class StudyScheduleService {
   }
 
   /**
-   * ✅ Mark Reminder as Read
+   * Mark Reminder as Read
    */
   async markReminderAsRead(userId: string, reminderId: string): Promise<void> {
     const reminder = await this.prisma.study_reminders.findFirst({
@@ -754,11 +754,11 @@ export class StudyScheduleService {
       },
     });
 
-    this.logger.log(`✅ Marked reminder as read: ${reminderId}`);
+    this.logger.log(`Marked reminder as read: ${reminderId}`);
   }
 
   /**
-   * 📊 Get Study Analytics
+   * Get Study Analytics
    */
   async getStudyAnalytics(
     userId: string,
@@ -1018,7 +1018,7 @@ export class StudyScheduleService {
         data: {
           user_id: schedule.user_id,
           schedule_id: schedule.id,
-          title: `📚 Study Session Reminder`,
+          title: `Study Session Reminder`,
           message: `Your study session "${schedule.study_goal || 'Study Session'}" starts in ${schedule.reminder_minutes_before} minutes!`,
           scheduled_time: reminderTime,
           status: REMINDER_STATUS.PENDING,
@@ -1026,7 +1026,7 @@ export class StudyScheduleService {
       });
 
       this.logger.log(
-        `🔔 Created reminder for schedule ${schedule.id} at ${format(reminderTime, 'yyyy-MM-dd HH:mm')}`,
+        `Created reminder for schedule ${schedule.id} at ${format(reminderTime, 'yyyy-MM-dd HH:mm')}`,
       );
     }
   }

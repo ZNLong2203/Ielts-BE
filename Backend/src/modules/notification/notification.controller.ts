@@ -29,7 +29,7 @@ export class NotificationController {
    * Lấy danh sách notifications
    */
   @Get()
-  @ApiOperation({ summary: '📋 Get my notifications' })
+  @ApiOperation({ summary: 'Get my notifications' })
   @ApiQuery({ name: 'limit', required: false, type: Number })
   @ApiQuery({ name: 'unread_only', required: false, type: Boolean })
   @ApiResponse({
@@ -51,7 +51,7 @@ export class NotificationController {
    * Đếm số notification chưa đọc
    */
   @Get('unread-count')
-  @ApiOperation({ summary: '🔢 Get unread notification count' })
+  @ApiOperation({ summary: 'Get unread notification count' })
   @ApiResponse({ status: 200, description: 'Count retrieved successfully' })
   async getUnreadCount(@CurrentUser() user: IUser) {
     const count = await this.notificationService.getUnreadCount(user.id);
@@ -63,7 +63,7 @@ export class NotificationController {
    */
   @Post(':id/read')
   @HttpCode(HttpStatus.NO_CONTENT)
-  @ApiOperation({ summary: '✅ Mark notification as read' })
+  @ApiOperation({ summary: 'Mark notification as read' })
   @ApiResponse({ status: 204, description: 'Marked as read successfully' })
   async markAsRead(@CurrentUser() user: IUser, @Param('id') id: string) {
     await this.notificationService.markAsRead(user.id, id);
@@ -74,7 +74,7 @@ export class NotificationController {
    */
   @Post('read-all')
   @HttpCode(HttpStatus.NO_CONTENT)
-  @ApiOperation({ summary: '✅ Mark all notifications as read' })
+  @ApiOperation({ summary: 'Mark all notifications as read' })
   @ApiResponse({ status: 204, description: 'All marked as read successfully' })
   async markAllAsRead(@CurrentUser() user: IUser) {
     await this.notificationService.markAllAsRead(user.id);
@@ -85,7 +85,7 @@ export class NotificationController {
    */
   @Delete(':id')
   @HttpCode(HttpStatus.NO_CONTENT)
-  @ApiOperation({ summary: '🗑️ Delete notification' })
+  @ApiOperation({ summary: 'Delete notification' })
   @ApiResponse({
     status: 204,
     description: 'Notification deleted successfully',

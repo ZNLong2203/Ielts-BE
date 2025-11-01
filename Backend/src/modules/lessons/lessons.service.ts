@@ -265,7 +265,7 @@ export class LessonsService {
       const originalInfo =
         await this.videoService.getOriginalVideoInfo(fileName);
 
-      // ✅ Helper function để safely get timestamp
+      // Helper function để safely get timestamp
       const getTimestamp = (dateValue: any): number | null => {
         if (!dateValue) return null;
 
@@ -281,7 +281,7 @@ export class LessonsService {
         return null;
       };
 
-      // ✅ Calculate elapsed and remaining time safely
+      // Calculate elapsed and remaining time safely
       let elapsedTime: number | null = null;
       let remainingTime: number | null = null;
 
@@ -321,8 +321,8 @@ export class LessonsService {
                 totalSegments: progress.totalSegments,
                 uploadedSegments: progress.uploadedSegments,
                 error: progress.error,
-                elapsedTime, // ✅ Safely calculated
-                remainingTime, // ✅ Safely calculated
+                elapsedTime, // Safely calculated
+                remainingTime, // Safely calculated
               }
             : null,
           message: progress

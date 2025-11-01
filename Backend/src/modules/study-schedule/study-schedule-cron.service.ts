@@ -19,7 +19,7 @@ export class StudyScheduleCronService {
   ) {}
 
   /**
-   * 🔔 Gửi reminders mỗi 5 phút
+   * Gửi reminders mỗi 5 phút
    * - Nếu user online: gửi real-time + save DB
    * - Nếu user offline: save DB + gửi email
    */
@@ -66,7 +66,7 @@ export class StudyScheduleCronService {
       }
 
       this.logger.log(
-        `📤 Processing ${pendingReminders.length} pending reminder(s)...`,
+        `Processing ${pendingReminders.length} pending reminder(s)...`,
       );
 
       for (const reminder of pendingReminders) {
@@ -135,12 +135,12 @@ export class StudyScheduleCronService {
           });
 
           this.logger.log(
-            `✅ Reminder sent to ${user.email} - ${isOnline ? 'Real-time' : 'Email'}`,
+            `Reminder sent to ${user.email} - ${isOnline ? 'Real-time' : 'Email'}`,
           );
         } catch (error) {
           const e = error as Error;
           this.logger.error(
-            `❌ Failed to send reminder ${reminder.id}: ${e.message}`,
+            `Failed to send reminder ${reminder.id}: ${e.message}`,
           );
 
           // Đánh dấu failed
@@ -153,15 +153,15 @@ export class StudyScheduleCronService {
         }
       }
 
-      this.logger.log(`✅ Processed ${pendingReminders.length} reminder(s)`);
+      this.logger.log(`Processed ${pendingReminders.length} reminder(s)`);
     } catch (error) {
       const e = error as Error;
-      this.logger.error(`❌ Error in sendPendingReminders: ${e.message}`);
+      this.logger.error(`Error in sendPendingReminders: ${e.message}`);
     }
   }
 
   /**
-   * 📋 Đánh dấu missed sessions mỗi giờ
+   * Đánh dấu missed sessions mỗi giờ
    */
   @Cron(CronExpression.EVERY_HOUR)
   async markMissedSessions() {
@@ -218,15 +218,15 @@ export class StudyScheduleCronService {
         },
       });
 
-      this.logger.log(`📋 Marked ${result.count} session(s) as missed`);
+      this.logger.log(`Marked ${result.count} session(s) as missed`);
     } catch (error) {
       const e = error as Error;
-      this.logger.error(`❌ Error in markMissedSessions: ${e.message}`);
+      this.logger.error(`Error in markMissedSessions: ${e.message}`);
     }
   }
 
   /**
-   * 🧹 Dọn dẹp reminders cũ mỗi ngày lúc nửa đêm
+   * Dọn dẹp reminders cũ mỗi ngày lúc nửa đêm
    */
   @Cron(CronExpression.EVERY_DAY_AT_MIDNIGHT)
   async cleanupOldReminders() {
@@ -249,11 +249,11 @@ export class StudyScheduleCronService {
       });
 
       if (result.count > 0) {
-        this.logger.log(`🧹 Cleaned up ${result.count} old reminder(s)`);
+        this.logger.log(`Cleaned up ${result.count} old reminder(s)`);
       }
     } catch (error) {
       const e = error as Error;
-      this.logger.error(`❌ Error in cleanupOldReminders: ${e.message}`);
+      this.logger.error(`Error in cleanupOldReminders: ${e.message}`);
     }
   }
 }

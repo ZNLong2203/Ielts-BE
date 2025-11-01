@@ -29,7 +29,7 @@ export class NotificationService {
       },
     });
 
-    this.logger.log(`✅ Created notification for user ${data.userId}`);
+    this.logger.log(`Created notification for user ${data.userId}`);
     return notification;
   }
 

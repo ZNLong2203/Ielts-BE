@@ -46,13 +46,13 @@ export interface Question {
   created_at: Date | null;
   updated_at: Date | null;
   options?: QuestionOption[];
-  // ✅ Additional parsed fields from explanation JSON
+  // Additional parsed fields from explanation JSON
   correct_answer?: string;
   alternative_answers?: string[];
   content?: string;
 }
 
-// ✅ Fix max_attempts type to match database schema
+// Fix max_attempts type to match database schema
 export interface Exercise {
   id: string;
   lesson_id: string | null;
@@ -60,7 +60,7 @@ export interface Exercise {
   instruction: string | null;
   content: any;
   time_limit: number | null;
-  max_attempts: number | null; // ✅ Changed from number to number | null
+  max_attempts: number | null; // Changed from number to number | null
   passing_score: Decimal | null;
   ordering: number | null;
   is_active: boolean | null;
@@ -84,7 +84,7 @@ export interface ExerciseMetadata {
   updated_at?: Date;
 }
 
-// ✅ Export response types for controller
+// Export response types for controller
 export interface PaginatedExerciseResponse {
   data: any[];
   meta: {
@@ -118,7 +118,7 @@ export class ExerciseService {
   ) {}
 
   /**
-   * ✅ Create exercise with questions
+   * Create exercise with questions
    */
   async createExercise(
     createDto: CreateExerciseDto,
@@ -153,9 +153,9 @@ export class ExerciseService {
         },
       });
 
-      this.logger.log(`✅ Created exercise: ${exercise.title}`);
+      this.logger.log(`Created exercise: ${exercise.title}`);
 
-      // ✅ Type-safe return with proper type casting
+      // Type-safe return with proper type casting
       return {
         ...exercise,
       } as Exercise;
@@ -195,7 +195,7 @@ export class ExerciseService {
         }
       }
 
-      // ✅ Create questions with proper typing
+      // Create questions with proper typing
       const question = await tx.questions.create({
         data: {
           exercise_id: exercise.id,
@@ -293,7 +293,7 @@ export class ExerciseService {
         },
       });
 
-      // ✅ Type-safe return
+      // Type-safe return
       return {
         ...question,
       } as Question;
@@ -313,7 +313,7 @@ export class ExerciseService {
   }
 
   /**
-   * 🔍 Get exercise by ID
+   * Get exercise by ID
    */
   async getExerciseById(exerciseId: string): Promise<any> {
     const exercise = await this.prisma.exercises.findFirst({
@@ -381,7 +381,7 @@ export class ExerciseService {
   }
 
   /**
-   * ✏️ Update exercise
+   * Update exercise
    */
   async updateExercise(
     exerciseId: string,
@@ -396,7 +396,7 @@ export class ExerciseService {
     }
 
     return await this.prisma.$transaction(async (tx) => {
-      // ✅ Type-safe content handling
+      // Type-safe content handling
       const existingContent = existingExercise.content as any;
       const existingMetadata =
         existingContent?.exercise_metadata as ExerciseMetadata;
@@ -556,7 +556,7 @@ export class ExerciseService {
         });
       }
 
-      // ✅ Type-safe return
+      // Type-safe return
 
       return {
         ...question,
@@ -617,11 +617,11 @@ export class ExerciseService {
       }
     });
 
-    this.logger.log(`✅ Deleted question: ${questionId}`);
+    this.logger.log(`Deleted question: ${questionId}`);
   }
 
   /**
-   * 🗑️ Delete exercise
+   * Delete exercise
    */
   async deleteExercise(exerciseId: string): Promise<void> {
     const exercise = await this.prisma.exercises.findFirst({
@@ -659,11 +659,11 @@ export class ExerciseService {
       });
     });
 
-    this.logger.log(`✅ Deleted exercise: ${exerciseId}`);
+    this.logger.log(`Deleted exercise: ${exerciseId}`);
   }
 
   /**
-   * 📊 Get exercise statistics
+   * Get exercise statistics
    */
   async getExerciseStats(exerciseId: string): Promise<ExerciseStats> {
     const exercise = await this.prisma.exercises.findFirst({
@@ -688,7 +688,7 @@ export class ExerciseService {
       id: exercise.id,
       title: exercise.title,
       total_questions: exercise.questions.length,
-      // ✅ Fix Decimal type issues
+      // Fix Decimal type issues
       total_points: exercise.questions.reduce((sum, q) => {
         const points = q.points ? Number(q.points) : 0;
         return sum + points;
@@ -702,7 +702,7 @@ export class ExerciseService {
       ),
       difficulty_distribution: exercise.questions.reduce(
         (acc, q) => {
-          // ✅ Handle null difficulty_level
+          // Handle null difficulty_level
           const level = q.difficulty_level
             ? Math.floor(Number(q.difficulty_level))
             : 0;
@@ -808,7 +808,7 @@ export class ExerciseService {
   }
 
   /**
-   * 🔧 Helper methods
+   * Helper methods
    */
   private requiresOptions(questionType: string): boolean {
     return [

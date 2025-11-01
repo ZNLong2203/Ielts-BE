@@ -40,7 +40,7 @@ export class ExerciseController {
   constructor(private readonly exerciseService: ExerciseService) {}
 
   /**
-   * ✅ Create exercise (without questions)
+   * Create exercise (without questions)
    * Questions should be added separately using POST /:exerciseId/question
    */
   @Post()
@@ -117,7 +117,7 @@ export class ExerciseController {
   }
 
   /**
-   * 🔍 Get all exercises by lesson ID
+   * Get all exercises by lesson ID
    */
   @Get()
   @ApiOperation({
@@ -152,7 +152,7 @@ export class ExerciseController {
   }
 
   /**
-   * 🔍 Get exercise by ID (includes questions)
+   * Get exercise by ID (includes questions)
    */
   @Get(':exerciseId')
   @ApiOperation({
@@ -196,7 +196,7 @@ export class ExerciseController {
   }
 
   /**
-   * ✏️ Update exercise metadata
+   * Update exercise metadata
    */
   @Put(':exerciseId')
   @ApiOperation({
@@ -255,7 +255,7 @@ export class ExerciseController {
   }
 
   /**
-   * 🗑️ Delete exercise
+   * Delete exercise
    */
   @Delete(':exerciseId')
   @HttpCode(HttpStatus.OK)
@@ -297,7 +297,7 @@ export class ExerciseController {
   }
 
   /**
-   * 📊 Get exercise statistics
+   * Get exercise statistics
    */
   @Get(':exerciseId/stats')
   @ApiOperation({

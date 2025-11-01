@@ -1,12 +1,12 @@
 export interface VideoJobData {
-  // buffer: Buffer; // ❌ Remove buffer
+  // buffer: Buffer; //  Remove buffer
   fileName: string;
   bucketName: string;
   folder: string;
   originalObjectName: string;
   mimetype: string;
-  fileSize: number; // ✅ Add file size
-  originalName: string; // ✅ Add original name
+  fileSize: number; //  Add file size
+  originalName: string; //  Add original name
 }
 
 export interface VideoUploadResult {

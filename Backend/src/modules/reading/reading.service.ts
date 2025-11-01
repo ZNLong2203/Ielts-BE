@@ -33,7 +33,7 @@ export class ReadingService {
   ) {}
 
   /**
-   * 📚 Create Reading Exercise in test section
+   *  Create Reading Exercise in test section
    */
   async createExercise(
     createDto: CreateReadingExerciseDto,
@@ -137,13 +137,13 @@ export class ReadingService {
     });
 
     this.logger.log(
-      `✅ Created reading exercise: ${exercise.title} in test section: ${testSection.section_name}`,
+      ` Created reading exercise: ${exercise.title} in test section: ${testSection.section_name}`,
     );
     return exercise;
   }
 
   /**
-   * 📖 Get Reading Exercises by test section
+   *  Get Reading Exercises by test section
    */
   async getExercisesByTestSection(
     testSectionId: string,
@@ -212,7 +212,7 @@ export class ReadingService {
   }
 
   /**
-   * 🔍 Get Reading Exercise by ID with complete details
+   *  Get Reading Exercise by ID with complete details
    */
   async getExerciseById(
     id: string,
@@ -339,7 +339,7 @@ export class ReadingService {
   }
 
   /**
-   * ✏️ Update Reading Exercise
+   *  Update Reading Exercise
    */
   async updateExercise(
     id: string,
@@ -444,7 +444,7 @@ export class ReadingService {
       },
     });
 
-    this.logger.log(`✅ Updated reading exercise: ${id}`);
+    this.logger.log(` Updated reading exercise: ${id}`);
     return {
       ...exercise,
       reading_passage: this.extractPassageInfo(exercise.content),
@@ -452,7 +452,7 @@ export class ReadingService {
   }
 
   /**
-   * 🗑️ Delete Reading Exercise (soft delete)
+   *  Delete Reading Exercise (soft delete)
    */
   async deleteExercise(
     id: string,
@@ -537,11 +537,11 @@ export class ReadingService {
       });
     });
 
-    this.logger.log(`✅ Deleted reading exercise: ${id}`);
+    this.logger.log(` Deleted reading exercise: ${id}`);
   }
 
   /**
-   * 📊 Get All Mock Tests with Reading Sections
+   *  Get All Mock Tests with Reading Sections
    */
   async getMockTestsWithSections(
     sectionType: SectionType = SECTION_TYPE.READING,

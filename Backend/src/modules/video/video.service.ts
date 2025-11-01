@@ -92,7 +92,7 @@ export class VideoService {
       await this.redisService.setJSON(sessionKey, uploadSession, 60 * 60); // 1 hour
 
       this.logger.log(
-        `✅ Generated presigned URL for: ${originalName} → ${fileName}`,
+        ` Generated presigned URL for: ${originalName} → ${fileName}`,
       );
 
       return {
@@ -109,7 +109,7 @@ export class VideoService {
     } catch (error) {
       const e = error as Error;
       this.logger.error(
-        `❌ Failed to generate presigned URL for ${originalName}:`,
+        ` Failed to generate presigned URL for ${originalName}:`,
         e,
       );
       throw new BadRequestException(
@@ -119,7 +119,7 @@ export class VideoService {
   }
 
   /**
-   * ✅ NEW: Confirm upload and start processing after FE completes upload
+   *  NEW: Confirm upload and start processing after FE completes upload
    */
   async confirmUpload(
     fileName: string,
@@ -128,7 +128,7 @@ export class VideoService {
   > {
     const sessionKey = `upload-session:${fileName}`;
 
-    // ✅ Track rollback context (reuse existing logic)
+    //  Track rollback context (reuse existing logic)
     const rollbackContext = {
       tempDir: null as string | null,
       minioObject: null as string | null,
@@ -177,7 +177,7 @@ export class VideoService {
         originalObjectName,
       );
 
-      // ✅ Extract duration using existing logic (create temp file)
+      //  Extract duration using existing logic (create temp file)
       const baseTmpDir = path.resolve(process.cwd(), '../temp');
       const tempDir = path.join(baseTmpDir, `confirm-${uuid()}`);
       const tempVideoPath = path.join(tempDir, fileName);
@@ -194,16 +194,16 @@ export class VideoService {
       const duration = info?.format?.duration
         ? Math.round(info.format.duration)
         : 0;
-      this.logger.log(`⏱️ Duration: ${duration}s for ${originalName}`);
+      this.logger.log(` Duration: ${duration}s for ${originalName}`);
 
-      // ✅ Cache duration (existing logic)
+      //  Cache duration (existing logic)
       if (duration > 0) {
         const durationKey = `${isAudio ? 'audio' : 'video'}:${fileName}:duration`;
         rollbackContext.redisKeys.push(durationKey);
         await this.redisService.setJSON(durationKey, duration, 24 * 60 * 60);
       }
 
-      // ✅ Set progress (existing logic)
+      //  Set progress (existing logic)
       const progressKey = `${isAudio ? 'audio' : 'video'}:${fileName}:progress`;
       rollbackContext.redisKeys.push(progressKey);
       const progress: ProcessingProgress = {
@@ -215,7 +215,7 @@ export class VideoService {
       };
       await this.redisService.setJSON(progressKey, progress, 2 * 60 * 60);
 
-      // ✅ Enqueue HLS processing job (existing logic)
+      //  Enqueue HLS processing job (existing logic)
       const jobData: VideoJobData = {
         fileName,
         bucketName,
@@ -246,7 +246,7 @@ export class VideoService {
         originalObjectName,
       );
 
-      // ✅ Cleanup temp file (existing logic)
+      //  Cleanup temp file (existing logic)
       await fs.promises.rm(tempDir, { recursive: true, force: true });
       rollbackContext.tempDir = null; // Mark as cleaned
 
@@ -263,14 +263,14 @@ export class VideoService {
       };
 
       this.logger.log(
-        `✅ Upload confirmed and processing started: ${fileName} (${this.formatDuration(duration)})`,
+        ` Upload confirmed and processing started: ${fileName} (${this.formatDuration(duration)})`,
       );
       return result;
     } catch (error) {
       const e = error as Error;
-      // ✅ Use existing rollback logic
+      //  Use existing rollback logic
       this.logger.error(
-        `❌ Upload confirmation failed for ${fileName}, initiating rollback:`,
+        ` Upload confirmation failed for ${fileName}, initiating rollback:`,
         e,
       );
       await this.performCompleteRollback(rollbackContext);
@@ -317,7 +317,7 @@ export class VideoService {
     const tempDir = path.join(baseTmpDir, `upload-${uuid()}`);
     const tempVideoPath = path.join(tempDir, fileName);
 
-    // ✅ Track what needs rollback
+    //  Track what needs rollback
     const rollbackContext = {
       tempDir: null as string | null,
       minioObject: null as string | null,
@@ -344,7 +344,7 @@ export class VideoService {
       const duration = info?.format?.duration
         ? Math.round(info.format.duration)
         : 0;
-      this.logger.log(`⏱️ Duration: ${duration}s for ${originalName}`);
+      this.logger.log(` Duration: ${duration}s for ${originalName}`);
 
       // Step 3: Upload to MinIO
       rollbackContext.minioObject = originalObjectName;
@@ -418,13 +418,13 @@ export class VideoService {
       };
 
       this.logger.log(
-        `✅ Video upload completed: ${fileName} (${this.formatDuration(duration)})`,
+        ` Video upload completed: ${fileName} (${this.formatDuration(duration)})`,
       );
       return result;
     } catch (error) {
-      // ✅ Comprehensive rollback
+      //  Comprehensive rollback
       this.logger.error(
-        `❌ Upload failed for ${originalName}, initiating rollback:`,
+        ` Upload failed for ${originalName}, initiating rollback:`,
         error,
       );
       await this.performCompleteRollback(rollbackContext);
@@ -435,7 +435,7 @@ export class VideoService {
     }
   }
 
-  // ✅ Comprehensive rollback method
+  //  Comprehensive rollback method
   private async performCompleteRollback(context: {
     tempDir: string | null;
     minioObject: string | null;
@@ -455,10 +455,10 @@ export class VideoService {
       try {
         await fs.promises.rm(context.tempDir, { recursive: true, force: true });
         rollbackResults.tempDir = true;
-        this.logger.log(`✅ Rollback: Temp directory cleaned`);
+        this.logger.log(` Rollback: Temp directory cleaned`);
       } catch (error) {
         this.logger.error(
-          `❌ Rollback: Failed to cleanup temp directory:`,
+          ` Rollback: Failed to cleanup temp directory:`,
           error,
         );
       }
@@ -470,10 +470,10 @@ export class VideoService {
         await this.minioService.deleteFile('ielts-videos', context.minioObject);
         rollbackResults.minioObject = true;
         this.logger.log(
-          `✅ Rollback: MinIO object deleted: ${context.minioObject}`,
+          ` Rollback: MinIO object deleted: ${context.minioObject}`,
         );
       } catch (error) {
-        this.logger.error(`❌ Rollback: Failed to delete MinIO object:`, error);
+        this.logger.error(` Rollback: Failed to delete MinIO object:`, error);
       }
 
       try {
@@ -493,16 +493,14 @@ export class VideoService {
             'ielts-videos',
             hlsFolder,
           );
-          this.logger.log(`✅ Rollback: HLS folder deleted: ${hlsFolder}`);
+          this.logger.log(` Rollback: HLS folder deleted: ${hlsFolder}`);
         } else {
-          this.logger.log(
-            `ℹ️ Rollback: HLS folder doesn't exist: ${hlsFolder}`,
-          );
+          this.logger.log(` Rollback: HLS folder doesn't exist: ${hlsFolder}`);
         }
 
         rollbackResults.hlsFolder = true;
       } catch (error) {
-        this.logger.error(`❌ Rollback: Failed to cleanup HLS folder:`, error);
+        this.logger.error(` Rollback: Failed to cleanup HLS folder:`, error);
       }
     }
 
@@ -520,10 +518,10 @@ export class VideoService {
         }
         rollbackResults.redisKeys = true;
         this.logger.log(
-          `✅ Rollback: Redis keys cleaned: ${context.redisKeys.join(', ')}`,
+          ` Rollback: Redis keys cleaned: ${context.redisKeys.join(', ')}`,
         );
       } catch (error) {
-        this.logger.error(`❌ Rollback: Failed to cleanup Redis keys:`, error);
+        this.logger.error(` Rollback: Failed to cleanup Redis keys:`, error);
       }
     }
 
@@ -532,12 +530,10 @@ export class VideoService {
       try {
         await context.queueJob.remove();
         rollbackResults.queueJob = true;
-        this.logger.log(
-          `✅ Rollback: Queue job removed: ${context.queueJob.id}`,
-        );
+        this.logger.log(` Rollback: Queue job removed: ${context.queueJob.id}`);
       } catch (error) {
         // Job might not exist yet or already processed
-        this.logger.warn(`⚠️ Rollback: Could not remove queue job:`, error);
+        this.logger.warn(` Rollback: Could not remove queue job:`, error);
       }
     }
 
@@ -547,11 +543,11 @@ export class VideoService {
 
     if (successCount === totalCount) {
       this.logger.log(
-        `✅ Complete rollback successful (${successCount}/${totalCount})`,
+        ` Complete rollback successful (${successCount}/${totalCount})`,
       );
     } else {
       this.logger.warn(
-        `⚠️ Partial rollback completed (${successCount}/${totalCount})`,
+        ` Partial rollback completed (${successCount}/${totalCount})`,
       );
       this.logger.warn(`Rollback results:`, rollbackResults);
     }
@@ -567,10 +563,10 @@ export class VideoService {
     // Delete original video
     try {
       await this.minioService.deleteFile(bucketName, originalObjectName);
-      this.logger.log(`✅ Deleted original video: ${originalObjectName}`);
+      this.logger.log(` Deleted original video: ${originalObjectName}`);
     } catch (error) {
       this.logger.error(
-        `❌ Failed to delete original video ${originalObjectName}:`,
+        ` Failed to delete original video ${originalObjectName}:`,
         error,
       );
     }
@@ -584,12 +580,12 @@ export class VideoService {
 
       if (hlsExists) {
         await this.minioService.deleteFolderContents(bucketName, hlsFolder);
-        this.logger.log(`✅ Deleted HLS folder: ${hlsFolder}`);
+        this.logger.log(` Deleted HLS folder: ${hlsFolder}`);
       } else {
-        this.logger.log(`ℹ️ HLS folder does not exist: ${hlsFolder}`);
+        this.logger.log(` HLS folder does not exist: ${hlsFolder}`);
       }
     } catch (error) {
-      this.logger.error(`❌ Failed to delete HLS folder ${hlsFolder}:`, error);
+      this.logger.error(` Failed to delete HLS folder ${hlsFolder}:`, error);
     }
 
     // Delete Redis keys
@@ -599,12 +595,9 @@ export class VideoService {
     try {
       await this.redisService.del(durationKey);
       await this.redisService.del(progressKey);
-      this.logger.log(`✅ Deleted Redis keys for video: ${fileName}`);
+      this.logger.log(` Deleted Redis keys for video: ${fileName}`);
     } catch (error) {
-      this.logger.error(
-        `❌ Failed to delete Redis keys for ${fileName}:`,
-        error,
-      );
+      this.logger.error(` Failed to delete Redis keys for ${fileName}:`, error);
     }
   }
 
@@ -659,7 +652,7 @@ export class VideoService {
       throw new BadRequestException('Only video or audio files are allowed');
     }
 
-    // ✅ Only check buffer size if not skipping and buffer is provided
+    //  Only check buffer size if not skipping and buffer is provided
     if (!skipSizeCheck && buffer && buffer.length > 0) {
       const maxSize = 2 * 1024 * 1024 * 1024; // 2GB
       if (buffer.length > maxSize) {
@@ -667,7 +660,7 @@ export class VideoService {
       }
     }
 
-    // ✅ Additional mimetype validation
+    //  Additional mimetype validation
     const supportedVideo = [
       'video/mp4',
       'video/avi',

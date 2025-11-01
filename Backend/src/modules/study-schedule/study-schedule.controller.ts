@@ -44,7 +44,7 @@ export class StudyScheduleController {
 
   @Post()
   @ApiOperation({
-    summary: '📅 Create study schedule',
+    summary: 'Create study schedule',
     description: 'Student creates a single study schedule for a course/lesson',
   })
   @ApiResponse({
@@ -68,7 +68,7 @@ export class StudyScheduleController {
 
   @Post('bulk')
   @ApiOperation({
-    summary: '📅🔄 Bulk create schedules for combo',
+    summary: 'Bulk create schedules for combo',
     description:
       'Automatically generate study schedules for all courses in a combo based on preferred time slots',
   })
@@ -93,7 +93,7 @@ export class StudyScheduleController {
 
   @Get('my-schedules')
   @ApiOperation({
-    summary: '📖 Get my study schedules',
+    summary: 'Get my study schedules',
     description: 'Get all study schedules of current user with filters',
   })
   @ApiQuery({
@@ -157,7 +157,7 @@ export class StudyScheduleController {
 
   @Get('weekly-schedule')
   @ApiOperation({
-    summary: '📊 Get weekly schedule summary',
+    summary: 'Get weekly schedule summary',
     description: 'Get detailed schedule and statistics for a specific week',
   })
   @ApiQuery({
@@ -184,7 +184,7 @@ export class StudyScheduleController {
 
   @Get('analytics')
   @ApiOperation({
-    summary: '📊 Get study analytics',
+    summary: 'Get study analytics',
     description: 'Get study statistics and analytics for week or month',
   })
   @ApiQuery({
@@ -207,7 +207,7 @@ export class StudyScheduleController {
 
   @Get(':id')
   @ApiOperation({
-    summary: '🔍 Get schedule details',
+    summary: 'Get schedule details',
     description: 'Get detailed information of a study schedule',
   })
   @ApiParam({
@@ -229,7 +229,7 @@ export class StudyScheduleController {
 
   @Put(':id')
   @ApiOperation({
-    summary: '✏️ Update study schedule',
+    summary: 'Update study schedule',
     description:
       'Update study schedule information (time, course, notes, etc.)',
   })
@@ -260,7 +260,7 @@ export class StudyScheduleController {
 
   @Post(':id/start')
   @ApiOperation({
-    summary: '▶️ Start study session',
+    summary: 'Start study session',
     description: 'Mark study session as started and track actual start time',
   })
   @ApiParam({
@@ -286,7 +286,7 @@ export class StudyScheduleController {
 
   @Post(':id/complete')
   @ApiOperation({
-    summary: '✅ Complete study session',
+    summary: 'Complete study session',
     description:
       'Mark study session as completed with feedback and performance data',
   })
@@ -314,7 +314,7 @@ export class StudyScheduleController {
   @Post(':id/cancel')
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({
-    summary: '❌ Cancel study schedule',
+    summary: 'Cancel study schedule',
     description: 'Cancel a scheduled study session',
   })
   @ApiParam({
@@ -341,7 +341,7 @@ export class StudyScheduleController {
   @Delete(':id')
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({
-    summary: '🗑️ Delete study schedule',
+    summary: 'Delete study schedule',
     description: 'Soft delete a study schedule and its reminders',
   })
   @ApiParam({
@@ -365,7 +365,7 @@ export class StudyScheduleController {
 
   @Get('reminders/my-reminders')
   @ApiOperation({
-    summary: '🔔 Get my reminders',
+    summary: 'Get my reminders',
     description: 'Get all reminders of current user with filters',
   })
   @ApiQuery({
@@ -399,7 +399,7 @@ export class StudyScheduleController {
   @Post('reminders/:id/read')
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({
-    summary: '✅ Mark reminder as read',
+    summary: 'Mark reminder as read',
     description: 'Mark a specific reminder as read',
   })
   @ApiParam({
@@ -426,7 +426,7 @@ export class StudyScheduleController {
 
   @Get('combo/:comboId/schedules')
   @ApiOperation({
-    summary: '📚 Get schedules for specific combo',
+    summary: 'Get schedules for specific combo',
     description: 'Get all study schedules for a specific combo',
   })
   @ApiParam({
@@ -449,7 +449,7 @@ export class StudyScheduleController {
 
   @Get('combo/:comboId/progress')
   @ApiOperation({
-    summary: '📈 Get combo study progress',
+    summary: 'Get combo study progress',
     description: 'Get study progress statistics for a specific combo',
   })
   @ApiParam({

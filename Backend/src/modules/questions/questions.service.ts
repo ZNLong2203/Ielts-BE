@@ -27,7 +27,7 @@ export class QuestionsService {
   ) {}
 
   /**
-   * 📝 Create Question for Question Group
+   *  Create Question for Question Group
    */
   async createQuestion(createDto: CreateQuestionDto) {
     // Validate question group exists
@@ -134,7 +134,7 @@ export class QuestionsService {
       }
 
       this.logger.log(
-        `✅ Created question for group: ${question.question_group_id}`,
+        ` Created question for group: ${question.question_group_id}`,
       );
 
       // Return complete question details
@@ -143,7 +143,7 @@ export class QuestionsService {
   }
 
   /**
-   * 📖 Get Questions by Exercise ID
+   *  Get Questions by Exercise ID
    */
   async getQuestionsByExercise(exerciseId: string) {
     // Validate exercise exists
@@ -226,7 +226,7 @@ export class QuestionsService {
   }
 
   /**
-   * 🔍 Get Question by ID
+   *  Get Question by ID
    */
   async getQuestionById(id: string): Promise<QuestionWithDetails> {
     const question = await this.prisma.questions.findFirst({
@@ -272,7 +272,7 @@ export class QuestionsService {
   }
 
   /**
-   * ✏️ Update Question
+   *  Update Question
    */
   async updateQuestion(
     id: string,
@@ -415,7 +415,7 @@ export class QuestionsService {
         );
       }
 
-      this.logger.log(`✅ Updated question: ${id}`);
+      this.logger.log(` Updated question: ${id}`);
 
       // Return complete question details
       return await this.getQuestionById(id);
@@ -423,7 +423,7 @@ export class QuestionsService {
   }
 
   /**
-   * 🗑️ Delete Question (soft delete)
+   *  Delete Question (soft delete)
    */
   async deleteQuestion(id: string): Promise<void> {
     const question = await this.prisma.questions.findFirst({
@@ -459,11 +459,11 @@ export class QuestionsService {
       });
     });
 
-    this.logger.log(`✅ Deleted question: ${id}`);
+    this.logger.log(` Deleted question: ${id}`);
   }
 
   /**
-   * 🖼️ Upload Image for Question
+   *  Upload Image for Question
    */
   async uploadQuestionImage(
     id: string,
@@ -501,7 +501,7 @@ export class QuestionsService {
         },
       });
 
-      this.logger.log(`✅ Uploaded image for question: ${id}`);
+      this.logger.log(` Uploaded image for question: ${id}`);
       return this.getQuestionById(id);
     } catch (error) {
       this.logger.error('Error uploading question image:', error);
@@ -510,7 +510,7 @@ export class QuestionsService {
   }
 
   /**
-   * 🎵 Upload Audio for Question
+   *  Upload Audio for Question
    */
   async uploadQuestionAudio(
     id: string,
@@ -548,7 +548,7 @@ export class QuestionsService {
         },
       });
 
-      this.logger.log(`✅ Uploaded audio for question: ${id}`);
+      this.logger.log(` Uploaded audio for question: ${id}`);
       return this.getQuestionById(id);
     } catch (error) {
       this.logger.error('Error uploading question audio:', error);
@@ -557,7 +557,7 @@ export class QuestionsService {
   }
 
   /**
-   * 🔄 Reorder Questions in Exercise
+   *  Reorder Questions in Exercise
    */
   async reorderQuestions(
     exerciseId: string,
@@ -611,7 +611,7 @@ export class QuestionsService {
     });
 
     this.logger.log(
-      `✅ Reordered ${questionOrders.length} questions in exercise: ${exerciseId}`,
+      ` Reordered ${questionOrders.length} questions in exercise: ${exerciseId}`,
     );
   }
 
