@@ -11,8 +11,6 @@ const readline = require("readline");
  * 3. Enable "Use Regular Expression" (the .* icon).
  * 4. Enter the following regex to find emojis:
  *    [\p{Emoji_Presentation}\p{Extended_Pictographic}]
- * or:
- * [\u{1F000}-\u{1F9FF}\u{2600}-\u{27BF}\u{1F300}-\u{1F64F}\u{1F680}-\u{1F6FF}]
  * 5. Review the results and replace them with an empty string to remove emojis.
  * 6. Be cautious and review changes before saving files.
  */
@@ -20,6 +18,13 @@ const readline = require("readline");
 /**
  * Comprehensive emoji regex using Unicode properties
  * Requires Node.js 10+
+ *
+ * Matches ALL emojis including:
+ * - Standard emojis: 🚀 📝 🔔
+ * - Symbols: ✅ ❌ ⚠️
+ * - Arrows: → ← ↑ ↓
+ * - Checkmarks: ✓ ✗
+ * - And many more...
  */
 const EMOJI_REGEX = /\p{Emoji_Presentation}|\p{Extended_Pictographic}/gu;
 
@@ -56,11 +61,14 @@ function createReadlineInterface() {
 
 /**
  * Ask user for input with default value
+ * Enhanced to handle multi-line paste and trim input
  */
 function askQuestion(rl, question, defaultValue) {
   return new Promise((resolve) => {
     rl.question(`${question} [${defaultValue}]: `, (answer) => {
-      resolve(answer.trim() || defaultValue);
+      // Clean input - remove newlines, carriage returns, extra spaces
+      const cleaned = answer.trim().replace(/[\r\n]+/g, "");
+      resolve(cleaned || defaultValue);
     });
   });
 }
@@ -68,15 +76,34 @@ function askQuestion(rl, question, defaultValue) {
 /**
  * Normalize path for cross-platform compatibility
  * Converts Windows backslashes to forward slashes
+ * Handles duplicate path issues from copy-paste
  */
 function normalizePath(inputPath) {
+  // Trim whitespace first
+  let normalized = inputPath.trim();
+
+  // Fix duplicate path issue (Windows paste bug)
+  // Example: D:\path\toD:\path\to → D:\path\to
+  const duplicateMatch = normalized.match(
+    /^([A-Z]:[\\\/][^:]+)([A-Z]:[\\\/].+)$/i
+  );
+  if (duplicateMatch) {
+    normalized = duplicateMatch[1];
+    console.log(`⚠️  Fixed duplicate path, using: ${normalized}`);
+  }
+
   // Replace backslashes with forward slashes
-  let normalized = inputPath.replace(/\\/g, "/");
+  normalized = normalized.replace(/\\/g, "/");
 
   // Handle Windows absolute paths (C:/... or C:\...)
   if (/^[a-zA-Z]:/.test(normalized)) {
-    // Already has drive letter, just normalize slashes
     return path.resolve(normalized);
+  }
+
+  // Handle tilde expansion for Unix-like systems
+  if (normalized.startsWith("~/")) {
+    const homeDir = process.env.HOME || process.env.USERPROFILE;
+    normalized = path.join(homeDir, normalized.slice(2));
   }
 
   // Handle relative paths
@@ -108,11 +135,17 @@ async function getConfiguration() {
   console.log("=".repeat(60));
   console.log("Remove Emoji Script Configuration");
   console.log("=".repeat(60));
-  console.log("\nPress Enter to use default values\n");
+  console.log("\nPress Enter to use default values");
+  console.log(
+    "💡 Tip: Paste path and press Enter (avoid double-click select)\n"
+  );
 
   // Ask for base directory
   let baseDir;
-  while (true) {
+  let attempts = 0;
+  const maxAttempts = 3;
+
+  while (attempts < maxAttempts) {
     const defaultBaseDir = DEFAULT_CONFIG.baseDir;
     const input = await askQuestion(
       rl,
@@ -126,8 +159,29 @@ async function getConfiguration() {
       console.log(`✓ Directory found: ${baseDir}\n`);
       break;
     } else {
+      attempts++;
       console.log(`✗ Directory not found: ${baseDir}`);
-      console.log("Please enter a valid directory path\n");
+
+      if (attempts < maxAttempts) {
+        console.log(`Please try again (${attempts}/${maxAttempts} attempts)\n`);
+
+        // Show examples on second attempt
+        if (attempts === 1) {
+          console.log("Examples:");
+          if (process.platform === "win32") {
+            console.log("  D:\\projects\\Ielts-FE");
+            console.log("  D:/projects/Ielts-FE");
+          } else {
+            console.log("  /home/username/projects/Ielts-FE");
+            console.log("  ~/projects/Ielts-FE");
+          }
+          console.log("  ../Ielts-FE (relative path)\n");
+        }
+      } else {
+        console.log("\nToo many failed attempts. Using default directory.\n");
+        baseDir = DEFAULT_CONFIG.baseDir;
+        break;
+      }
     }
   }
 
@@ -246,7 +300,7 @@ async function removeEmojis() {
 
     // Process each file
     for (const filePath of files) {
-      const result = await processFile(filePath);
+      const result = await processFile(filePath, config.dryRun);
 
       if (result.modified) {
         filesModified++;
@@ -311,7 +365,7 @@ async function removeEmojis() {
 /**
  * Process a single file
  */
-async function processFile(filePath) {
+async function processFile(filePath, dryRun) {
   try {
     const originalContent = fs.readFileSync(filePath, "utf8");
 
@@ -327,7 +381,7 @@ async function processFile(filePath) {
     const newContent = originalContent.replace(EMOJI_REGEX, "");
 
     // Write file if not dry run
-    if (!process.argv.includes("--dry-run")) {
+    if (!dryRun) {
       fs.writeFileSync(filePath, newContent, "utf8");
     }
 
@@ -368,14 +422,18 @@ Examples:
   node remove-emoji/main.js --no-prompt
 
 Supported Path Formats:
-  Windows:   C:\\Users\\YourName\\project
-             C:/Users/YourName/project
-  Linux/Mac: /home/username/project
-             ~/project
-  Relative:  ../Backend
+  Windows:   D:\\documents\\code\\git\\Ielts-FE
+             D:/documents/code/git/Ielts-FE
+  Linux/Mac: /home/username/projects/Ielts-FE
+             ~/projects/Ielts-FE
+  Relative:  ../Ielts-FE
              ./src
 
 When prompted for paths, press Enter to use the default value shown in brackets.
+Tips:
+  - Paste the full path and press Enter
+  - Avoid selecting text with double-click (may cause duplicate paste)
+  - Use forward slashes (/) or backslashes (\\) - both work
   `);
 }
 
