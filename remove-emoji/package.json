@@ -1,0 +1,18 @@
+{
+  "name": "remove-emoji",
+  "version": "1.0.0",
+  "main": "main.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node main.js",
+    "dry-run": "node main.js --dry-run",
+    "verbose": "node main.js --dry-run --verbose"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": "",
+  "dependencies": {
+    "glob": "^11.0.3"
+  }
+}
