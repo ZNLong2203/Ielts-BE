@@ -4,6 +4,19 @@ const path = require("path");
 const { glob } = require("glob");
 
 /**
+ * If you want to remove manually with VSCode, follow these steps:
+ * 1. Open VSCode in the Backend directory.
+ * 2. Press Ctrl+Shift+F (or Cmd+Shift+F on Mac) to open the global search.
+ * 3. Enable "Use Regular Expression" (the .* icon).
+ * 4. Enter the following regex to find emojis:
+ *    [\p{Emoji_Presentation}\p{Extended_Pictographic}]
+ * or:
+ * [\u{1F000}-\u{1F9FF}\u{2600}-\u{27BF}\u{1F300}-\u{1F64F}\u{1F680}-\u{1F6FF}]
+ * 5. Review the results and replace them with an empty string to remove emojis.
+ * 6. Be cautious and review changes before saving files.
+ */
+
+/**
  * Comprehensive emoji regex using Unicode properties
  * Requires Node.js 10+
  */
