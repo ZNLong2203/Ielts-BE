@@ -9,7 +9,6 @@ import {
   Post,
   Put,
   Query,
-  UseGuards,
 } from '@nestjs/common';
 import {
   ApiBearerAuth,
@@ -21,8 +20,6 @@ import {
 } from '@nestjs/swagger';
 import { CurrentUser, SkipCheckPermission } from 'src/decorator/customize';
 import { IUser } from 'src/interface/users.interface';
-import { JwtAuthGuard } from 'src/modules/auth/guards/jwt-auth.guard';
-import { PermissionGuard } from 'src/casl/guards/permission.guard';
 import {
   BulkCreateScheduleDto,
   CompleteScheduleDto,
@@ -39,7 +36,6 @@ import { StudyScheduleService } from './study-schedule.service';
 
 @ApiTags('Study Schedule')
 @ApiBearerAuth()
-@UseGuards(JwtAuthGuard, PermissionGuard)
 @Controller('study-schedule')
 export class StudyScheduleController {
   constructor(private readonly studyScheduleService: StudyScheduleService) {}
