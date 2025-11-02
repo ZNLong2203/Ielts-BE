@@ -4,6 +4,7 @@ export interface QuestionOption {
   id: string;
   option_text: string;
   is_correct: boolean;
+  point: number;
 }
 
 export interface Question {

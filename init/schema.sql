@@ -353,6 +353,7 @@ CREATE TABLE questions (
 CREATE TABLE question_options (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     question_id UUID REFERENCES questions(id) ON DELETE CASCADE,
+    matching_option_id UUID REFERENCES matching_options(id) ON DELETE SET NULL,
     option_text TEXT NOT NULL,
     is_correct BOOLEAN DEFAULT FALSE,
     ordering INTEGER DEFAULT 0,

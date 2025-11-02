@@ -383,17 +383,19 @@ model question_answers {
 }
 
 model question_options {
-  id          String     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  question_id String?    @db.Uuid
-  option_text String
-  is_correct  Boolean?   @default(false)
-  ordering    Int?       @default(0)
-  point       Decimal?   @default(1) @db.Decimal(5, 2)
-  explanation String?
-  deleted     Boolean?   @default(false)
-  created_at  DateTime?  @default(now()) @db.Timestamp(6)
-  updated_at  DateTime?  @default(now()) @db.Timestamp(6)
-  questions   questions? @relation(fields: [question_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  id                 String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  question_id        String?           @db.Uuid
+  matching_option_id String?           @db.Uuid
+  option_text        String
+  is_correct         Boolean?          @default(false)
+  ordering           Int?              @default(0)
+  point              Decimal?          @default(1) @db.Decimal(5, 2)
+  explanation        String?
+  deleted            Boolean?          @default(false)
+  created_at         DateTime?         @default(now()) @db.Timestamp(6)
+  updated_at         DateTime?         @default(now()) @db.Timestamp(6)
+  matching_options   matching_options? @relation(fields: [matching_option_id], references: [id], onUpdate: NoAction)
+  questions          questions?        @relation(fields: [question_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
 }
 
 model questions {
@@ -684,14 +686,15 @@ model writing_assessments {
 }
 
 model matching_options {
-  id            String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  set_id        String?          @db.Uuid
-  option_text   String
-  ordering      Int?             @default(0)
-  deleted       Boolean?         @default(false)
-  created_at    DateTime?        @default(now()) @db.Timestamp(6)
-  updated_at    DateTime?        @default(now()) @db.Timestamp(6)
-  matching_sets question_groups? @relation(fields: [set_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  id               String             @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  set_id           String?            @db.Uuid
+  option_text      String
+  ordering         Int?               @default(0)
+  deleted          Boolean?           @default(false)
+  created_at       DateTime?          @default(now()) @db.Timestamp(6)
+  updated_at       DateTime?          @default(now()) @db.Timestamp(6)
+  matching_sets    question_groups?   @relation(fields: [set_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  question_options question_options[]
 }
 
 model blog_comment_likes {
