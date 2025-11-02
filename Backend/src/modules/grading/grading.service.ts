@@ -1,26 +1,139 @@
-import { Injectable } from '@nestjs/common';
-import { CreateGradingDto } from './dto/create-grading.dto';
-import { UpdateGradingDto } from './dto/update-grading.dto';
+// Backend/src/modules/grading/services/grading.service.ts
+import { BadRequestException, Injectable } from '@nestjs/common';
+import { QUESTION_TYPE } from 'src/modules/exercises/constants';
+import { BandCalculatorService } from 'src/modules/grading/band-calculator.service';
+import { FillBlankGrader } from 'src/modules/grading/strategies/fill-blank.grader';
+import { MatchingGrader } from 'src/modules/grading/strategies/matching.grader';
+import { MultipleChoiceGrader } from 'src/modules/grading/strategies/multiple-choice.grader';
+import { TrueFalseGrader } from 'src/modules/grading/strategies/true-false.grader';
+import {
+  Grader,
+  GradingResult,
+  Question,
+  SectionResult,
+  TestResult,
+  UserAnswer,
+} from 'src/modules/grading/types/grading.types';
+import { SkillType } from 'src/modules/reading/types/reading.types';
 
 @Injectable()
 export class GradingService {
-  create(createGradingDto: CreateGradingDto) {
-    return 'This action adds a new grading';
+  private graders: Map<string, Grader>;
+
+  constructor(private readonly bandCalculator: BandCalculatorService) {
+    this.graders = new Map([
+      [QUESTION_TYPE.MULTIPLE_CHOICE, new MultipleChoiceGrader()],
+      [QUESTION_TYPE.FILL_BLANK, new FillBlankGrader()],
+      [QUESTION_TYPE.TRUE_FALSE, new TrueFalseGrader()],
+      [QUESTION_TYPE.MATCHING, new MatchingGrader()],
+    ]);
   }
 
-  findAll() {
-    return `This action returns all grading`;
+  /**
+   * Grade a single question
+   */
+  gradeQuestion(question: Question, userAnswer: UserAnswer): GradingResult {
+    const grader = this.graders.get(question.question_type);
+
+    if (!grader) {
+      throw new BadRequestException(
+        `No grader found for question type: ${question.question_type}`,
+      );
+    }
+
+    return grader.grade(question, userAnswer);
   }
 
-  findOne(id: number) {
-    return `This action returns a #${id} grading`;
+  /**
+   * Grade a section (multiple questions)
+   */
+  gradeSection(
+    questions: Question[],
+    userAnswers: Record<string, UserAnswer>,
+    skillType: SkillType,
+  ): SectionResult {
+    const results: GradingResult[] = [];
+    let correctCount = 0;
+    let totalPoints = 0;
+    let earnedPoints = 0;
+
+    for (const question of questions) {
+      const userAnswer = userAnswers[question.id];
+      const result = this.gradeQuestion(question, userAnswer);
+
+      results.push(result);
+      totalPoints += result.max_points;
+      earnedPoints += result.points_earned;
+
+      if (result.is_correct) {
+        correctCount++;
+      }
+    }
+
+    const score = totalPoints > 0 ? (earnedPoints / totalPoints) * 100 : 0;
+    const bandScore = this.bandCalculator.calculateBandScore(
+      correctCount,
+      questions.length,
+      skillType,
+    );
+
+    return {
+      correct_count: correctCount,
+      total_count: questions.length,
+      score: Math.round(score * 100) / 100,
+      band_score: bandScore,
+      results,
+    };
   }
 
-  update(id: number, updateGradingDto: UpdateGradingDto) {
-    return `This action updates a #${id} grading`;
-  }
+  /**
+   * Grade entire test (reading + listening)
+   */
+  gradeTest(
+    readingQuestions: Question[] | null,
+    listeningQuestions: Question[] | null,
+    readingAnswers: Record<string, UserAnswer>,
+    listeningAnswers: Record<string, UserAnswer>,
+  ): TestResult {
+    const result: TestResult = {
+      overall_correct: 0,
+      overall_total: 0,
+      overall_band: 0,
+    };
 
-  remove(id: number) {
-    return `This action removes a #${id} grading`;
+    // Grade reading section
+    if (readingQuestions && readingQuestions.length > 0) {
+      result.reading_result = this.gradeSection(
+        readingQuestions,
+        readingAnswers,
+        'reading',
+      );
+      result.overall_correct += result.reading_result.correct_count;
+      result.overall_total += result.reading_result.total_count;
+    }
+
+    // Grade listening section
+    if (listeningQuestions && listeningQuestions.length > 0) {
+      result.listening_result = this.gradeSection(
+        listeningQuestions,
+        listeningAnswers,
+        'listening',
+      );
+      result.overall_correct += result.listening_result.correct_count;
+      result.overall_total += result.listening_result.total_count;
+    }
+
+    // Calculate overall band score
+    const readingBand = result.reading_result?.band_score || 0;
+    const listeningBand = result.listening_result?.band_score || 0;
+    const bandsCount =
+      (result.reading_result ? 1 : 0) + (result.listening_result ? 1 : 0);
+
+    if (bandsCount > 0) {
+      const averageBand = (readingBand + listeningBand) / bandsCount;
+      result.overall_band = Math.round(averageBand * 2) / 2; // Round to nearest 0.5
+    }
+
+    return result;
   }
 }
