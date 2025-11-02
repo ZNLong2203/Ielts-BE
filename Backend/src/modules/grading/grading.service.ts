@@ -8,6 +8,7 @@ import { MultipleChoiceGrader } from 'src/modules/grading/strategies/multiple-ch
 import { TrueFalseGrader } from 'src/modules/grading/strategies/true-false.grader';
 import {
   Grader,
+  GradeTestParams,
   GradingResult,
   Question,
   SectionResult,
@@ -89,12 +90,14 @@ export class GradingService {
   /**
    * Grade entire test (reading + listening)
    */
-  gradeTest(
-    readingQuestions: Question[] | null,
-    listeningQuestions: Question[] | null,
-    readingAnswers: Record<string, UserAnswer>,
-    listeningAnswers: Record<string, UserAnswer>,
-  ): TestResult {
+  gradeTest(params: GradeTestParams): TestResult {
+    const {
+      readingQuestions,
+      readingAnswers,
+      listeningQuestions,
+      listeningAnswers,
+    } = params;
+
     const result: TestResult = {
       overall_correct: 0,
       overall_total: 0,

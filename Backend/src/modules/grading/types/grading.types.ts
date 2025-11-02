@@ -54,3 +54,16 @@ export interface TestResult {
 export interface Grader {
   grade(question: Question, userAnswer: UserAnswer): GradingResult;
 }
+
+type ReadingPart =
+  | { readingQuestions: Question[]; readingAnswers: Record<string, UserAnswer> }
+  | { readingQuestions: null; readingAnswers: null };
+
+type ListeningPart =
+  | {
+      listeningQuestions: Question[];
+      listeningAnswers: Record<string, UserAnswer>;
+    }
+  | { listeningQuestions: null; listeningAnswers: null };
+
+export type GradeTestParams = ReadingPart & ListeningPart;
