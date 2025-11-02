@@ -23,3 +23,12 @@ export const TEST_LEVEL = {
 };
 
 export type TestLevel = (typeof TEST_LEVEL)[keyof typeof TEST_LEVEL];
+
+export const MOCK_TEST_RESULT_STATUS = {
+  COMPLETED: 'completed',
+  IN_PROGRESS: 'in_progress',
+  ABANDONED: 'abandoned',
+};
+
+export type MockTestResultStatus =
+  (typeof MOCK_TEST_RESULT_STATUS)[keyof typeof MOCK_TEST_RESULT_STATUS];

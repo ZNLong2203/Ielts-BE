@@ -8,6 +8,7 @@ import {
 import { Prisma } from '@prisma/client';
 import { PaginationQueryDto } from 'src/common/dto/pagination-query.dto';
 import {
+  MOCK_TEST_RESULT_STATUS,
   SectionType,
   TEST_TYPE,
   TestType,
@@ -447,6 +448,80 @@ export class MockTestsService {
         {},
       ),
       active_tests: activeTests,
+    };
+  }
+
+  // Services methods (for learner) include: start test, fetching test details without is correct answers, submitting test results, getting test result, get test history, etc.
+
+  /**
+   * Start Mock Test
+   */
+  async startTest(testId: string, userId: string) {
+    const test = await this.prisma.mock_tests.findUnique({
+      where: { id: testId, deleted: false },
+      include: {
+        test_sections: {
+          where: { deleted: false },
+          include: {
+            exercises: {
+              where: { deleted: false },
+              include: {
+                question_groups: {
+                  where: { deleted: false },
+                  include: {
+                    questions: {
+                      where: { deleted: false },
+                      include: {
+                        question_options: {
+                          where: { deleted: false },
+                          // Exclude is_correct field when sending to learner
+                          select: {
+                            id: true,
+                            option_text: true,
+                            ordering: true,
+                          },
+                        },
+                      },
+                    },
+                    matching_options: {
+                      where: { deleted: false },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    });
+
+    if (!test) {
+      throw new NotFoundException('Test not found');
+    }
+
+    // Create test result record
+    const testResult = await this.prisma.test_results.create({
+      data: {
+        user_id: userId,
+        mock_test_id: testId,
+        status: MOCK_TEST_RESULT_STATUS.IN_PROGRESS,
+      },
+      include: {
+        mock_tests: {
+          include: {
+            test_sections: true,
+          },
+        },
+      },
+    });
+
+    return {
+      success: true,
+      message: 'Test started successfully',
+      data: {
+        test: test,
+        started_at: testResult.created_at,
+      },
     };
   }
 

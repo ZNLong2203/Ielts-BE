@@ -28,6 +28,7 @@ import { CertificatesModule } from './modules/certificates/certificates.module';
 import { CoursesModule } from './modules/courses/courses.module';
 import { ExercisesModule } from './modules/exercises/exercises.module';
 import { FilesModule } from './modules/files/files.module';
+import { GradingModule } from './modules/grading/grading.module';
 import { LearningModule } from './modules/learning/learning.module';
 import { LessonsModule } from './modules/lessons/lessons.module';
 import { ListeningModule } from './modules/listening/listening.module';
@@ -94,6 +95,7 @@ import { UtilsModule } from './utils/utils.module';
     QuestionGroupsModule,
     StudyScheduleModule,
     NotificationModule,
+    GradingModule,
   ],
   controllers: [AppController, DatabaseController],
   providers: [
