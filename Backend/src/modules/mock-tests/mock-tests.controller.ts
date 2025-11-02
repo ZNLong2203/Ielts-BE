@@ -3,6 +3,7 @@ import {
   Controller,
   Delete,
   Get,
+  HttpCode,
   HttpStatus,
   Param,
   ParseUUIDPipe,
@@ -21,7 +22,13 @@ import {
 } from '@nestjs/swagger';
 import { Request } from 'express';
 import { PaginationQueryDto } from 'src/common/dto/pagination-query.dto';
-import { Public } from 'src/decorator/customize';
+import {
+  CurrentUser,
+  MessageResponse,
+  Public,
+  SkipCheckPermission,
+} from 'src/decorator/customize';
+import { IUser } from 'src/interface/users.interface';
 import { CreateMockTestDto } from './dto/create-mock-test.dto';
 import { UpdateMockTestDto } from './dto/update-mock-test.dto';
 import { MockTestsService } from './mock-tests.service';
@@ -49,14 +56,14 @@ export class MockTestsController {
     description: 'Mock test with this title already exists',
   })
   @Public()
+  @HttpCode(HttpStatus.CREATED)
+  @MessageResponse('Mock test created successfully')
   async create(
     @Body(new ValidationPipe({ transform: true })) createDto: CreateMockTestDto,
   ) {
     const mockTest = await this.mockTestsService.create(createDto);
     return {
       success: true,
-      statusCode: HttpStatus.CREATED,
-      message: 'Mock test created successfully',
       data: mockTest,
     };
   }
@@ -80,12 +87,12 @@ export class MockTestsController {
     description: 'Mock tests retrieved successfully',
   })
   @Public()
+  @HttpCode(HttpStatus.OK)
+  @MessageResponse('Mock tests retrieved successfully')
   async findAll(@Query() query: PaginationQueryDto, @Req() req: Request) {
     const result = await this.mockTestsService.findAll(query, req.query);
     return {
       success: true,
-      statusCode: HttpStatus.OK,
-      message: 'Mock tests retrieved successfully',
       ...result,
     };
   }
@@ -109,12 +116,12 @@ export class MockTestsController {
     description: 'Mock test not found',
   })
   @Public()
+  @HttpCode(HttpStatus.OK)
+  @MessageResponse('Mock test retrieved successfully')
   async findOne(@Param('id', ParseUUIDPipe) id: string) {
     const mockTest = await this.mockTestsService.findOne(id);
     return {
       success: true,
-      statusCode: HttpStatus.OK,
-      message: 'Mock test retrieved successfully',
       data: mockTest,
     };
   }
@@ -141,6 +148,8 @@ export class MockTestsController {
     description: 'Mock test with this title already exists',
   })
   @Public()
+  @HttpCode(HttpStatus.OK)
+  @MessageResponse('Mock test updated successfully')
   async update(
     @Param('id', ParseUUIDPipe) id: string,
     @Body(new ValidationPipe({ transform: true })) updateDto: UpdateMockTestDto,
@@ -148,8 +157,6 @@ export class MockTestsController {
     const mockTest = await this.mockTestsService.update(id, updateDto);
     return {
       success: true,
-      statusCode: HttpStatus.OK,
-      message: 'Mock test updated successfully',
       data: mockTest,
     };
   }
@@ -173,12 +180,12 @@ export class MockTestsController {
     description: 'Mock test not found',
   })
   @Public()
+  @HttpCode(HttpStatus.OK)
+  @MessageResponse('Mock test deleted successfully')
   async remove(@Param('id', ParseUUIDPipe) id: string) {
     await this.mockTestsService.remove(id);
     return {
       success: true,
-      statusCode: HttpStatus.OK,
-      message: 'Mock test deleted successfully',
     };
   }
 
@@ -195,13 +202,67 @@ export class MockTestsController {
     description: 'Statistics retrieved successfully',
   })
   @Public()
+  @HttpCode(HttpStatus.OK)
+  @MessageResponse('Statistics retrieved successfully')
   async getStatistics() {
     const stats = await this.mockTestsService.getStatistics();
     return {
       success: true,
-      statusCode: HttpStatus.OK,
-      message: 'Statistics retrieved successfully',
       data: stats,
     };
+  }
+
+  /**
+   * Start Mock Test
+   */
+  @Post(':id/start')
+  @ApiOperation({
+    summary: 'Start a mock test',
+    description: 'Initializes a test session for the user',
+  })
+  @ApiParam({ name: 'id', description: 'Mock test UUID' })
+  @ApiResponse({
+    status: HttpStatus.OK,
+    description: 'Test started successfully',
+  })
+  @ApiResponse({
+    status: HttpStatus.NOT_FOUND,
+    description: 'Mock test not found',
+  })
+  @SkipCheckPermission()
+  @HttpCode(HttpStatus.OK)
+  @MessageResponse('Test started successfully')
+  async startTest(
+    @Param('id', ParseUUIDPipe) id: string,
+    @CurrentUser() user: IUser,
+  ) {
+    return await this.mockTestsService.startTest(id, user.id);
+  }
+
+  /**
+   * Get Mock Test Result History
+   */
+  @Get('results/history')
+  @ApiOperation({
+    summary: 'Get mock test result history',
+    description: 'Retrieves the history of mock test results for the user',
+  })
+  @ApiResponse({
+    status: HttpStatus.OK,
+    description: 'Test result history retrieved successfully',
+  })
+  @SkipCheckPermission()
+  @HttpCode(HttpStatus.OK)
+  @MessageResponse('Test result history retrieved successfully')
+  async getTestResultHistory(
+    @CurrentUser() user: IUser,
+    @Query() query: PaginationQueryDto,
+    @Req() req: Request,
+  ) {
+    return await this.mockTestsService.getUserTestHistory(
+      user.id,
+      query,
+      req.query,
+    );
   }
 }

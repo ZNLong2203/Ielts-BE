@@ -517,12 +517,89 @@ export class MockTestsService {
 
     return {
       success: true,
-      message: 'Test started successfully',
       data: {
+        test_result_id: testResult.id,
         test: test,
         started_at: testResult.created_at,
       },
     };
+  }
+
+  /**
+   * Get test result
+   */
+  async getTestResult(testResultId: string, userId: string) {
+    const testResult = await this.prisma.test_results.findUnique({
+      where: { id: testResultId, user_id: userId },
+      include: {
+        mock_tests: true,
+        section_results: {
+          include: {
+            test_sections: {
+              include: {
+                exercises: {
+                  include: {
+                    question_groups: {
+                      include: {
+                        questions: {
+                          include: {
+                            question_options: true,
+                          },
+                        },
+                        matching_options: true,
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    });
+
+    if (!testResult) {
+      throw new NotFoundException('Test result not found');
+    }
+
+    return {
+      success: true,
+      data: testResult,
+    };
+  }
+
+  /**
+   * Get user test history
+   */
+  async getUserTestHistory(
+    userId: string,
+    query: PaginationQueryDto,
+    rawQuery: Record<string, any>,
+  ) {
+    const whereCondition: Prisma.test_resultsWhereInput = {
+      deleted: false,
+      ...this.utilsService.buildWhereFromQuery(rawQuery),
+    };
+
+    return this.utilsService.paginate<
+      Prisma.test_resultsWhereInput,
+      Prisma.test_resultsInclude,
+      Prisma.test_resultsSelect,
+      Prisma.test_resultsOrderByWithRelationInput
+    >({
+      model: this.prisma.test_results,
+      query,
+      defaultOrderBy: { created_at: 'asc' },
+      select: {
+        id: true,
+        status: true,
+        overall_score: true,
+        time_taken: true,
+        created_at: true,
+        updated_at: true,
+      },
+      where: whereCondition,
+    });
   }
 
   // ======= PRIVATE HELPER METHODS =======
