@@ -113,10 +113,11 @@ export class StudentsService {
     const totalCourses = uniqueCourses.size;
 
     // Calculate completed courses (only from combos)
+    // Use is_completed field instead of progress === 100
     const completedCoursesSet = new Set<string>();
     comboEnrollments?.forEach((combo) => {
       combo.courses
-        ?.filter((c) => c.progress === 100)
+        ?.filter((c) => c.is_completed === true)
         .forEach((course) => {
           completedCoursesSet.add(course.id);
         });
@@ -230,14 +231,6 @@ export class StudentsService {
         // Get progress for each course
         const coursesWithProgress = await Promise.all(
           courses.map(async (course) => {
-            const enrollment = await this.prisma.enrollments.findFirst({
-              where: {
-                user_id: userId,
-                course_id: course.id,
-                deleted: false,
-              },
-            });
-
             // Count total and completed lessons
             const sections = await this.prisma.sections.findMany({
               where: {
@@ -267,6 +260,17 @@ export class StudentsService {
               },
             });
 
+            // Calculate course progress percentage from lessons (source of truth)
+            // Don't use enrollment.progress_percentage as it may be outdated
+            const progressPercentage =
+              totalLessons > 0 ? (completedLessons / totalLessons) * 100 : 0;
+
+            // Course is completed when all lessons are completed
+            // Check both: completed_lessons === total_lessons AND total_lessons > 0
+            // This is the most reliable indicator since lesson count can change
+            const isCompleted =
+              totalLessons > 0 && completedLessons === totalLessons;
+
             return {
               id: course.id,
               title: course.title,
@@ -283,18 +287,29 @@ export class StudentsService {
               teacher_avatar: course.teachers?.users?.avatar,
               category: course.course_categories?.name,
               category_icon: course.course_categories?.icon,
-              progress: enrollment ? Number(enrollment.progress_percentage) : 0,
+              progress: progressPercentage,
               total_lessons: totalLessons,
               completed_lessons: completedLessons,
-              is_completed: enrollment?.completion_date ? true : false,
+              is_completed: isCompleted,
             };
           }),
         );
 
+        // Calculate overall progress percentage from courses (source of truth)
+        // Don't use enrollment.overall_progress_percentage as it may be outdated
+        const totalCourseProgress = coursesWithProgress.reduce(
+          (acc, course) => acc + course.progress,
+          0,
+        );
+        const overallProgressPercentage =
+          coursesWithProgress.length > 0
+            ? totalCourseProgress / coursesWithProgress.length
+            : 0;
+
         return {
           id: enrollment.id,
           enrollment_date: enrollment.enrollment_date,
-          overall_progress_percentage: enrollment.overall_progress_percentage,
+          overall_progress_percentage: overallProgressPercentage,
           is_active: enrollment.is_active,
           combo: {
             id: combo.id,
@@ -387,10 +402,23 @@ export class StudentsService {
           },
         });
 
+        // Calculate progress and completion status
+        // Course is completed ONLY when all lessons are completed
+        const progressPercentage = enrollment.progress_percentage
+          ? Number(enrollment.progress_percentage)
+          : totalLessons > 0
+            ? (completedLessons / totalLessons) * 100
+            : 0;
+
+        // Course is completed when all lessons are completed
+        // This is the most reliable indicator since lesson count can change
+        const isCompleted =
+          totalLessons > 0 && completedLessons === totalLessons;
+
         return {
           id: enrollment.id,
           enrollment_date: enrollment.enrollment_date,
-          progress_percentage: enrollment.progress_percentage,
+          progress_percentage: progressPercentage,
           completion_date: enrollment.completion_date,
           is_active: enrollment.is_active,
           course: {
@@ -412,6 +440,7 @@ export class StudentsService {
             category_icon: course.course_categories?.icon,
             total_lessons: totalLessons,
             completed_lessons: completedLessons,
+            is_completed: isCompleted,
           },
         };
       }),

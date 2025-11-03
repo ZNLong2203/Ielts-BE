@@ -417,9 +417,7 @@ export class MinioService {
       return presignedUrl;
     } catch (error) {
       const e = error as Error;
-      this.logger.error(
-        `Failed to generate presigned PUT URL: ${e.message}`,
-      );
+      this.logger.error(`Failed to generate presigned PUT URL: ${e.message}`);
       throw new Error(`Failed to generate presigned URL: ${e.message}`);
     }
   }

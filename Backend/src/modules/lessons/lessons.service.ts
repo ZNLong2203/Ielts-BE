@@ -413,4 +413,299 @@ export class LessonsService {
       where: whereCondition,
     });
   }
+
+  async markLessonComplete(
+    userId: string,
+    lessonId: string,
+    courseId: string,
+    sectionId: string,
+  ) {
+    // Verify lesson exists
+    const lesson = await this.prisma.lessons.findFirst({
+      where: { id: lessonId, deleted: false },
+    });
+
+    if (!lesson) {
+      throw new NotFoundException('Lesson not found');
+    }
+
+    // Verify course and section exist
+    const course = await this.prisma.courses.findFirst({
+      where: { id: courseId, deleted: false },
+    });
+
+    if (!course) {
+      throw new NotFoundException('Course not found');
+    }
+
+    const section = await this.prisma.sections.findFirst({
+      where: { id: sectionId, deleted: false, course_id: courseId },
+    });
+
+    if (!section) {
+      throw new NotFoundException(
+        'Section not found or does not belong to course',
+      );
+    }
+
+    // Check if user is enrolled in the course
+    const enrollment = await this.prisma.enrollments.findFirst({
+      where: {
+        user_id: userId,
+        course_id: courseId,
+        deleted: false,
+        is_active: true,
+      },
+    });
+
+    if (!enrollment) {
+      throw new BadRequestException('User is not enrolled in this course');
+    }
+
+    const now = new Date();
+
+    // Use transaction to ensure data consistency
+    await this.prisma.$transaction(async (tx) => {
+      // 1. Update or create user_progress for lesson
+      await tx.user_progress.upsert({
+        where: {
+          user_id_lesson_id: {
+            user_id: userId,
+            lesson_id: lessonId,
+          },
+        },
+        create: {
+          user_id: userId,
+          course_id: courseId,
+          section_id: sectionId,
+          lesson_id: lessonId,
+          status: 'completed',
+          progress_percentage: 100,
+          completion_date: now,
+        },
+        update: {
+          status: 'completed',
+          progress_percentage: 100,
+          completion_date: now,
+          updated_at: now,
+        },
+      });
+
+      // 2. Update section_progress
+      // Count total lessons in section
+      const totalLessons = await tx.lessons.count({
+        where: {
+          section_id: sectionId,
+          deleted: false,
+        },
+      });
+
+      // Count completed lessons in section for this user
+      const completedLessons = await tx.user_progress.count({
+        where: {
+          user_id: userId,
+          section_id: sectionId,
+          status: 'completed',
+          deleted: false,
+        },
+      });
+
+      const sectionProgressPercentage =
+        totalLessons > 0 ? (completedLessons / totalLessons) * 100 : 0;
+
+      await tx.section_progress.upsert({
+        where: {
+          user_id_section_id: {
+            user_id: userId,
+            section_id: sectionId,
+          },
+        },
+        create: {
+          user_id: userId,
+          course_id: courseId,
+          section_id: sectionId,
+          completed_lessons: completedLessons,
+          total_lessons: totalLessons,
+          progress_percentage: sectionProgressPercentage,
+          started_at: completedLessons === 1 ? now : undefined,
+          completed_at: completedLessons === totalLessons ? now : undefined,
+          updated_at: now,
+        },
+        update: {
+          completed_lessons: completedLessons,
+          total_lessons: totalLessons,
+          progress_percentage: sectionProgressPercentage,
+          completed_at: completedLessons === totalLessons ? now : undefined,
+          updated_at: now,
+        },
+      });
+
+      // 3. Update enrollment progress
+      // Count total lessons in course
+      const courseSections = await tx.sections.findMany({
+        where: {
+          course_id: courseId,
+          deleted: false,
+        },
+        include: {
+          lessons: {
+            where: {
+              deleted: false,
+            },
+          },
+        },
+      });
+
+      const totalCourseLessons = courseSections.reduce(
+        (acc, section) => acc + section.lessons.length,
+        0,
+      );
+
+      // Count completed lessons in course for this user
+      const completedCourseLessons = await tx.user_progress.count({
+        where: {
+          user_id: userId,
+          course_id: courseId,
+          status: 'completed',
+          deleted: false,
+        },
+      });
+
+      const courseProgressPercentage =
+        totalCourseLessons > 0
+          ? (completedCourseLessons / totalCourseLessons) * 100
+          : 0;
+
+      await tx.enrollments.update({
+        where: { id: enrollment.id },
+        data: {
+          progress_percentage: courseProgressPercentage,
+          completion_date:
+            completedCourseLessons === totalCourseLessons ? now : undefined,
+          updated_at: now,
+        },
+      });
+
+      // 4. Update combo progress if course is part of a combo
+      // Find all combo enrollments that contain this course
+      const comboEnrollments = await tx.combo_enrollments.findMany({
+        where: {
+          user_id: userId,
+          deleted: false,
+          is_active: true,
+        },
+        include: {
+          combo_courses: true,
+        },
+      });
+
+      // Update progress for each combo that contains this course
+      for (const comboEnrollment of comboEnrollments) {
+        const courseIds = comboEnrollment.combo_courses?.course_ids as string[];
+
+        if (!courseIds || !courseIds.includes(courseId)) {
+          continue;
+        }
+
+        // Count completed courses in this combo
+        // A course is completed when all its lessons are completed
+        const comboCourseEnrollments = await tx.enrollments.findMany({
+          where: {
+            user_id: userId,
+            course_id: { in: courseIds },
+            deleted: false,
+          },
+          include: {
+            courses: {
+              include: {
+                sections: {
+                  include: {
+                    lessons: {
+                      where: {
+                        deleted: false,
+                      },
+                    },
+                  },
+                  where: {
+                    deleted: false,
+                  },
+                },
+              },
+            },
+          },
+        });
+
+        // Calculate overall progress as average of all course progress percentages
+        // This gives a more accurate representation than just counting completed courses
+        let totalProgress = 0;
+
+        for (const courseEnrollment of comboCourseEnrollments) {
+          const course = courseEnrollment.courses;
+          if (!course) continue;
+
+          const totalLessons = course.sections.reduce(
+            (acc, section) => acc + section.lessons.length,
+            0,
+          );
+
+          const completedLessons = await tx.user_progress.count({
+            where: {
+              user_id: userId,
+              course_id: course.id,
+              status: 'completed',
+              deleted: false,
+            },
+          });
+
+          // Calculate course progress percentage
+          const courseProgress =
+            totalLessons > 0 ? (completedLessons / totalLessons) * 100 : 0;
+
+          totalProgress += courseProgress;
+        }
+
+        // Overall progress is the average of all course progress percentages
+        const overallProgress =
+          comboCourseEnrollments.length > 0
+            ? totalProgress / comboCourseEnrollments.length
+            : 0;
+
+        await tx.combo_enrollments.update({
+          where: { id: comboEnrollment.id },
+          data: {
+            overall_progress_percentage: overallProgress,
+            updated_at: now,
+          },
+        });
+      }
+    });
+
+    return {
+      success: true,
+      message: 'Lesson marked as completed and progress updated successfully',
+    };
+  }
+
+  async getUserLessonProgress(userId: string, lessonId: string) {
+    const progress = await this.prisma.user_progress.findFirst({
+      where: {
+        user_id: userId,
+        lesson_id: lessonId,
+        deleted: false,
+      },
+    });
+
+    return {
+      success: true,
+      data: {
+        lesson_id: lessonId,
+        status: progress?.status || 'not_started',
+        progress_percentage: progress?.progress_percentage
+          ? Number(progress.progress_percentage)
+          : 0,
+        completion_date: progress?.completion_date || null,
+        is_completed: progress?.status === 'completed',
+      },
+    };
+  }
 }

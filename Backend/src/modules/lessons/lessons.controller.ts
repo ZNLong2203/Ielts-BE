@@ -27,7 +27,12 @@ import {
 } from '@nestjs/swagger';
 import { Request } from 'express';
 import { PaginationQueryDto } from 'src/common/dto/pagination-query.dto';
-import { Public } from 'src/decorator/customize';
+import {
+  CurrentUser,
+  Public,
+  SkipCheckPermission,
+} from 'src/decorator/customize';
+import { IUser } from 'src/interface/users.interface';
 import {
   CreateLessonDto,
   ReorderLessonsDto,
@@ -37,6 +42,7 @@ import {
   LessonResponseDto,
   VideoUploadStatusDto,
 } from 'src/modules/lessons/dto/lesson-response.dto';
+import { MarkLessonCompleteDto } from 'src/modules/lessons/dto/mark-lesson-complete.dto';
 import { UpdateLessonDto } from 'src/modules/lessons/dto/update-lesson.dto';
 import { LessonsService } from 'src/modules/lessons/lessons.service';
 
@@ -416,5 +422,87 @@ export class LessonsController {
   @Public()
   async getVideoStatus(@Param('id', ParseUUIDPipe) id: string) {
     return await this.lessonsService.getVideoStatus(id);
+  }
+
+  @Get(':id/progress')
+  @ApiOperation({
+    summary: 'Get lesson progress for current user',
+    description:
+      'Retrieve the progress status of a lesson for the authenticated user',
+  })
+  @ApiParam({
+    name: 'sectionId',
+    description: 'Section ID',
+    type: 'string',
+    format: 'uuid',
+    example: '123e4567-e89b-12d3-a456-426614174000',
+  })
+  @ApiParam({
+    name: 'id',
+    description: 'Lesson ID',
+    type: 'string',
+    format: 'uuid',
+    example: '123e4567-e89b-12d3-a456-426614174000',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Lesson progress retrieved successfully',
+    type: ApiResponseDto,
+  })
+  @SkipCheckPermission()
+  async getLessonProgress(
+    @CurrentUser() user: IUser,
+    @Param('id', ParseUUIDPipe) lessonId: string,
+  ) {
+    return await this.lessonsService.getUserLessonProgress(user.id, lessonId);
+  }
+
+  @Post(':id/complete')
+  @ApiOperation({
+    summary: 'Mark lesson as completed',
+    description:
+      'Mark a lesson as completed and update user progress (lesson, section, and course progress)',
+  })
+  @ApiParam({
+    name: 'sectionId',
+    description: 'Section ID',
+    type: 'string',
+    format: 'uuid',
+    example: '123e4567-e89b-12d3-a456-426614174000',
+  })
+  @ApiParam({
+    name: 'id',
+    description: 'Lesson ID',
+    type: 'string',
+    format: 'uuid',
+    example: '123e4567-e89b-12d3-a456-426614174000',
+  })
+  @ApiBody({ type: MarkLessonCompleteDto })
+  @ApiResponse({
+    status: 200,
+    description: 'Lesson marked as completed successfully',
+    type: ApiResponseDto,
+  })
+  @ApiResponse({
+    status: 400,
+    description: 'Bad request - User not enrolled or invalid data',
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'Lesson, course, or section not found',
+  })
+  @SkipCheckPermission()
+  async markLessonComplete(
+    @CurrentUser() user: IUser,
+    @Param('sectionId', ParseUUIDPipe) sectionId: string,
+    @Param('id', ParseUUIDPipe) lessonId: string,
+    @Body() dto: MarkLessonCompleteDto,
+  ) {
+    return await this.lessonsService.markLessonComplete(
+      user.id,
+      lessonId,
+      dto.course_id,
+      sectionId,
+    );
   }
 }

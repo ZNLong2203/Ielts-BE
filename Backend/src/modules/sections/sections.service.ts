@@ -218,4 +218,139 @@ export class SectionsService {
       where: whereCondition,
     });
   }
+
+  async getSectionProgress(userId: string, sectionId: string) {
+    // Verify section exists
+    const section = await this.prisma.sections.findFirst({
+      where: { id: sectionId, deleted: false },
+    });
+
+    if (!section) {
+      throw new NotFoundException('Section not found');
+    }
+
+    // Get section progress
+    const sectionProgress = await this.prisma.section_progress.findFirst({
+      where: {
+        user_id: userId,
+        section_id: sectionId,
+        deleted: false,
+      },
+    });
+
+    // Count total lessons in section
+    const totalLessons = await this.prisma.lessons.count({
+      where: {
+        section_id: sectionId,
+        deleted: false,
+      },
+    });
+
+    // Count completed lessons if no progress record exists
+    const completedLessons = sectionProgress
+      ? sectionProgress.completed_lessons || 0
+      : await this.prisma.user_progress.count({
+          where: {
+            user_id: userId,
+            section_id: sectionId,
+            status: 'completed',
+            deleted: false,
+          },
+        });
+
+    const progressPercentage = sectionProgress
+      ? Number(sectionProgress.progress_percentage || 0)
+      : totalLessons > 0
+        ? (completedLessons / totalLessons) * 100
+        : 0;
+
+    return {
+      success: true,
+      data: {
+        section_id: sectionId,
+        progress_percentage: progressPercentage,
+        completed_lessons: completedLessons,
+        total_lessons: totalLessons,
+        is_completed: sectionProgress?.completed_at !== null,
+        completed_at: sectionProgress?.completed_at || null,
+      },
+    };
+  }
+
+  async getCourseProgress(userId: string, courseId: string) {
+    // Verify course exists
+    const course = await this.prisma.courses.findFirst({
+      where: { id: courseId, deleted: false },
+    });
+
+    if (!course) {
+      throw new NotFoundException('Course not found');
+    }
+
+    // Get enrollment
+    const enrollment = await this.prisma.enrollments.findFirst({
+      where: {
+        user_id: userId,
+        course_id: courseId,
+        deleted: false,
+        is_active: true,
+      },
+    });
+
+    if (!enrollment) {
+      throw new NotFoundException('User is not enrolled in this course');
+    }
+
+    // Get all sections with lessons
+    const sections = await this.prisma.sections.findMany({
+      where: {
+        course_id: courseId,
+        deleted: false,
+      },
+      include: {
+        lessons: {
+          where: {
+            deleted: false,
+          },
+        },
+      },
+    });
+
+    const totalLessons = sections.reduce(
+      (acc, section) => acc + section.lessons.length,
+      0,
+    );
+
+    // Count completed lessons
+    const completedLessons = await this.prisma.user_progress.count({
+      where: {
+        user_id: userId,
+        course_id: courseId,
+        status: 'completed',
+        deleted: false,
+      },
+    });
+
+    const progressPercentage = enrollment.progress_percentage
+      ? Number(enrollment.progress_percentage)
+      : totalLessons > 0
+        ? (completedLessons / totalLessons) * 100
+        : 0;
+
+    // Course is completed when all lessons are completed
+    // This is the most reliable indicator since lesson count can change
+    const isCompleted = totalLessons > 0 && completedLessons === totalLessons;
+
+    return {
+      success: true,
+      data: {
+        course_id: courseId,
+        progress_percentage: progressPercentage,
+        completed_lessons: completedLessons,
+        total_lessons: totalLessons,
+        is_completed: isCompleted,
+        completion_date: enrollment.completion_date || null,
+      },
+    };
+  }
 }

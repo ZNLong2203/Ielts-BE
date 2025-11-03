@@ -20,7 +20,12 @@ import {
 } from '@nestjs/swagger';
 import { Request } from 'express';
 import { PaginationQueryDto } from 'src/common/dto/pagination-query.dto';
-import { Public } from 'src/decorator/customize';
+import {
+  CurrentUser,
+  Public,
+  SkipCheckPermission,
+} from 'src/decorator/customize';
+import { IUser } from 'src/interface/users.interface';
 import { CreateSectionDto, ReorderSectionsDto } from './dto/create-section.dto';
 import { ApiResponseDto, SectionResponseDto } from './dto/section-response.dto';
 import { UpdateSectionDto } from './dto/update-section.dto';
@@ -145,6 +150,36 @@ export class SectionsController {
     @Body() createSectionDto: CreateSectionDto,
   ) {
     return this.sectionsService.create(createSectionDto, courseId);
+  }
+
+  @Get('progress')
+  @ApiOperation({
+    summary: 'Get course progress for current user',
+    description:
+      'Retrieve the progress status of a course for the authenticated user',
+  })
+  @ApiParam({
+    name: 'courseId',
+    description: 'Course ID',
+    type: 'string',
+    format: 'uuid',
+    example: '123e4567-e89b-12d3-a456-426614174000',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Course progress retrieved successfully',
+    type: ApiResponseDto,
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'Course not found or user not enrolled',
+  })
+  @SkipCheckPermission()
+  async getCourseProgress(
+    @CurrentUser() user: IUser,
+    @Param('courseId', ParseUUIDPipe) courseId: string,
+  ) {
+    return await this.sectionsService.getCourseProgress(user.id, courseId);
   }
 
   @Get(':id')
@@ -289,5 +324,42 @@ export class SectionsController {
   @Public()
   remove(@Param('id', ParseUUIDPipe) id: string) {
     return this.sectionsService.remove(id);
+  }
+
+  @Get(':id/progress')
+  @ApiOperation({
+    summary: 'Get section progress for current user',
+    description:
+      'Retrieve the progress status of a section for the authenticated user',
+  })
+  @ApiParam({
+    name: 'courseId',
+    description: 'Course ID',
+    type: 'string',
+    format: 'uuid',
+    example: '123e4567-e89b-12d3-a456-426614174000',
+  })
+  @ApiParam({
+    name: 'id',
+    description: 'Section ID',
+    type: 'string',
+    format: 'uuid',
+    example: '123e4567-e89b-12d3-a456-426614174000',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Section progress retrieved successfully',
+    type: ApiResponseDto,
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'Section not found',
+  })
+  @SkipCheckPermission()
+  async getSectionProgress(
+    @CurrentUser() user: IUser,
+    @Param('id', ParseUUIDPipe) sectionId: string,
+  ) {
+    return await this.sectionsService.getSectionProgress(user.id, sectionId);
   }
 }

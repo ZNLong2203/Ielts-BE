@@ -1094,17 +1094,67 @@ export class StudyScheduleService {
     const courseIds = comboEnrollment.combo_courses?.course_ids as string[];
 
     // Count completed courses
-    const completedCourses = await this.prisma.enrollments.count({
+    // A course is completed when all its lessons are completed
+    const comboCourseEnrollments = await this.prisma.enrollments.findMany({
       where: {
         user_id: userId,
         course_id: { in: courseIds },
-        progress_percentage: 100,
         deleted: false,
+      },
+      include: {
+        courses: {
+          include: {
+            sections: {
+              include: {
+                lessons: {
+                  where: {
+                    deleted: false,
+                  },
+                },
+              },
+              where: {
+                deleted: false,
+              },
+            },
+          },
+        },
       },
     });
 
+    // Calculate overall progress as average of all course progress percentages
+    // This gives a more accurate representation than just counting completed courses
+    let totalProgress = 0;
+
+    for (const courseEnrollment of comboCourseEnrollments) {
+      const course = courseEnrollment.courses;
+      if (!course) continue;
+
+      const totalLessons = course.sections.reduce(
+        (acc, section) => acc + section.lessons.length,
+        0,
+      );
+
+      const completedLessons = await this.prisma.user_progress.count({
+        where: {
+          user_id: userId,
+          course_id: course.id,
+          status: 'completed',
+          deleted: false,
+        },
+      });
+
+      // Calculate course progress percentage
+      const courseProgress =
+        totalLessons > 0 ? (completedLessons / totalLessons) * 100 : 0;
+
+      totalProgress += courseProgress;
+    }
+
+    // Overall progress is the average of all course progress percentages
     const overallProgress =
-      courseIds.length > 0 ? (completedCourses / courseIds.length) * 100 : 0;
+      comboCourseEnrollments.length > 0
+        ? totalProgress / comboCourseEnrollments.length
+        : 0;
 
     await this.prisma.combo_enrollments.update({
       where: { id: comboEnrollment.id },
