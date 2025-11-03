@@ -5,106 +5,167 @@ import {
   IsArray,
   IsBoolean,
   IsEnum,
+  IsInt,
   IsNotEmpty,
   IsNumber,
   IsOptional,
   IsString,
   IsUUID,
+  Max,
+  Min,
   ValidateNested,
 } from 'class-validator';
 import { QUESTION_TYPE, QuestionType } from 'src/modules/exercises/constants';
 
 export class QuestionOptionDto {
-  @ApiProperty({ description: 'Option text' })
+  @ApiProperty({
+    description: 'Option text',
+    example: 'Paris',
+  })
   @IsString()
   @IsNotEmpty()
   option_text: string;
 
-  @ApiProperty({ description: 'Is correct answer', default: false })
-  @IsOptional()
+  @ApiProperty({
+    description: 'Is this the correct answer',
+    example: true,
+  })
   @IsBoolean()
-  is_correct?: boolean;
+  is_correct: boolean;
 
-  @ApiProperty({ description: 'Option ordering', default: 0 })
-  @IsOptional()
+  @ApiProperty({
+    description: 'Ordering of option',
+    example: 0,
+    required: false,
+  })
   @IsNumber()
+  @IsOptional()
+  @Min(0)
   ordering?: number;
 
-  @ApiProperty({ description: 'Option explanation', required: false })
+  @ApiProperty({
+    description: 'Points for this option',
+    example: 1,
+    required: false,
+  })
+  @IsNumber()
   @IsOptional()
+  @Min(0)
+  point?: number;
+
+  @ApiProperty({
+    description: 'Explanation for this option',
+    required: false,
+  })
   @IsString()
+  @IsOptional()
   explanation?: string;
 }
 
 export class CreateQuestionDto {
-  @ApiProperty({ description: 'Question text/prompt' })
+  // @ApiProperty({
+  //   description: 'Exercise ID',
+  //   example: 'exercise-uuid-123',
+  // })
+  // @IsString()
+  // @IsNotEmpty()
+  // exercise_id: string;
+
+  @ApiProperty({
+    description:
+      'Question Group ID (required for MATCHING type, optional for others)',
+    example: 'group-uuid-123',
+    required: false,
+  })
+  @IsString()
+  @IsOptional()
+  question_group_id?: string;
+
+  @ApiProperty({
+    description: 'Question type',
+    enum: QUESTION_TYPE,
+    example: QUESTION_TYPE.MULTIPLE_CHOICE,
+  })
+  @IsEnum(QUESTION_TYPE)
+  @IsNotEmpty()
+  question_type: QuestionType;
+
+  @ApiProperty({
+    description: 'Question text',
+    example: 'What is the capital of France?',
+  })
   @IsString()
   @IsNotEmpty()
   question_text: string;
 
   @ApiProperty({
-    enum: QUESTION_TYPE,
-    description: 'Type of question',
-    example: QUESTION_TYPE.MULTIPLE_CHOICE,
-  })
-  @IsEnum(QUESTION_TYPE)
-  question_type: QuestionType;
-
-  @ApiProperty({
-    description: 'Media URL (audio/image/video)',
+    description: 'Reading passage (for reading questions)',
     required: false,
   })
-  @IsOptional()
   @IsString()
-  media_url?: string;
-
-  @ApiProperty({ description: 'Question explanation/context', required: false })
   @IsOptional()
-  @IsString()
-  explanation?: string;
-
-  @ApiProperty({ description: 'Points for this question', default: 1 })
-  @IsOptional()
-  @IsNumber()
-  points?: number;
-
-  @ApiProperty({ description: 'Question ordering', default: 0 })
-  @IsOptional()
-  @IsNumber()
-  ordering?: number;
-
-  @ApiProperty({ description: 'Difficulty level (1-10)', default: 5 })
-  @IsOptional()
-  @IsNumber()
-  difficulty_level?: number;
+  reading_passage?: string;
 
   @ApiProperty({
+    description:
+      'Question options (for MULTIPLE_CHOICE, TRUE_FALSE, SUMMARY_COMPLETION)',
     type: [QuestionOptionDto],
-    description: 'Answer options (for multiple choice, droplist, matching)',
     required: false,
   })
-  @IsOptional()
   @IsArray()
+  @IsOptional()
   @ValidateNested({ each: true })
   @Type(() => QuestionOptionDto)
   options?: QuestionOptionDto[];
 
   @ApiProperty({
-    description: 'Correct answer text (for fill_blank, true_false)',
+    description: 'Correct answer text (for FILL_BLANK)',
+    example: 'Paris',
     required: false,
   })
-  @IsOptional()
   @IsString()
+  @IsOptional()
   correct_answer?: string;
 
   @ApiProperty({
-    description: 'Alternative correct answers (for fill_blank)',
+    description: 'Alternative correct answers (for FILL_BLANK)',
+    example: ['paris', 'PARIS'],
     required: false,
   })
-  @IsOptional()
   @IsArray()
-  @IsString({ each: true })
+  @IsOptional()
   alternative_answers?: string[];
+
+  @ApiProperty({
+    description: 'Points for this question',
+    example: 1,
+    default: 1,
+  })
+  @IsNumber()
+  @IsOptional()
+  @Min(0)
+  points?: number;
+
+  @ApiProperty({
+    description: 'Ordering within exercise',
+    example: 0,
+    required: false,
+  })
+  @IsNumber()
+  @IsOptional()
+  @Min(0)
+  ordering?: number;
+
+  @ApiProperty({
+    description: 'Difficulty level (band score: 0.0 - 9.0)',
+    example: 6.5,
+    required: false,
+  })
+  @IsNumber()
+  @IsOptional()
+  @Min(0)
+  @Max(9)
+  difficulty_level?: number;
 
   @ApiProperty({
     description: 'Additional content (passage for reading, etc.)',
@@ -115,20 +176,47 @@ export class CreateQuestionDto {
   content?: string;
 
   @ApiProperty({
-    description: 'Reading passage text',
+    description: 'Question group name (e.g., "Passage 1", "Task 1")',
+    example: 'Passage 1',
     required: false,
   })
-  @IsOptional()
   @IsString()
-  reading_passage?: string;
+  @IsOptional()
+  question_group?: string;
 
   @ApiProperty({
-    description: 'Question group identifier (e.g., "Passage 1", "Task 1")',
+    description: 'Explanation for the answer',
     required: false,
   })
-  @IsOptional()
   @IsString()
-  question_group?: string;
+  @IsOptional()
+  explanation?: string;
+
+  @ApiProperty({
+    description: 'Image URL for the question',
+    required: false,
+  })
+  @IsString()
+  @IsOptional()
+  image_url?: string;
+
+  @ApiProperty({
+    description: 'Audio URL for the question',
+    required: false,
+  })
+  @IsString()
+  @IsOptional()
+  audio_url?: string;
+
+  @ApiProperty({
+    description: 'Audio duration in seconds',
+    example: 180,
+    required: false,
+  })
+  @IsInt()
+  @IsOptional()
+  @Min(0)
+  audio_duration?: number;
 }
 
 export class CreateExerciseDto {

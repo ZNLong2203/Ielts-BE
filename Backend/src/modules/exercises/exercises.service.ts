@@ -184,15 +184,10 @@ export class ExerciseService {
       let imageUrl: string | null = null;
       let audioUrl: string | null = null;
 
-      if (createQuestionDto.media_url) {
-        const mediaType = this.fileService.getMediaType(
-          createQuestionDto.media_url,
-        );
-        if (mediaType === 'image') {
-          imageUrl = createQuestionDto.media_url;
-        } else if (mediaType === 'audio') {
-          audioUrl = createQuestionDto.media_url;
-        }
+      if (createQuestionDto.image_url) {
+        imageUrl = createQuestionDto.image_url;
+      } else if (createQuestionDto.audio_url) {
+        audioUrl = createQuestionDto.audio_url;
       }
 
       // Create questions with proper typing
@@ -448,13 +443,11 @@ export class ExerciseService {
       let imageUrl: string | undefined = undefined;
       let audioUrl: string | undefined = undefined;
 
-      if (updateDto.media_url) {
-        const mediaType = this.fileService.getMediaType(updateDto.media_url);
-        if (mediaType === 'image') {
-          imageUrl = updateDto.media_url;
-        } else if (mediaType === 'audio') {
-          audioUrl = updateDto.media_url;
-        }
+      if (updateDto.image_url) {
+        imageUrl = updateDto.image_url;
+      }
+      if (updateDto.audio_url) {
+        audioUrl = updateDto.audio_url;
       }
 
       // Update question
