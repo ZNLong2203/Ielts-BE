@@ -70,14 +70,14 @@ INSERT INTO sections (id, course_id, title, description, ordering) VALUES
 
 -- Insert sample lessons
 INSERT INTO lessons (id, section_id, title, description, lesson_type, video_url, video_duration, document_url, ordering, is_preview) VALUES
-('d50e8400-e29b-41d4-a716-446655440001', 'c50e8400-e29b-41d4-a716-446655440001', 'Introduction to IELTS Reading', 'Overview of IELTS Reading test format and scoring', 'video', '/images/default_image.jpg4', 1800, '/images/default_image.jpg', 1, TRUE),
-('d50e8400-e29b-41d4-a716-446655440002', 'c50e8400-e29b-41d4-a716-446655440002', 'Skimming and Scanning Techniques', 'Learn essential reading strategies', 'video', '/images/default_image.jpg4', 2700, '/images/default_image.jpg', 1, FALSE),
-('d50e8400-e29b-41d4-a716-446655440003', 'c50e8400-e29b-41d4-a716-446655440003', 'IELTS Speaking Part 1', 'Master the personal questions section', 'video', '/images/default_image.jpg4', 2100, '/images/default_image.jpg', 1, TRUE),
-('d50e8400-e29b-41d4-a716-446655440004', 'c50e8400-e29b-41d4-a716-446655440004', 'Cue Card Strategies', 'How to tackle Part 2 effectively', 'video', '/images/default_image.jpg4', 3000, '/images/default_image.jpg', 1, FALSE),
-('d50e8400-e29b-41d4-a716-446655440005', 'c50e8400-e29b-41d4-a716-446655440005', 'Academic Writing Task 1', 'Describing charts and graphs', 'video', '/images/default_image.jpg4', 3300, '/images/default_image.jpg', 1, FALSE),
-('d50e8400-e29b-41d4-a716-446655440006', 'c50e8400-e29b-41d4-a716-446655440007', 'Note-taking Strategies', 'Effective listening note-taking methods', 'video', '/images/default_image.jpg4', 2400, '/images/default_image.jpg', 1, TRUE),
-('d50e8400-e29b-41d4-a716-446655440007', 'c50e8400-e29b-41d4-a716-446655440008', 'Complete IELTS Overview', 'Comprehensive introduction to all IELTS skills', 'video', '/images/default_image.jpg4', 2700, '/images/default_image.jpg', 1, TRUE),
-('d50e8400-e29b-41d4-a716-446655440008', 'c50e8400-e29b-41d4-a716-446655440009', 'Mock Test Guidelines', 'How to approach IELTS mock tests', 'video', '/images/default_image.jpg4', 1500, '/images/default_image.jpg', 1, FALSE);
+('d50e8400-e29b-41d4-a716-446655440001', 'c50e8400-e29b-41d4-a716-446655440001', 'Introduction to IELTS Reading', 'Overview of IELTS Reading test format and scoring', 'video', '/test/video.mp4', 1800, '/images/default_image.jpg', 1, TRUE),
+('d50e8400-e29b-41d4-a716-446655440002', 'c50e8400-e29b-41d4-a716-446655440002', 'Skimming and Scanning Techniques', 'Learn essential reading strategies', 'video', '/test/video.mp4', 2700, '/images/default_image.jpg', 1, FALSE),
+('d50e8400-e29b-41d4-a716-446655440003', 'c50e8400-e29b-41d4-a716-446655440003', 'IELTS Speaking Part 1', 'Master the personal questions section', 'video', '/test/video.mp4', 2100, '/images/default_image.jpg', 1, TRUE),
+('d50e8400-e29b-41d4-a716-446655440004', 'c50e8400-e29b-41d4-a716-446655440004', 'Cue Card Strategies', 'How to tackle Part 2 effectively', 'video', '/test/video.mp4', 3000, '/images/default_image.jpg', 1, FALSE),
+('d50e8400-e29b-41d4-a716-446655440005', 'c50e8400-e29b-41d4-a716-446655440005', 'Academic Writing Task 1', 'Describing charts and graphs', 'video', '/test/video.mp4', 3300, '/images/default_image.jpg', 1, FALSE),
+('d50e8400-e29b-41d4-a716-446655440006', 'c50e8400-e29b-41d4-a716-446655440007', 'Note-taking Strategies', 'Effective listening note-taking methods', 'video', '/test/video.mp4', 2400, '/images/default_image.jpg', 1, TRUE),
+('d50e8400-e29b-41d4-a716-446655440007', 'c50e8400-e29b-41d4-a716-446655440008', 'Complete IELTS Overview', 'Comprehensive introduction to all IELTS skills', 'video', '/test/video.mp4', 2700, '/images/default_image.jpg', 1, TRUE),
+('d50e8400-e29b-41d4-a716-446655440008', 'c50e8400-e29b-41d4-a716-446655440009', 'Mock Test Guidelines', 'How to approach IELTS mock tests', 'video', '/test/video.mp4', 1500, '/images/default_image.jpg', 1, FALSE);
 
 -- Insert sample enrollments
 INSERT INTO enrollments (id, user_id, course_id, enrollment_date, progress_percentage, is_active) VALUES
@@ -308,6 +308,92 @@ INSERT INTO blogs (id, author_id, category_id, title, content, image, tags, stat
 ('180e8400-e29b-41d4-a716-446655440004', '550e8400-e29b-41d4-a716-446655440003', '170e8400-e29b-41d4-a716-446655440003', 'My IELTS Journey: From Band 5.5 to 8.0', 'I still remember the day I got my first IELTS result - 5.5 overall...', '/images/default_image.jpg', ARRAY['experience', 'improvement', 'success'], 'published', FALSE, 312, NOW() - INTERVAL '8 days'),
 ('180e8400-e29b-41d4-a716-446655440005', '550e8400-e29b-41d4-a716-446655440002', '170e8400-e29b-41d4-a716-446655440004', 'Common Grammar Mistakes in IELTS Writing', 'Grammar accuracy is crucial for achieving a high score in IELTS Writing...', '/images/default_image.jpg', ARRAY['grammar', 'writing', 'mistakes'], 'published', TRUE, 298, NOW() - INTERVAL '25 days'),
 ('180e8400-e29b-41d4-a716-446655440006', '550e8400-e29b-41d4-a716-446655440003', '170e8400-e29b-41d4-a716-446655440005', '100 Advanced Vocabulary Words for IELTS', 'Building a strong vocabulary is essential for IELTS success...', '/images/default_image.jpg', ARRAY['vocabulary', 'advanced', 'wordlist'], 'published', FALSE, 567, NOW() - INTERVAL '30 days');
+
+-- Insert additional sample courses for testing UI
+INSERT INTO courses (id, teacher_id, category_id, title, description, thumbnail, skill_focus, difficulty_level, estimated_duration, price, discount_price, is_featured, enrollment_count, rating, rating_count, requirements, what_you_learn, tags, published_at) VALUES
+('950e8400-e29b-41d4-a716-446655440016', '350e8400-e29b-41d4-a716-446655440001', '650e8400-e29b-41d4-a716-446655440001', 'Reading Practice with Images', 'Practice IELTS Reading with visual content and comprehensive questions', '/test/image.jpg', 'reading', 'intermediate', 30, 2000000, 1500000, FALSE, 56, 4.5, 34, ARRAY['Basic reading skills'], ARRAY['Image-based reading', 'Visual comprehension', 'Question analysis'], ARRAY['ielts', 'reading', 'practice'], NOW() - INTERVAL '20 days'),
+('950e8400-e29b-41d4-a716-446655440017', '350e8400-e29b-41d4-a716-446655440002', '650e8400-e29b-41d4-a716-446655440003', 'Listening Practice with Audio', 'Comprehensive listening practice with audio files and various question types', '/test/image.jpg', 'listening', 'intermediate', 25, 1800000, 1350000, FALSE, 72, 4.6, 48, ARRAY['Basic listening skills'], ARRAY['Audio comprehension', 'Note-taking', 'Multiple question types'], ARRAY['ielts', 'listening', 'practice'], NOW() - INTERVAL '18 days'),
+('950e8400-e29b-41d4-a716-446655440018', '350e8400-e29b-41d4-a716-446655440001', '650e8400-e29b-41d4-a716-446655440002', 'Writing with Visual Aids', 'Learn to describe charts, graphs, and images effectively in IELTS Writing', '/test/image.jpg', 'writing', 'advanced', 35, 2600000, 1950000, FALSE, 43, 4.7, 28, ARRAY['Intermediate writing'], ARRAY['Chart description', 'Data analysis', 'Visual interpretation'], ARRAY['ielts', 'writing', 'visual'], NOW() - INTERVAL '15 days');
+
+-- Insert additional sample sections
+INSERT INTO sections (id, course_id, title, description, ordering) VALUES
+('c50e8400-e29b-41d4-a716-446655440010', '950e8400-e29b-41d4-a716-446655440016', 'Reading with Visual Content', 'Learn to analyze images and text together', 1),
+('c50e8400-e29b-41d4-a716-446655440011', '950e8400-e29b-41d4-a716-446655440016', 'Advanced Reading Techniques', 'Master complex reading strategies with visual aids', 2),
+('c50e8400-e29b-41d4-a716-446655440012', '950e8400-e29b-41d4-a716-446655440017', 'Listening Fundamentals', 'Basic listening skills with audio practice', 1),
+('c50e8400-e29b-41d4-a716-446655440013', '950e8400-e29b-41d4-a716-446655440017', 'Advanced Listening Skills', 'Complex listening scenarios with various accents', 2),
+('c50e8400-e29b-41d4-a716-446655440014', '950e8400-e29b-41d4-a716-446655440018', 'Task 1 Visual Description', 'Describing charts, graphs, and diagrams', 1),
+('c50e8400-e29b-41d4-a716-446655440015', '950e8400-e29b-41d4-a716-446655440018', 'Task 2 Essay Writing', 'Advanced essay writing with visual support', 2);
+
+-- Insert additional sample lessons with video from test folder
+INSERT INTO lessons (id, section_id, title, description, lesson_type, video_url, video_duration, document_url, ordering, is_preview) VALUES
+('d50e8400-e29b-41d4-a716-446655440009', 'c50e8400-e29b-41d4-a716-446655440010', 'Reading Images and Text Together', 'Learn how to analyze visual content in reading passages', 'video', '/test/video.mp4', 2400, '/images/default_image.jpg', 1, TRUE),
+('d50e8400-e29b-41d4-a716-446655440010', 'c50e8400-e29b-41d4-a716-446655440011', 'Advanced Visual Reading Strategies', 'Master complex techniques for reading with images', 'video', '/test/video.mp4', 2700, '/images/default_image.jpg', 1, FALSE),
+('d50e8400-e29b-41d4-a716-446655440011', 'c50e8400-e29b-41d4-a716-446655440012', 'Introduction to Audio Listening', 'Basic strategies for listening comprehension', 'video', '/test/video.mp4', 2100, '/images/default_image.jpg', 1, TRUE),
+('d50e8400-e29b-41d4-a716-446655440012', 'c50e8400-e29b-41d4-a716-446655440013', 'Complex Audio Scenarios', 'Advanced listening with various accents and speeds', 'video', '/test/video.mp4', 3000, '/images/default_image.jpg', 1, FALSE),
+('d50e8400-e29b-41d4-a716-446655440013', 'c50e8400-e29b-41d4-a716-446655440014', 'Describing Charts and Graphs', 'Learn to effectively describe visual data', 'video', '/test/video.mp4', 3300, '/images/default_image.jpg', 1, TRUE),
+('d50e8400-e29b-41d4-a716-446655440014', 'c50e8400-e29b-41d4-a716-446655440015', 'Essay Writing with Visual Support', 'Advanced techniques for incorporating visual elements', 'video', '/test/video.mp4', 3600, '/images/default_image.jpg', 1, FALSE);
+
+-- Insert additional sample exercises with audio and image support
+INSERT INTO exercises (id, lesson_id, test_section_id, title, instruction, content, exercise_type, skill_type, time_limit, max_attempts, passing_score, ordering, is_active) VALUES
+-- Reading exercises with images
+('130e8400-e29b-41d4-a716-446655440019', 'd50e8400-e29b-41d4-a716-446655440009', NULL, 'Reading Comprehension with Image', 'Read the passage and analyze the image to answer the questions', '{"passage": "The diagram shows the process of water cycle...", "image_url": "/test/image.jpg"}', 'lesson', 'reading', 30, 3, 70.00, 1, TRUE),
+('130e8400-e29b-41d4-a716-446655440020', 'd50e8400-e29b-41d4-a716-446655440010', NULL, 'Advanced Reading with Visual Aids', 'Practice reading complex passages with multiple images', '{"passage": "Renewable energy sources have become increasingly important...", "images": ["/test/image.jpg"]}', 'lesson', 'reading', 35, 2, 75.00, 1, TRUE),
+-- Listening exercises with audio
+('130e8400-e29b-41d4-a716-446655440021', 'd50e8400-e29b-41d4-a716-446655440011', NULL, 'Listening Practice with Audio', 'Listen to the audio and answer the questions', '{"audio_url": "/test/audio.mp3", "audio_duration": 180}', 'lesson', 'listening', 25, 3, 65.00, 1, TRUE),
+('130e8400-e29b-41d4-a716-446655440022', 'd50e8400-e29b-41d4-a716-446655440012', NULL, 'Complex Listening Scenario', 'Listen to a longer conversation and answer multiple question types', '{"audio_url": "/test/audio.mp3", "audio_duration": 300}', 'lesson', 'listening', 30, 2, 70.00, 1, TRUE),
+-- Writing exercises with images
+('130e8400-e29b-41d4-a716-446655440023', 'd50e8400-e29b-41d4-a716-446655440013', NULL, 'Describe the Chart', 'Write a 150-word description of the chart provided', '{"chart_url": "/test/image.jpg", "chart_type": "bar"}', 'lesson', 'writing', 60, 1, 0.00, 1, TRUE),
+('130e8400-e29b-41d4-a716-446655440024', 'd50e8400-e29b-41d4-a716-446655440014', NULL, 'Essay with Visual Data', 'Write an essay analyzing the provided visual data', '{"image_url": "/test/image.jpg", "essay_type": "opinion"}', 'lesson', 'writing', 60, 1, 0.00, 1, TRUE);
+
+-- Insert additional sample questions with images and audio
+INSERT INTO questions (id, exercise_id, question_text, question_type, image_url, audio_url, audio_duration, reading_passage, explanation, points, ordering, difficulty_level, question_group) VALUES
+-- Reading questions with images
+('140e8400-e29b-41d4-a716-446655440018', '130e8400-e29b-41d4-a716-446655440019', 'What does the diagram illustrate?', 'multiple_choice', '/test/image.jpg', NULL, NULL, 'The water cycle diagram shows how water moves through the environment...', 'Look at the diagram carefully to identify the main process shown', 1.00, 1, 6.5, 'Passage 1'),
+('140e8400-e29b-41d4-a716-446655440019', '130e8400-e29b-41d4-a716-446655440019', 'According to the diagram, where does water vapor form?', 'multiple_choice', '/test/image.jpg', NULL, NULL, NULL, 'The diagram shows the formation of water vapor from oceans and lakes', 1.00, 2, 6.0, 'Passage 1'),
+('140e8400-e29b-41d4-a716-446655440020', '130e8400-e29b-41d4-a716-446655440020', 'What is the main purpose of the visual aid shown in the passage?', 'multiple_choice', '/test/image.jpg', NULL, NULL, 'Renewable energy sources include solar, wind, and hydroelectric power...', 'The image supports the main idea presented in the text', 1.00, 1, 7.0, 'Passage 2'),
+('140e8400-e29b-41d4-a716-446655440021', '130e8400-e29b-41d4-a716-446655440020', 'Complete the sentence: The image shows that solar energy is _____ than wind energy.', 'fill_blank', '/test/image.jpg', NULL, NULL, NULL, 'Compare the visual data shown in the image', 1.00, 2, 6.5, 'Passage 2'),
+-- Listening questions with audio
+('140e8400-e29b-41d4-a716-446655440022', '130e8400-e29b-41d4-a716-446655440021', 'What is the main topic of the conversation?', 'multiple_choice', NULL, '/test/audio.mp3', 180, NULL, 'Listen carefully to the introduction and main discussion points', 1.00, 1, 6.0, 'Section 1'),
+('140e8400-e29b-41d4-a716-446655440023', '130e8400-e29b-41d4-a716-446655440021', 'Where does the conversation take place?', 'multiple_choice', NULL, '/test/audio.mp3', 180, NULL, 'Listen for contextual clues about the location', 1.00, 2, 5.5, 'Section 1'),
+('140e8400-e29b-41d4-a716-446655440024', '130e8400-e29b-41d4-a716-446655440021', 'Complete the sentence: The speaker mentions that the event will start at _____.', 'fill_blank', NULL, '/test/audio.mp3', 180, NULL, 'Listen for specific time information', 1.00, 3, 6.5, 'Section 1'),
+('140e8400-e29b-41d4-a716-446655440025', '130e8400-e29b-41d4-a716-446655440022', 'What is the speakers opinion about the topic?', 'multiple_choice', NULL, '/test/audio.mp3', 300, NULL, 'Listen for opinion markers and the speakers stance', 1.00, 1, 7.0, 'Section 2'),
+('140e8400-e29b-41d4-a716-446655440026', '130e8400-e29b-41d4-a716-446655440022', 'Fill in the blank: The main advantage mentioned is _____.', 'fill_blank', NULL, '/test/audio.mp3', 300, NULL, 'Listen for specific advantages discussed', 1.00, 2, 6.5, 'Section 2'),
+-- Writing questions with images
+('140e8400-e29b-41d4-a716-446655440027', '130e8400-e29b-41d4-a716-446655440023', 'Describe the main trends shown in the chart.', 'essay', '/test/image.jpg', NULL, NULL, NULL, 'Start with an overview, then describe specific trends with data', 0.00, 1, 7.0, 'Task 1'),
+('140e8400-e29b-41d4-a716-446655440028', '130e8400-e29b-41d4-a716-446655440024', 'Analyze the visual data and write an opinion essay.', 'essay', '/test/image.jpg', NULL, NULL, NULL, 'Use the visual data to support your opinion with clear arguments', 0.00, 1, 7.5, 'Task 2');
+
+-- Insert additional sample question options for multiple choice questions
+INSERT INTO question_options (id, question_id, option_text, is_correct, ordering, explanation, point) VALUES
+-- Options for reading question 018
+('150e8400-e29b-41d4-a716-446655440007', '140e8400-e29b-41d4-a716-446655440018', 'The water cycle process', TRUE, 1, 'The diagram clearly shows the water cycle', 1.00),
+('150e8400-e29b-41d4-a716-446655440008', '140e8400-e29b-41d4-a716-446655440018', 'Ocean currents', FALSE, 2, 'This is not shown in the diagram', 0.00),
+('150e8400-e29b-41d4-a716-446655440009', '140e8400-e29b-41d4-a716-446655440018', 'Weather patterns', FALSE, 3, 'The diagram focuses on water movement, not weather', 0.00),
+('150e8400-e29b-41d4-a716-446655440010', '140e8400-e29b-41d4-a716-446655440018', 'Plant growth cycles', FALSE, 4, 'Not related to the diagram content', 0.00),
+-- Options for reading question 019
+('150e8400-e29b-41d4-a716-446655440011', '140e8400-e29b-41d4-a716-446655440019', 'Over oceans and lakes', TRUE, 1, 'The diagram shows water vapor forming from water bodies', 1.00),
+('150e8400-e29b-41d4-a716-446655440012', '140e8400-e29b-41d4-a716-446655440019', 'In the atmosphere', FALSE, 2, 'Water vapor condenses in the atmosphere, not forms there', 0.00),
+('150e8400-e29b-41d4-a716-446655440013', '140e8400-e29b-41d4-a716-446655440019', 'Underground', FALSE, 3, 'Not shown in the water cycle diagram', 0.00),
+('150e8400-e29b-41d4-a716-446655440014', '140e8400-e29b-41d4-a716-446655440019', 'In plants only', FALSE, 4, 'Plants are part of the cycle but not the primary source', 0.00),
+-- Options for reading question 020
+('150e8400-e29b-41d4-a716-446655440015', '140e8400-e29b-41d4-a716-446655440020', 'To illustrate renewable energy sources', TRUE, 1, 'The image directly supports the passage topic', 1.00),
+('150e8400-e29b-41d4-a716-446655440016', '140e8400-e29b-41d4-a716-446655440020', 'To show energy consumption', FALSE, 2, 'Not the main purpose of the visual', 0.00),
+('150e8400-e29b-41d4-a716-446655440017', '140e8400-e29b-41d4-a716-446655440020', 'To compare different countries', FALSE, 3, 'The image does not show country comparisons', 0.00),
+('150e8400-e29b-41d4-a716-446655440018', '140e8400-e29b-41d4-a716-446655440020', 'To explain technical processes', FALSE, 4, 'The image is more about energy types than processes', 0.00),
+-- Options for listening question 022
+('150e8400-e29b-41d4-a716-446655440019', '140e8400-e29b-41d4-a716-446655440022', 'University course registration', TRUE, 1, 'The conversation discusses course enrollment', 1.00),
+('150e8400-e29b-41d4-a716-446655440020', '140e8400-e29b-41d4-a716-446655440022', 'Job interview', FALSE, 2, 'Not mentioned in the conversation', 0.00),
+('150e8400-e29b-41d4-a716-446655440021', '140e8400-e29b-41d4-a716-446655440022', 'Travel arrangements', FALSE, 3, 'Not the topic of discussion', 0.00),
+('150e8400-e29b-41d4-a716-446655440022', '140e8400-e29b-41d4-a716-446655440022', 'Restaurant booking', FALSE, 4, 'Not related to the conversation', 0.00),
+-- Options for listening question 023
+('150e8400-e29b-41d4-a716-446655440023', '140e8400-e29b-41d4-a716-446655440023', 'In a university office', TRUE, 1, 'Context clues suggest an academic setting', 1.00),
+('150e8400-e29b-41d4-a716-446655440024', '140e8400-e29b-41d4-a716-446655440023', 'In a library', FALSE, 2, 'Not indicated in the conversation', 0.00),
+('150e8400-e29b-41d4-a716-446655440025', '140e8400-e29b-41d4-a716-446655440023', 'At a café', FALSE, 3, 'Not the setting for this conversation', 0.00),
+('150e8400-e29b-41d4-a716-446655440026', '140e8400-e29b-41d4-a716-446655440023', 'On the phone', FALSE, 4, 'The conversation suggests face-to-face interaction', 0.00),
+-- Options for listening question 025
+('150e8400-e29b-41d4-a716-446655440027', '140e8400-e29b-41d4-a716-446655440025', 'Positive and supportive', TRUE, 1, 'The speaker expresses favorable views', 1.00),
+('150e8400-e29b-41d4-a716-446655440028', '140e8400-e29b-41d4-a716-446655440025', 'Negative and critical', FALSE, 2, 'Not the tone of the speaker', 0.00),
+('150e8400-e29b-41d4-a716-446655440029', '140e8400-e29b-41d4-a716-446655440025', 'Neutral and objective', FALSE, 3, 'The speaker shows personal opinion', 0.00),
+('150e8400-e29b-41d4-a716-446655440030', '140e8400-e29b-41d4-a716-446655440025', 'Uncertain and hesitant', FALSE, 4, 'The speaker seems confident in their views', 0.00);
 
 -- Insert sample test results
 INSERT INTO test_results (id, user_id, mock_test_id, overall_score, band_score, reading_score, writing_score, listening_score, speaking_score, time_taken, recommendations, strengths, weaknesses, status) VALUES
