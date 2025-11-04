@@ -7,7 +7,7 @@ import {
 } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { FileType } from 'src/common/constants';
-import { QUESTION_TYPE } from 'src/modules/exercises/constants';
+import { QUESTION_TYPE, QuestionType } from 'src/modules/exercises/constants';
 import {
   QuestionDetails,
   QuestionWithDetails,
@@ -101,7 +101,12 @@ export class QuestionsService {
 
       // Create question options if provided
       if (createDto.options && createDto.options.length > 0) {
-        await this.createQuestionOptions(tx, question.id, createDto.options);
+        await this.createQuestionOptions(
+          tx,
+          question.id,
+          createDto.options,
+          question.question_type,
+        );
       }
 
       // Create correct answer options for FILL_BLANK
@@ -396,7 +401,12 @@ export class QuestionsService {
 
         // Create new options
         if (updateDto.options.length > 0) {
-          await this.createQuestionOptions(tx, id, updateDto.options);
+          await this.createQuestionOptions(
+            tx,
+            id,
+            updateDto.options,
+            updateDto.question_type,
+          );
         }
       }
 
@@ -690,15 +700,26 @@ export class QuestionsService {
       ordering?: number;
       point?: number;
       explanation?: string;
+      matching_option_id?: string;
     }>,
+    questionType?: QuestionType,
   ): Promise<void> {
     for (let i = 0; i < options.length; i++) {
+      const matchingOption = await this.prisma.matching_options.findUnique({
+        where: { id: options[i].matching_option_id },
+      });
+      if (questionType === QUESTION_TYPE.MATCHING && !matchingOption) {
+        throw new BadRequestException(
+          `Matching option with ID ${options[i].matching_option_id} not found`,
+        );
+      }
       const option = options[i];
       await tx.question_options.create({
         data: {
           question_id: questionId,
           option_text: option.option_text,
           is_correct: option.is_correct,
+          matching_option_id: option.matching_option_id,
           ordering: option.ordering ?? i,
           point: option.point ?? 1,
           explanation: option.explanation,

@@ -58,6 +58,15 @@ export class QuestionOptionDto {
   @IsString()
   @IsOptional()
   explanation?: string;
+
+  @ApiProperty({
+    description: 'Matching option ID (for MATCHING question type)',
+    example: 'match-option-uuid-1',
+    required: false,
+  })
+  @IsString()
+  @IsOptional()
+  matching_option_id?: string;
 }
 
 export class CreateQuestionDto {
