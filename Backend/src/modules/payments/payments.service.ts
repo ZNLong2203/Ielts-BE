@@ -5,6 +5,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { Prisma } from '@prisma/client';
 import { Response } from 'express';
 import { OrderStatus } from 'src/modules/orders/dto/update-order.dto';
 import {
@@ -320,6 +321,12 @@ export class PaymentsService {
           updated_at: new Date(),
         },
       });
+
+      await this.createComboEnrollmentPaymentRecord(
+        tx,
+        orderId,
+        PaymentStatus.COMPLETED,
+      );
     });
 
     // Redirect to success URL
@@ -555,6 +562,60 @@ export class PaymentsService {
       });
 
       return { payment, order };
+    });
+  }
+
+  /**
+   * Create a combo enrollment payment record and enrollments records for each course in the combo if payment is completed.
+   */
+  async createComboEnrollmentPaymentRecord(
+    tx: Prisma.TransactionClient,
+    orderId: string,
+    status: PaymentStatus,
+  ) {
+    if (status !== PaymentStatus.COMPLETED) {
+      throw new BadRequestException(
+        'Payment status must be COMPLETED to create enrollment records',
+      );
+    }
+
+    const order = await this.prisma.orders.findUnique({
+      where: { id: orderId },
+    });
+
+    if (!order) {
+      throw new NotFoundException('Order not found');
+    }
+
+    const orderItems = await this.prisma.order_items.findMany({
+      where: { order_id: orderId, combo_id: { not: null } },
+      include: { combo_courses: { select: { course_ids: true } } },
+    });
+
+    if (orderItems.length === 0) {
+      throw new NotFoundException('Order item for combo not found');
+    }
+
+    const courseIds = orderItems.flatMap(
+      (item) => item.combo_courses?.course_ids || [],
+    );
+
+    const enrollmentRecords = courseIds.map((courseId) => ({
+      user_id: order.user_id,
+      course_id: courseId,
+    }));
+
+    // create transaction to insert all enrollments and combo enrollment records
+    await tx.combo_enrollments.create({
+      data: {
+        user_id: order.user_id,
+        combo_id: orderItems[0].combo_id!,
+        created_at: new Date(),
+      },
+    });
+
+    await tx.enrollments.createMany({
+      data: enrollmentRecords,
     });
   }
 }
