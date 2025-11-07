@@ -9,17 +9,13 @@ import {
 export class MatchingGrader implements Grader {
   /**
    * Grade matching question
-   * UserAnswer format: { "item1": "match1", "item2": "match2" }
+   * UserAnswer format: string (uuid of answers)
    */
   grade(question: Question, userAnswer: UserAnswer): GradingResult {
-    const points = question.points || 1;
+    const points = 1;
 
     // Handle empty answer
-    if (
-      !userAnswer ||
-      typeof userAnswer !== 'object' ||
-      Array.isArray(userAnswer)
-    ) {
+    if (!userAnswer) {
       return {
         question_id: question.id,
         is_correct: false,
@@ -30,28 +26,16 @@ export class MatchingGrader implements Grader {
       };
     }
 
-    const userMatches = userAnswer as unknown as Record<string, string>;
+    // userAnswer is a string of uuid answer
+    const userAnswerUuid = userAnswer as string;
+
+    // Check if all options are correctly matched
     const correctOptions = question.question_options.filter(
       (opt) => opt.is_correct,
     );
-
-    // Count correct matches
-    let correctCount = 0;
-    const totalRequired = correctOptions.length;
-
-    for (const option of correctOptions) {
-      // option_text format: "item1:match1"
-      const [item, correctMatch] = option.option_text
-        .split(':')
-        .map((s) => s.trim().toLowerCase());
-      const userMatch = userMatches[item]?.toLowerCase().trim();
-
-      if (userMatch === correctMatch) {
-        correctCount++;
-      }
-    }
-
-    const isCorrect = correctCount === totalRequired;
+    const isCorrect = correctOptions.every(
+      (opt) => opt.matching_option_id === userAnswerUuid,
+    );
 
     return {
       question_id: question.id,

@@ -15,7 +15,8 @@ export class TrueFalseGrader implements Grader {
     const correctOption = question.question_options.find(
       (opt) => opt.is_correct,
     );
-    const points = question.points || 1;
+
+    const points = 1;
 
     // Handle empty answer
     if (!userAnswer) {

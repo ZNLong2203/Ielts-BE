@@ -2,6 +2,7 @@
 
 export interface QuestionOption {
   id: string;
+  matching_option_id?: string;
   option_text: string;
   is_correct: boolean;
   point: number;
@@ -20,12 +21,7 @@ export interface Question {
 // Fill in the blank: Record<string, string> (mapping blank ids to user inputs)
 // True/False: string ('true' or 'false' or 'not given')
 // Matching: Record<string, string> (mapping left item ids to right item ids)
-export type UserAnswer =
-  | string
-  | string[]
-  | Record<string, string>
-  | null
-  | undefined;
+export type UserAnswer = string | string[] | null | undefined;
 
 export interface GradingResult {
   question_id: string;

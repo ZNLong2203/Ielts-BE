@@ -16,7 +16,7 @@ export class FillBlankGrader implements Grader {
       (opt) => opt.is_correct,
     );
     // calculate points by total points of question_options that are correct
-    const points = correctOptions.reduce((sum, opt) => sum + opt.point, 0);
+    const points = 1;
 
     // Handle empty answer
     if (

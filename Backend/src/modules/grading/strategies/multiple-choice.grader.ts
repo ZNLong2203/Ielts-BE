@@ -15,10 +15,16 @@ export class MultipleChoiceGrader implements Grader {
     const correctOptions = question.question_options.filter(
       (opt) => opt.is_correct,
     );
-    const points = question.points || 1;
+
+    // calculate points by total points of question_options that are correct
+    const points = correctOptions.reduce((sum, opt) => sum + opt.point, 0);
 
     // Handle empty answer
-    if (!userAnswer || (Array.isArray(userAnswer) && userAnswer.length === 0)) {
+    if (
+      !userAnswer ||
+      (Array.isArray(userAnswer) && userAnswer.length === 0) ||
+      !Array.isArray(userAnswer)
+    ) {
       return {
         question_id: question.id,
         is_correct: false,
@@ -29,27 +35,14 @@ export class MultipleChoiceGrader implements Grader {
       };
     }
 
-    // Normalize user answer to array
-    const userAnswers = Array.isArray(userAnswer) ? userAnswer : [userAnswer];
+    // userAnswer is an array of uuids
+    const userAnswersArray = userAnswer as unknown as string[];
 
-    // Normalize to lowercase for comparison
-    const normalizedUserAnswers = userAnswers.map((ans: string) =>
-      ans.toLowerCase().trim(),
-    );
-
-    const correctIds = correctOptions.map((opt) => opt.id.toLowerCase());
-    const correctTexts = correctOptions.map((opt) =>
-      opt.option_text.toLowerCase(),
-    );
-
-    // Check if all user answers are correct and no incorrect selections
-    const correctSelections = normalizedUserAnswers.filter(
-      (ans) => correctIds.includes(ans) || correctTexts.includes(ans),
-    );
-
+    // Check if all correct options are selected and no incorrect options are selected
+    const correctOptionIds = correctOptions.map((opt) => opt.id);
     const isCorrect =
-      correctSelections.length === correctOptions.length &&
-      normalizedUserAnswers.length === correctOptions.length;
+      userAnswersArray.length === correctOptionIds.length &&
+      userAnswersArray.every((ans) => correctOptionIds.includes(ans));
 
     return {
       question_id: question.id,
