@@ -315,37 +315,88 @@ export class WritingService {
     return submissions;
   }
 
+  /**
+   * Remove null bytes (0x00) from strings to prevent PostgreSQL encoding errors
+   */
+  private cleanString(value: string | null | undefined): string | null {
+    if (!value || typeof value !== 'string') {
+      return value || null;
+    }
+    // Remove null bytes (0x00) from string
+    return value.replace(/\0/g, '');
+  }
+
+  /**
+   * Clean null bytes from array of strings
+   */
+  private cleanStringArray(
+    value: string[] | null | undefined,
+  ): string[] | null {
+    if (!value || !Array.isArray(value)) {
+      return value || null;
+    }
+    return value.map((item) => this.cleanString(item) || '').filter(Boolean);
+  }
+
+  /**
+   * Clean null bytes from object recursively
+   */
+  private cleanObject(value: any): any {
+    if (value === null || value === undefined) {
+      return value;
+    }
+    if (typeof value === 'string') {
+      return this.cleanString(value);
+    }
+    if (Array.isArray(value)) {
+      return value.map((item) => this.cleanObject(item));
+    }
+    if (typeof value === 'object') {
+      const cleaned: any = {};
+      for (const key in value) {
+        if (Object.prototype.hasOwnProperty.call(value, key)) {
+          cleaned[key] = this.cleanObject(value[key]);
+        }
+      }
+      return cleaned;
+    }
+    return value;
+  }
+
   // Save writing assessment
   async saveWritingAssessment(
     userId: string,
     saveDto: SaveWritingAssessmentDto,
   ): Promise<WritingAssessmentResponse> {
+    // Clean all string fields to remove null bytes
+    const cleanedData = {
+      user_id: userId,
+      exercise_id: saveDto.exerciseId || null,
+      task_type: this.cleanString(saveDto.taskType) || '',
+      question: this.cleanString(saveDto.question) || '',
+      student_answer: this.cleanString(saveDto.studentAnswer) || '',
+      word_limit: saveDto.wordLimit || null,
+      additional_instructions: this.cleanString(saveDto.additionalInstructions),
+      overall_score: saveDto.overallScore,
+      task_achievement_score: saveDto.taskAchievementScore,
+      coherence_cohesion_score: saveDto.coherenceCohesionScore,
+      lexical_resource_score: saveDto.lexicalResourceScore,
+      grammatical_range_accuracy_score: saveDto.grammaticalRangeAccuracyScore,
+      detailed_feedback: this.cleanString(saveDto.detailedFeedback),
+      suggestions: this.cleanStringArray(saveDto.suggestions) || [],
+      strengths: this.cleanStringArray(saveDto.strengths) || [],
+      weaknesses: this.cleanStringArray(saveDto.weaknesses) || [],
+      detailed_metrics: this.cleanObject(saveDto.detailedMetrics) || {},
+      upgraded_essay: this.cleanString(saveDto.upgradedEssay),
+      sample_answer: this.cleanString(saveDto.sampleAnswer),
+      ai_model: this.cleanString(saveDto.aiModel) || 'gemini-2.5-flash',
+      status: 'completed',
+    };
+
     const assessment = await (
       this.prisma.prisma as any
     ).writing_assessments.create({
-      data: {
-        user_id: userId,
-        exercise_id: saveDto.exerciseId || null,
-        task_type: saveDto.taskType,
-        question: saveDto.question,
-        student_answer: saveDto.studentAnswer,
-        word_limit: saveDto.wordLimit,
-        additional_instructions: saveDto.additionalInstructions,
-        overall_score: saveDto.overallScore,
-        task_achievement_score: saveDto.taskAchievementScore,
-        coherence_cohesion_score: saveDto.coherenceCohesionScore,
-        lexical_resource_score: saveDto.lexicalResourceScore,
-        grammatical_range_accuracy_score: saveDto.grammaticalRangeAccuracyScore,
-        detailed_feedback: saveDto.detailedFeedback,
-        suggestions: saveDto.suggestions || [],
-        strengths: saveDto.strengths || [],
-        weaknesses: saveDto.weaknesses || [],
-        detailed_metrics: saveDto.detailedMetrics || {},
-        upgraded_essay: saveDto.upgradedEssay,
-        sample_answer: saveDto.sampleAnswer,
-        ai_model: saveDto.aiModel || 'gemini-2.5-flash',
-        status: 'completed',
-      },
+      data: cleanedData,
     });
 
     return {

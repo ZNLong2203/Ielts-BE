@@ -11,8 +11,6 @@ import {
   TranscribeAndGradeResponse,
 } from './dto/grade-speaking.dto';
 import { UploadResult } from '../files/minio.service';
-import * as ffprobe from 'node-ffprobe';
-import * as ffprobeInstaller from '@ffprobe-installer/ffprobe';
 
 @Injectable()
 export class SpeakingService {
@@ -64,32 +62,78 @@ export class SpeakingService {
     dto: TranscribeAndGradeDto,
   ): Promise<TranscribeAndGradeResponse> {
     try {
+      console.log('Starting transcribeAndGrade for file:', dto.fileName);
+
+      // Ensure audioBuffer is a Buffer
+      const audioBuffer: Buffer = Buffer.isBuffer(dto.audioBuffer)
+        ? dto.audioBuffer
+        : Buffer.from(dto.audioBuffer as ArrayBuffer);
+
+      console.log('Uploading and transcribing audio...');
       const { uploadResult, transcription } = await this.uploadAndTranscribe(
-        dto.audioBuffer,
+        audioBuffer,
         dto.fileName,
         dto.mimetype,
       );
+      console.log('Transcription completed:', transcription.substring(0, 100));
 
       // Get audio duration for pronunciation analysis
       let audioDuration: number | undefined;
       try {
-        audioDuration = await this.getAudioDuration(
-          dto.audioBuffer,
-          dto.fileName,
-        );
+        audioDuration = await this.getAudioDuration(audioBuffer, dto.fileName);
       } catch (error) {
         // If duration extraction fails, continue without it
-        console.warn('Could not extract audio duration:', error);
+        const errorMessage =
+          error instanceof Error ? error.message : 'Unknown error';
+        console.warn('Could not extract audio duration:', errorMessage);
       }
 
-      // Analyze pronunciation and stress patterns
-      const pronunciationAnalysis =
-        await this.pronunciationAnalysisService.analyzePronunciation(
-          transcription,
-          audioDuration,
+      // Analyze pronunciation and stress patterns from audio
+      let pronunciationAnalysis: {
+        transcription: string;
+        words: Array<{
+          word: string;
+          expectedStress: number[];
+          phonemes: string[];
+          syllableCount: number;
+        }>;
+        metrics: {
+          speechRate: number;
+          pauseCount: number;
+          averageWordLength: number;
+          stressPatternMatch: number;
+        };
+        stressFeedback: string[];
+        pronunciationScore: number;
+        detailedFeedback: string;
+      };
+      try {
+        pronunciationAnalysis =
+          await this.pronunciationAnalysisService.analyzePronunciation(
+            transcription,
+            audioDuration,
+            audioBuffer, // Pass audio buffer for real audio analysis
+            dto.fileName, // Pass file name
+          );
+      } catch (pronunciationError) {
+        // If pronunciation analysis fails, log and continue with basic analysis
+        const errorMessage =
+          pronunciationError instanceof Error
+            ? pronunciationError.message
+            : 'Unknown error';
+        console.warn(
+          `Pronunciation analysis failed, using fallback: ${errorMessage}`,
         );
+        // Use fallback text-based analysis
+        pronunciationAnalysis =
+          await this.pronunciationAnalysisService.analyzePronunciation(
+            transcription,
+            audioDuration,
+          );
+      }
 
       // Grade the transcribed text with pronunciation analysis
+      console.log('Preparing grading request...');
       const gradeDto: GradeSpeakingDto = {
         studentAnswer: transcription,
         partType: dto.partType,
@@ -105,7 +149,9 @@ export class SpeakingService {
         },
       };
 
+      console.log('Calling Gemini API for grading...');
       const gradingResult = await this.geminiService.gradeSpeaking(gradeDto);
+      console.log('Grading completed successfully');
 
       return {
         audioUrl: uploadResult.url,
@@ -123,6 +169,35 @@ export class SpeakingService {
     } catch (error) {
       const errorMessage =
         error instanceof Error ? error.message : 'Unknown error';
+      const errorStack = error instanceof Error ? error.stack : undefined;
+
+      console.error('Error in transcribeAndGrade:', errorMessage);
+      if (errorStack) {
+        console.error('Error stack:', errorStack);
+      }
+
+      // Check for specific error types
+      if (
+        errorMessage.includes('network') ||
+        errorMessage.includes('ECONNREFUSED') ||
+        errorMessage.includes('ETIMEDOUT')
+      ) {
+        throw new HttpException(
+          `Network error: ${errorMessage}. Please check your connection and try again.`,
+          HttpStatus.SERVICE_UNAVAILABLE,
+        );
+      }
+
+      if (
+        errorMessage.includes('timeout') ||
+        errorMessage.includes('TIMEOUT')
+      ) {
+        throw new HttpException(
+          `Request timeout: ${errorMessage}. The operation took too long. Please try again with a shorter audio file.`,
+          HttpStatus.REQUEST_TIMEOUT,
+        );
+      }
+
       throw new HttpException(
         `Failed to transcribe and grade: ${errorMessage}`,
         HttpStatus.INTERNAL_SERVER_ERROR,
@@ -131,39 +206,35 @@ export class SpeakingService {
   }
 
   /**
-   * Get audio duration using ffprobe
+   * Get audio duration using WAV decoder (ffprobe is unreliable and causes errors)
    */
   private async getAudioDuration(
     audioBuffer: Buffer,
     fileName: string,
   ): Promise<number | undefined> {
-    try {
-      // Write buffer to temporary file for ffprobe
-      const fs = await import('fs');
-      const path = await import('path');
-      const os = await import('os');
-
-      const tempFilePath = path.join(
-        os.tmpdir(),
-        `audio-${Date.now()}-${fileName}`,
-      );
-      fs.writeFileSync(tempFilePath, audioBuffer);
-
-      const probeData = await ffprobe(tempFilePath, {
-        path: ffprobeInstaller.path,
-      });
-
-      // Clean up temp file
-      fs.unlinkSync(tempFilePath);
-
-      if (probeData?.format?.duration) {
-        return parseFloat(probeData.format.duration);
+    // Only try WAV decoder for WAV files
+    // Skip ffprobe entirely as it causes JSON parsing errors when not available
+    if (fileName.toLowerCase().endsWith('.wav')) {
+      try {
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+        const WavDecoderModule = await import('wav-decoder');
+        const decoder = WavDecoderModule as {
+          decode: (buffer: Buffer) => Promise<{ duration: number }>;
+        };
+        const decoded = await decoder.decode(audioBuffer);
+        if (decoded && typeof decoded.duration === 'number') {
+          return decoded.duration;
+        }
+      } catch (error) {
+        // If WAV decoding fails, return undefined
+        const errorMessage =
+          error instanceof Error ? error.message : 'Unknown error';
+        console.warn('Failed to decode WAV file:', errorMessage);
       }
-
-      return undefined;
-    } catch (error) {
-      console.warn('Failed to get audio duration:', error);
-      return undefined;
     }
+
+    // For non-WAV files, return undefined and let the system estimate duration
+    // We skip ffprobe to avoid JSON parsing errors when it's not available
+    return undefined;
   }
 }

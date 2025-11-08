@@ -23,8 +23,13 @@ export class WhisperService {
   ): Promise<string> {
     try {
       if (!this.groqApiKey) {
-        throw new Error('GROQ_API_KEY is not configured');
+        throw new HttpException(
+          'GROQ_API_KEY is not configured',
+          HttpStatus.SERVICE_UNAVAILABLE,
+        );
       }
+
+      console.log('Transcribing audio with Whisper:', fileName);
 
       const formData = new FormData();
       formData.append('file', audioBuffer, {
@@ -38,14 +43,16 @@ export class WhisperService {
           ...formData.getHeaders(),
           Authorization: `Bearer ${this.groqApiKey}`,
         },
-        timeout: 120000,
+        timeout: 120000, // 120 seconds
       });
 
       if (!response.data || !response.data.text) {
         throw new Error('No transcription text received from Groq Whisper API');
       }
 
-      return String(response.data.text).trim();
+      const transcription = String(response.data.text).trim();
+      console.log('Transcription completed:', transcription.substring(0, 100));
+      return transcription;
     } catch (error) {
       if (error instanceof HttpException) {
         throw error;

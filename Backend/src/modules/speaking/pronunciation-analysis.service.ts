@@ -1,5 +1,10 @@
-import { Injectable } from '@nestjs/common';
-import * as WavDecoder from 'wav-decoder';
+import { Injectable, Logger } from '@nestjs/common';
+import { spawn } from 'child_process';
+import * as fs from 'fs';
+import * as path from 'path';
+import * as os from 'os';
+import * as ffmpeg from 'fluent-ffmpeg';
+import * as ffmpegInstaller from '@ffmpeg-installer/ffmpeg';
 
 export interface WordAnalysis {
   word: string;
@@ -26,16 +31,29 @@ export interface PronunciationAnalysisResult {
 
 @Injectable()
 export class PronunciationAnalysisService {
+  private readonly logger = new Logger(PronunciationAnalysisService.name);
   private pronouncingDictionary: Record<string, string> | null = null;
+  private readonly pythonScriptPath: string;
+  private readonly pythonExecutable: string;
 
-  /**
-   * Load CMU pronouncing dictionary dynamically (ES Module)
-   */
+  constructor() {
+    this.pythonScriptPath = path.join(
+      process.cwd(),
+      'pronunciation-analysis',
+      'pronunciation_analyzer.py',
+    );
+
+    this.pythonExecutable =
+      process.env.PYTHON_PATH ||
+      (process.platform === 'darwin' ? '/usr/bin/python3' : 'python3');
+
+    this.logger.debug(`Using Python executable: ${this.pythonExecutable}`);
+  }
+
   private async loadDictionary(): Promise<Record<string, string>> {
     if (!this.pronouncingDictionary) {
       const pronouncing = await import('cmu-pronouncing-dictionary');
       const module = pronouncing.default || pronouncing;
-      // CMU dictionary exports a dictionary object with word -> pronunciation mappings
       this.pronouncingDictionary =
         (module.dictionary as unknown as Record<string, string>) ||
         (module as unknown as Record<string, string>);
@@ -44,22 +62,39 @@ export class PronunciationAnalysisService {
   }
 
   /**
-   * Analyze pronunciation and stress patterns from transcription
+   * Analyze pronunciation and stress patterns from audio and transcription
+   * Uses Parselmouth (Python) for real audio analysis if audioBuffer is provided
+   * Falls back to text-based analysis if audio is not available
    * @param transcription Transcribed text
    * @param audioDuration Audio duration in seconds
+   * @param audioBuffer Optional audio buffer for real pronunciation analysis
+   * @param fileName Optional audio file name
    * @returns Pronunciation analysis results
    */
   async analyzePronunciation(
     transcription: string,
     audioDuration?: number,
+    audioBuffer?: Buffer,
+    fileName?: string,
   ): Promise<PronunciationAnalysisResult> {
+    if (audioBuffer && fileName) {
+      try {
+        return await this.analyzePronunciationFromAudio(
+          audioBuffer,
+          fileName,
+          transcription,
+        );
+      } catch (error) {
+        this.logger.warn(
+          `Failed to analyze pronunciation from audio, falling back to text-based analysis: ${error}`,
+        );
+      }
+    }
+
     const words = this.extractWords(transcription);
     const wordAnalyses: WordAnalysis[] = [];
-
-    // Load dictionary if not already loaded
     const pronouncing = await this.loadDictionary();
 
-    // Analyze each word
     for (const word of words) {
       const analysis = this.analyzeWord(word, pronouncing);
       if (analysis) {
@@ -67,14 +102,12 @@ export class PronunciationAnalysisService {
       }
     }
 
-    // Calculate metrics
     const metrics = this.calculateMetrics(
       wordAnalyses,
       transcription,
       audioDuration,
     );
 
-    // Generate feedback
     const stressFeedback = this.generateStressFeedback(wordAnalyses);
     const pronunciationScore = this.calculatePronunciationScore(
       metrics,
@@ -109,12 +142,9 @@ export class PronunciationAnalysisService {
       return null;
     }
 
-    // Get pronunciation from CMU dictionary
     const pronunciation = dictionary[cleanWord];
 
     if (!pronunciation || typeof pronunciation !== 'string') {
-      // Word not found in dictionary - might be proper noun or misspelling
-      // Estimate based on common patterns
       return {
         word: cleanWord,
         expectedStress: this.estimateStress(cleanWord),
@@ -122,9 +152,6 @@ export class PronunciationAnalysisService {
         syllableCount: this.estimateSyllables(cleanWord),
       };
     }
-
-    // Parse CMU pronunciation format
-    // Format: "K AE1 T" where numbers indicate stress (1=primary, 2=secondary, 0=unstressed)
     const parts = pronunciation.split(' ');
     const phonemes: string[] = [];
     const stressPattern: number[] = [];
@@ -136,7 +163,6 @@ export class PronunciationAnalysisService {
       stressPattern.push(stressMatch ? parseInt(stressMatch[1], 10) : 0);
     }
 
-    // Extract syllables (count stressed positions)
     const syllableCount = phonemes.length;
 
     return {
@@ -147,37 +173,24 @@ export class PronunciationAnalysisService {
     };
   }
 
-  /**
-   * Estimate stress pattern for words not in dictionary
-   */
   private estimateStress(word: string): number[] {
-    // Simple heuristic: first syllable often stressed in English
-    // This is a simplified approach
     const syllables = this.estimateSyllables(word);
     if (syllables === 0) return [0];
 
-    const stress = [1]; // First syllable stressed
+    const stress = [1];
     for (let i = 1; i < syllables; i++) {
-      stress.push(0); // Others unstressed
+      stress.push(0);
     }
     return stress;
   }
-
-  /**
-   * Estimate syllable count using simple vowel counting
-   */
   private estimateSyllables(word: string): number {
     word = word.toLowerCase();
     if (word.length <= 3) return 1;
 
-    word = word.replace(/[^aeiouy]+/g, ' '); // Replace non-vowels with space
+    word = word.replace(/[^aeiouy]+/g, ' ');
     const matches = word.match(/[aeiouy]+/g);
     return matches ? matches.length : 1;
   }
-
-  /**
-   * Extract words from transcription
-   */
   private extractWords(text: string): string[] {
     return text
       .replace(/[^\w\s'-]/g, ' ')
@@ -195,34 +208,33 @@ export class PronunciationAnalysisService {
   ): PronunciationMetrics {
     const wordCount = words.length;
 
-    // Calculate speech rate
     let speechRate = 0;
     if (audioDuration && audioDuration > 0) {
-      speechRate = (wordCount / audioDuration) * 60; // Words per minute
+      speechRate = (wordCount / audioDuration) * 60;
     } else {
-      // Estimate: average speaking rate is 150-160 WPM
       speechRate = 155;
     }
 
-    // Estimate pause count from punctuation and slow speech
     const punctuationCount = (transcription.match(/[.,!?;:]/g) || []).length;
     const pauseCount = punctuationCount;
-
-    // If speech rate is very slow, might indicate more pauses
     let estimatedPauseCount = pauseCount;
     if (speechRate < 100) {
-      // Slow speech might indicate hesitations
       estimatedPauseCount += Math.floor((120 - speechRate) / 10);
     }
 
-    // Average word length (in phonemes)
     const totalPhonemes = words.reduce((sum, w) => sum + w.phonemes.length, 0);
     const averageWordLength =
       words.length > 0 ? totalPhonemes / words.length : 0;
 
-    // Stress pattern match (estimated - we can't detect actual stress from text alone)
-    // This is a placeholder that would need audio analysis for real accuracy
-    const stressPatternMatch = 75; // Assume 75% match as baseline
+    const multiSyllableWords = words.filter((w) => w.syllableCount > 1);
+    let stressPatternMatch = 70;
+
+    if (multiSyllableWords.length > 0) {
+      const avgSyllables =
+        multiSyllableWords.reduce((sum, w) => sum + w.syllableCount, 0) /
+        multiSyllableWords.length;
+      stressPatternMatch = Math.max(60, 70 - (avgSyllables - 2) * 5);
+    }
 
     return {
       speechRate: Math.round(speechRate),
@@ -232,9 +244,6 @@ export class PronunciationAnalysisService {
     };
   }
 
-  /**
-   * Generate stress-related feedback
-   */
   private generateStressFeedback(words: WordAnalysis[]): string[] {
     const feedback: string[] = [];
     const multiSyllableWords = words.filter((w) => w.syllableCount > 1);
@@ -246,7 +255,6 @@ export class PronunciationAnalysisService {
       return feedback;
     }
 
-    // Find words with primary stress
     const stressedWords = multiSyllableWords.filter((w) =>
       w.expectedStress.includes(1),
     );
@@ -257,7 +265,6 @@ export class PronunciationAnalysisService {
       );
     }
 
-    // Identify common stress patterns
     const commonStressPatterns = new Map<string, number>();
     stressedWords.forEach((w) => {
       const stressPos = w.expectedStress.indexOf(1);
@@ -268,7 +275,6 @@ export class PronunciationAnalysisService {
       );
     });
 
-    // Find words with potential stress issues
     const longWords = multiSyllableWords.filter((w) => w.syllableCount >= 3);
     if (longWords.length > 0) {
       feedback.push(
@@ -279,42 +285,51 @@ export class PronunciationAnalysisService {
     return feedback;
   }
 
-  /**
-   * Calculate overall pronunciation score (0-100)
-   */
   private calculatePronunciationScore(
     metrics: PronunciationMetrics,
     words: WordAnalysis[],
   ): number {
-    let score = 100;
+    let score = 0;
+    score += metrics.stressPatternMatch * 0.4;
 
-    // Speech rate penalty (too slow or too fast)
+    let fluencyScore = 100;
     if (metrics.speechRate < 100) {
-      score -= 10; // Too slow
+      fluencyScore = Math.max(50, 100 - (100 - metrics.speechRate) * 0.5);
     } else if (metrics.speechRate > 180) {
-      score -= 5; // Too fast
+      fluencyScore = Math.max(60, 100 - (metrics.speechRate - 180) * 0.3);
+    } else if (metrics.speechRate >= 140 && metrics.speechRate <= 160) {
+      fluencyScore = 100;
+    } else {
+      fluencyScore = 85;
     }
+    score += fluencyScore * 0.3;
 
-    // Pause count (too many pauses indicate hesitation)
-    if (metrics.pauseCount > words.length * 0.3) {
-      score -= 10; // Too many pauses
+    const pauseRatio = metrics.pauseCount / words.length;
+    let pauseScore = 100;
+    if (pauseRatio > 0.3) {
+      pauseScore = Math.max(40, 100 - (pauseRatio - 0.3) * 200);
+    } else if (pauseRatio > 0.2) {
+      pauseScore = 70;
+    } else if (pauseRatio > 0.1) {
+      pauseScore = 85;
     }
+    score += pauseScore * 0.2;
 
-    // Stress pattern match (estimated)
-    score -= (100 - metrics.stressPatternMatch) * 0.2;
-
-    // Word complexity (more complex words should have better pronunciation)
     const complexWords = words.filter((w) => w.syllableCount >= 3);
-    if (complexWords.length > 0 && metrics.stressPatternMatch < 70) {
-      score -= 5;
+    let complexityScore = 100;
+    if (complexWords.length > 0) {
+      const complexRatio = complexWords.length / words.length;
+      if (complexRatio > 0.3 && metrics.stressPatternMatch < 70) {
+        complexityScore = 60;
+      } else if (complexRatio > 0.2 && metrics.stressPatternMatch < 75) {
+        complexityScore = 75;
+      }
     }
+    score += complexityScore * 0.1;
 
     return Math.round(Math.max(0, Math.min(100, score)));
   }
 
-  /**
-   * Generate detailed feedback
-   */
   private generateDetailedFeedback(
     metrics: PronunciationMetrics,
     words: WordAnalysis[],
@@ -322,7 +337,6 @@ export class PronunciationAnalysisService {
   ): string {
     const feedbackParts: string[] = [];
 
-    // Speech rate feedback
     if (metrics.speechRate < 100) {
       feedbackParts.push(
         `Speech rate is slow (${metrics.speechRate} WPM). Aim for 140-160 WPM for natural conversation.`,
@@ -335,14 +349,12 @@ export class PronunciationAnalysisService {
       feedbackParts.push(`Speech rate is good (${metrics.speechRate} WPM).`);
     }
 
-    // Pause feedback
     if (metrics.pauseCount > words.length * 0.2) {
       feedbackParts.push(
         `Too many pauses detected. Work on fluency and reducing hesitations.`,
       );
     }
 
-    // Stress feedback
     const multiSyllableWords = words.filter((w) => w.syllableCount > 1);
     if (multiSyllableWords.length > 0) {
       feedbackParts.push(
@@ -350,7 +362,6 @@ export class PronunciationAnalysisService {
       );
     }
 
-    // Overall score feedback
     if (score >= 80) {
       feedbackParts.push(
         'Pronunciation is good overall. Continue practicing to maintain clarity.',
@@ -369,29 +380,238 @@ export class PronunciationAnalysisService {
   }
 
   /**
-   * Get audio duration from buffer (if needed)
-   * This would require audio processing - for now, we'll estimate or get from metadata
+   * Analyze pronunciation from audio using Python script (Parselmouth)
+   * @param audioBuffer Audio buffer
+   * @param fileName Audio file name
+   * @param transcription Transcribed text
+   * @returns Pronunciation analysis results
    */
-  async getAudioDuration(
+  private async analyzePronunciationFromAudio(
     audioBuffer: Buffer,
     fileName: string,
-  ): Promise<number | undefined> {
-    // If it's a WAV file, we can parse it
-    if (fileName.toLowerCase().endsWith('.wav')) {
-      try {
-        const decoder = WavDecoder as {
-          decode: (buffer: Buffer) => Promise<{ duration: number }>;
+    transcription: string,
+  ): Promise<PronunciationAnalysisResult> {
+    const tempDir = os.tmpdir();
+    const tempAudioPath = path.join(
+      tempDir,
+      `audio-${Date.now()}-${path.basename(fileName)}`,
+    );
+    const tempWavPath = path.join(tempDir, `audio-${Date.now()}.wav`);
+
+    try {
+      fs.writeFileSync(tempAudioPath, audioBuffer);
+
+      const isWav = fileName.toLowerCase().endsWith('.wav');
+      const finalAudioPath = isWav ? tempAudioPath : tempWavPath;
+
+      if (!isWav) {
+        try {
+          await new Promise<void>((resolve, reject) => {
+            ffmpeg(tempAudioPath)
+              .setFfmpegPath(ffmpegInstaller.path)
+              .audioCodec('pcm_s16le')
+              .audioFrequency(16000)
+              .audioChannels(1)
+              .format('wav')
+              .on('end', () => resolve())
+              .on('error', (err) => reject(err))
+              .save(tempWavPath);
+          });
+        } catch (convertError) {
+          this.logger.warn(`Failed to convert audio to WAV: ${convertError}`);
+          if (!fs.existsSync(tempWavPath)) {
+            throw new Error(
+              `Failed to convert audio to WAV: ${convertError instanceof Error ? convertError.message : 'Unknown error'}`,
+            );
+          }
+        }
+      }
+
+      this.logger.debug(
+        `Executing Python script: ${this.pythonExecutable} ${this.pythonScriptPath} ${finalAudioPath}`,
+      );
+
+      if (!fs.existsSync(this.pythonScriptPath)) {
+        this.logger.error(`Python script not found: ${this.pythonScriptPath}`);
+        throw new Error(`Python script not found: ${this.pythonScriptPath}`);
+      }
+
+      if (!fs.existsSync(finalAudioPath)) {
+        this.logger.error(`Audio file not found: ${finalAudioPath}`);
+        throw new Error(`Audio file not found: ${finalAudioPath}`);
+      }
+
+      const stdout: string[] = [];
+      const stderr: string[] = [];
+
+      const pythonProcess = spawn(this.pythonExecutable, [
+        this.pythonScriptPath,
+        finalAudioPath,
+        transcription,
+      ]);
+
+      pythonProcess.stdout.on('data', (data: Buffer) => {
+        stdout.push(data.toString());
+      });
+
+      pythonProcess.stderr.on('data', (data: Buffer) => {
+        stderr.push(data.toString());
+      });
+
+      // Add timeout to prevent hanging
+      const timeout = 60000; // 60 seconds
+      const timeoutId = setTimeout(() => {
+        pythonProcess.kill('SIGTERM');
+        this.logger.error('Python script execution timeout');
+      }, timeout);
+
+      const exitCode = await new Promise<number>((resolve, reject) => {
+        pythonProcess.on('close', (code) => {
+          clearTimeout(timeoutId);
+          resolve(code || 0);
+        });
+        pythonProcess.on('error', (error) => {
+          clearTimeout(timeoutId);
+          this.logger.error(`Failed to spawn Python process: ${error}`);
+          reject(error);
+        });
+      });
+
+      const stdoutStr = stdout.join('');
+      const stderrStr = stderr.join('');
+
+      this.logger.debug(
+        `Python script stdout (first 500 chars): ${stdoutStr.substring(0, 500)}`,
+      );
+      if (stderrStr) {
+        this.logger.debug(`Python script stderr: ${stderrStr}`);
+      }
+
+      if (exitCode !== 0) {
+        this.logger.error(
+          `Python script exited with code ${exitCode}: ${stderrStr}`,
+        );
+        throw new Error(
+          `Python script failed with exit code ${exitCode}: ${stderrStr}`,
+        );
+      }
+
+      if (stderrStr) {
+        this.logger.warn(`Python script stderr: ${stderrStr}`);
+      }
+
+      // Validate stdout before parsing
+      if (!stdoutStr || stdoutStr.trim().length === 0) {
+        this.logger.error('Python script returned empty output');
+        throw new Error('Python script returned empty output');
+      }
+
+      // Parse JSON result
+      let result: {
+        error?: string;
+        transcription?: string;
+        words?: Array<{
+          word: string;
+          expectedStress: number[];
+          actualStress: number[];
+          phonemes: string[];
+          syllableCount: number;
+        }>;
+        metrics?: {
+          stressPatternMatch: number;
+          audioDuration: number;
         };
-        const decoded = await decoder.decode(audioBuffer);
-        return decoded.duration;
-      } catch {
-        // If decoding fails, return undefined
-        return undefined;
+        stressFeedback?: string[];
+        pronunciationScore?: number;
+        detailedFeedback?: string;
+      };
+      try {
+        result = JSON.parse(stdoutStr) as typeof result;
+      } catch (parseError) {
+        this.logger.error(
+          `Failed to parse Python script output: ${stdoutStr.substring(0, 500)}`,
+        );
+        throw new Error(
+          `Failed to parse Python script output: ${parseError instanceof Error ? parseError.message : 'Unknown error'}`,
+        );
+      }
+
+      if (result.error) {
+        throw new Error(result.error);
+      }
+
+      if (!result.words || !Array.isArray(result.words)) {
+        throw new Error('Python script did not return words array');
+      }
+
+      const wordAnalyses: WordAnalysis[] = result.words.map((w) => ({
+        word: w.word || '',
+        expectedStress: Array.isArray(w.expectedStress) ? w.expectedStress : [],
+        actualStress: Array.isArray(w.actualStress) ? w.actualStress : [],
+        phonemes: Array.isArray(w.phonemes) ? w.phonemes : [],
+        syllableCount:
+          typeof w.syllableCount === 'number' ? w.syllableCount : 0,
+      }));
+
+      const audioDuration = result.metrics?.audioDuration || 0;
+      const words = this.extractWords(transcription);
+      const speechRate =
+        audioDuration > 0 ? (words.length / audioDuration) * 60 : 155;
+      const punctuationCount = (transcription.match(/[.,!?;:]/g) || []).length;
+      const pauseCount = punctuationCount;
+      const totalPhonemes = wordAnalyses.reduce(
+        (sum, w) => sum + w.phonemes.length,
+        0,
+      );
+      const averageWordLength =
+        wordAnalyses.length > 0 ? totalPhonemes / wordAnalyses.length : 0;
+
+      const metrics: PronunciationMetrics = {
+        speechRate: Math.round(speechRate),
+        pauseCount: Math.round(pauseCount),
+        averageWordLength: Math.round(averageWordLength * 10) / 10,
+        stressPatternMatch: result.metrics?.stressPatternMatch || 0,
+      };
+
+      const stressFeedback = result.stressFeedback || [];
+      const detailedFeedback = result.detailedFeedback || '';
+      let pronunciationScore = result.pronunciationScore || 0;
+
+      if (speechRate < 100) {
+        pronunciationScore -= 5;
+      } else if (speechRate > 180) {
+        pronunciationScore -= 3;
+      }
+
+      if (pauseCount > words.length * 0.3) {
+        pronunciationScore -= 5;
+      }
+
+      pronunciationScore = Math.max(0, Math.min(100, pronunciationScore));
+
+      return {
+        transcription: result.transcription || transcription,
+        words: wordAnalyses,
+        metrics,
+        stressFeedback,
+        pronunciationScore: Math.round(pronunciationScore),
+        detailedFeedback,
+      };
+    } catch (error) {
+      this.logger.error(`Error analyzing pronunciation from audio: ${error}`);
+      this.logger.warn('Falling back to text-based pronunciation analysis');
+      return await this.analyzePronunciation(transcription, undefined);
+    } finally {
+      try {
+        if (fs.existsSync(tempAudioPath)) {
+          fs.unlinkSync(tempAudioPath);
+        }
+        if (fs.existsSync(tempWavPath) && tempWavPath !== tempAudioPath) {
+          fs.unlinkSync(tempWavPath);
+        }
+      } catch (cleanupError) {
+        this.logger.warn(`Failed to clean up temp files: ${cleanupError}`);
       }
     }
-
-    // For other formats, would need ffprobe or other tools
-    // For now, return undefined and estimate from speech
-    return undefined;
   }
 }

@@ -21,7 +21,8 @@ export class GeminiService {
     if (!apiKey) {
       throw new Error('GEMINI_API_KEY is not configured');
     }
-    this.genAI = new GoogleGenAI({});
+    // Initialize GoogleGenAI with API key
+    this.genAI = new GoogleGenAI({ apiKey });
   }
 
   async gradeWriting(
@@ -43,8 +44,23 @@ export class GeminiService {
 
       return this.parseGradingResponse(response.text || '');
     } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : 'Unknown error';
+      console.error('Gemini API error (gradeWriting):', errorMessage);
+      // Check for network errors
+      if (
+        errorMessage.includes('network') ||
+        errorMessage.includes('ECONNREFUSED') ||
+        errorMessage.includes('ETIMEDOUT') ||
+        errorMessage.includes('ENOTFOUND')
+      ) {
+        throw new HttpException(
+          `Network error connecting to Gemini API: ${errorMessage}. Please check your internet connection and API key.`,
+          HttpStatus.SERVICE_UNAVAILABLE,
+        );
+      }
       throw new HttpException(
-        `Error grading writing: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        `Error grading writing: ${errorMessage}`,
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }
@@ -69,8 +85,23 @@ export class GeminiService {
 
       return this.parseSpeakingGradingResponse(response.text || '');
     } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : 'Unknown error';
+      console.error('Gemini API error (gradeSpeaking):', errorMessage);
+      // Check for network errors
+      if (
+        errorMessage.includes('network') ||
+        errorMessage.includes('ECONNREFUSED') ||
+        errorMessage.includes('ETIMEDOUT') ||
+        errorMessage.includes('ENOTFOUND')
+      ) {
+        throw new HttpException(
+          `Network error connecting to Gemini API: ${errorMessage}. Please check your internet connection and API key.`,
+          HttpStatus.SERVICE_UNAVAILABLE,
+        );
+      }
       throw new HttpException(
-        `Error grading speaking: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        `Error grading speaking: ${errorMessage}`,
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }
