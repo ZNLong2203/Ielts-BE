@@ -1,6 +1,3 @@
-#!/usr/bin/env python3
-"""Pronunciation and Stress Analysis using Parselmouth (Praat)"""
-
 import sys
 import json
 import os
