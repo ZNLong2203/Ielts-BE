@@ -16,9 +16,7 @@ import {
 import {
   SECTION_TYPE,
   SectionType,
-  TEST_LEVEL,
   TEST_TYPE,
-  TestLevel,
   TestType,
 } from 'src/modules/mock-tests/constants';
 
@@ -47,7 +45,7 @@ export class CreateTestSectionDto {
   @IsInt()
   @Min(1)
   @Max(300)
-  time_limit?: number;
+  duration?: number;
 
   @ApiPropertyOptional({
     description: 'Section ordering',
@@ -84,14 +82,6 @@ export class CreateMockTestDto {
   @IsEnum(TEST_TYPE)
   test_type: TestType;
 
-  @ApiProperty({
-    description: 'Test level',
-    enum: TEST_LEVEL,
-    example: TEST_LEVEL.ACADEMIC,
-  })
-  @IsEnum(TEST_LEVEL)
-  test_level: TestLevel;
-
   @ApiPropertyOptional({
     description: 'Test description',
   })
@@ -116,7 +106,7 @@ export class CreateMockTestDto {
   @IsInt()
   @Min(1)
   @Max(600)
-  time_limit?: number;
+  duration?: number;
 
   @ApiPropertyOptional({
     description: 'Test difficulty level',

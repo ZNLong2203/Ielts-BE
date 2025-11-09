@@ -111,8 +111,7 @@ export class MockTestsService {
           description: createDto.description,
           instructions: createDto.instructions,
           duration:
-            createDto.time_limit ||
-            this.getDefaultTimeLimit(createDto.test_type),
+            createDto.duration || this.getDefaultTimeLimit(createDto.test_type),
           difficulty_level: createDto.difficulty_level?.toString() || '6.0',
         },
       });
@@ -126,7 +125,7 @@ export class MockTestsService {
               section_name: sectionDto.section_name,
               section_type: sectionDto.section_type,
               duration:
-                sectionDto.time_limit ||
+                sectionDto.duration ||
                 this.getDefaultSectionTimeLimit(sectionDto.section_type),
               ordering: sectionDto.ordering ?? index + 1,
               description: sectionDto.instructions,
@@ -290,6 +289,7 @@ export class MockTestsService {
         description: updateDto.description,
         instructions: updateDto.instructions,
         difficulty_level: updateDto.difficulty_level?.toString(),
+        duration: updateDto.duration || existingTest.duration,
         updated_at: new Date(),
       },
       include: {
