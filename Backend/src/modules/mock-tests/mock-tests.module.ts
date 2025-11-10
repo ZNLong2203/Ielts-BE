@@ -3,9 +3,10 @@ import { PrismaModule } from 'src/prisma/prisma.module';
 import { UtilsModule } from 'src/utils/utils.module';
 import { MockTestsController } from './mock-tests.controller';
 import { MockTestsService } from './mock-tests.service';
+import { GradingModule } from 'src/modules/grading/grading.module';
 
 @Module({
-  imports: [PrismaModule, UtilsModule],
+  imports: [PrismaModule, UtilsModule, GradingModule],
   controllers: [MockTestsController],
   providers: [MockTestsService],
   exports: [MockTestsService],

@@ -15,7 +15,7 @@ import {
   TestResult,
   UserAnswer,
 } from 'src/modules/grading/types/grading.types';
-import { SkillType } from 'src/modules/reading/types/reading.types';
+import { SectionType } from 'src/modules/mock-tests/constants';
 
 @Injectable()
 export class GradingService {
@@ -51,7 +51,7 @@ export class GradingService {
   gradeSection(
     questions: Question[],
     userAnswers: Record<string, UserAnswer>,
-    skillType: SkillType,
+    skillType: SectionType,
   ): SectionResult {
     const results: GradingResult[] = [];
     let correctCount = 0;
@@ -138,5 +138,47 @@ export class GradingService {
     }
 
     return result;
+  }
+
+  /**
+   * Calculate overall test score and band (for all 4 skills)
+   * @param readingScore: number
+   * @param listeningScore: number
+   * @param writingScore: number
+   * @param speakingScore: number
+   * @returns overall_score: number
+   */
+  calculateOverallTestScore(
+    readingScore: number | null,
+    listeningScore: number | null,
+    writingScore: number | null,
+    speakingScore: number | null,
+  ): number {
+    let total = 0;
+    let count = 0;
+
+    if (readingScore !== null) {
+      total += readingScore;
+      count++;
+    }
+    if (listeningScore !== null) {
+      total += listeningScore;
+      count++;
+    }
+    if (writingScore !== null) {
+      total += writingScore;
+      count++;
+    }
+    if (speakingScore !== null) {
+      total += speakingScore;
+      count++;
+    }
+
+    if (count === 0) {
+      return 0;
+    }
+
+    const overall = total / count;
+    return Math.round(overall * 2) / 2; // Round to nearest 0.5
   }
 }

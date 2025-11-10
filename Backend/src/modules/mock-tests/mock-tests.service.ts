@@ -7,6 +7,8 @@ import {
 } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { PaginationQueryDto } from 'src/common/dto/pagination-query.dto';
+import { GradingService } from 'src/modules/grading/grading.service';
+import { UserAnswer } from 'src/modules/grading/types/grading.types';
 import {
   MOCK_TEST_RESULT_STATUS,
   SectionType,
@@ -15,7 +17,11 @@ import {
 } from 'src/modules/mock-tests/constants';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { UtilsService } from 'src/utils/utils.service';
-import { CreateMockTestDto } from './dto/create-mock-test.dto';
+import {
+  CreateMockTestDto,
+  TestSectionSubmissionDto,
+  UserAnswerSubmissionDto,
+} from './dto/create-mock-test.dto';
 import { UpdateMockTestDto } from './dto/update-mock-test.dto';
 
 // Type definitions for better type safety
@@ -78,6 +84,7 @@ export class MockTestsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly utilsService: UtilsService,
+    private readonly gradingService: GradingService,
   ) {}
 
   /**
@@ -583,7 +590,7 @@ export class MockTestsService {
   /**
    * Get test result
    */
-  async getTestResult(testResultId: string, userId: string) {
+  async getTestResultById(testResultId: string, userId: string) {
     const testResult = await this.prisma.test_results.findUnique({
       where: { id: testResultId, user_id: userId },
       include: {
@@ -658,10 +665,163 @@ export class MockTestsService {
   }
 
   /**
-   * Submit Test
+   * Submit each section result (for reading and listening sections)
    */
+  async submitSectionAnswers(
+    answers: TestSectionSubmissionDto,
+    userId: string,
+  ) {
+    // Validate test result ownership
+    const testResult = await this.prisma.test_results.findUnique({
+      where: { id: answers.test_result_id, user_id: userId },
+    });
+
+    if (!testResult) {
+      throw new NotFoundException('Test result not found for this user');
+    }
+
+    // Validate section belongs to the test
+    const testSection = await this.prisma.test_sections.findFirst({
+      where: {
+        id: answers.test_section_id,
+        mock_test_id: testResult.mock_test_id,
+        deleted: false,
+      },
+    });
+
+    if (!testSection) {
+      throw new NotFoundException('Test section not found for this test');
+    }
+
+    // find all questions in the section
+    const questions = await this.prisma.questions.findMany({
+      where: {
+        exercises: {
+          test_section_id: testSection.id,
+          deleted: false,
+        },
+        deleted: false,
+      },
+      include: {
+        question_options: true,
+      },
+    });
+
+    // format question
+    const formattedQuestions = questions.map((question) => {
+      return {
+        id: question.id,
+        question_type: question.question_type,
+        question_text: question.question_text,
+        point: question.points ? Number(question.points) : 0,
+        question_options: question.question_options.map((option) => ({
+          id: option.id,
+          option_text: option.option_text,
+          matching_option_id: option.matching_option_id ?? undefined,
+          is_correct: option.is_correct ?? false,
+          point: option.point ? Number(option.point) : 0,
+        })),
+      };
+    });
+
+    // format user answers
+    const userAnswers: Record<string, UserAnswer> = {};
+    for (const answerDto of answers.answers) {
+      userAnswers[answerDto.question_id] = this.getAnswer(
+        answerDto.user_answer,
+      );
+    }
+
+    const results = this.gradingService.gradeSection(
+      formattedQuestions,
+      userAnswers,
+      testSection.section_type,
+    );
+
+    // Save section result and update test result
+    return await this.prisma.$transaction(async (tx) => {
+      // Save section result
+      await tx.section_results.create({
+        data: {
+          test_result_id: testResult.id,
+          test_section_id: testSection.id,
+          band_score: results.band_score,
+          time_taken: answers.time_taken,
+          correct_answers: results.correct_count,
+          total_questions: results.total_count,
+          detailed_answers: this.serializeToJson(results.results),
+          graded_at: new Date(),
+        },
+      });
+
+      // Update overall test result status or scores here
+      const isReading = testSection.section_type === TEST_TYPE.READING;
+      const isListening = testSection.section_type === TEST_TYPE.LISTENING;
+      const readingScore = isReading
+        ? results.band_score
+        : Number(testResult.reading_score) || null;
+      const listeningScore = isListening
+        ? results.band_score
+        : Number(testResult.listening_score) || null;
+      const score = this.gradingService.calculateOverallTestScore(
+        readingScore,
+        listeningScore,
+        Number(testResult.writing_score) || null,
+        Number(testResult.speaking_score) || null,
+      );
+      await tx.test_results.update({
+        where: { id: testResult.id },
+        data: {
+          band_score: score,
+          reading_score: readingScore,
+          listening_score: listeningScore,
+          time_taken: (testResult.time_taken || 0) + answers.time_taken,
+          updated_at: new Date(),
+        },
+      });
+
+      this.logger.log(
+        `Submitted section answers for test result: ${testResult.id}`,
+      );
+
+      return {
+        success: true,
+        data: {
+          band_score: results.band_score,
+          correct_answers: results.correct_count,
+          total_questions: results.total_count,
+          detailed_answers: results.results,
+        },
+      };
+    });
+  }
 
   // ======= PRIVATE HELPER METHODS =======
+
+  private serializeToJson(data: unknown): Prisma.InputJsonValue {
+    try {
+      const jsonString = JSON.stringify(data);
+      return JSON.parse(jsonString) as Prisma.InputJsonValue;
+    } catch (error) {
+      throw new Error('Failed to serialize data to JSON');
+    }
+  }
+
+  private getAnswer(dto: UserAnswerSubmissionDto): UserAnswer {
+    if (dto.fill_blank_answers !== undefined) {
+      return dto.fill_blank_answers;
+    }
+    if (dto.multiple_choice_answers !== undefined) {
+      return dto.multiple_choice_answers;
+    }
+    if (dto.true_false_answers !== undefined) {
+      return dto.true_false_answers;
+    }
+    if (dto.matching_answers !== undefined) {
+      return dto.matching_answers;
+    }
+    return null;
+  }
 
   private validateTestSections(
     testType: TestType,

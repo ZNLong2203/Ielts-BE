@@ -29,7 +29,10 @@ import {
   SkipCheckPermission,
 } from 'src/decorator/customize';
 import { IUser } from 'src/interface/users.interface';
-import { CreateMockTestDto } from './dto/create-mock-test.dto';
+import {
+  CreateMockTestDto,
+  TestSectionSubmissionDto,
+} from './dto/create-mock-test.dto';
 import { UpdateMockTestDto } from './dto/update-mock-test.dto';
 import { MockTestsService } from './mock-tests.service';
 
@@ -240,6 +243,35 @@ export class MockTestsController {
   }
 
   /**
+   * Submit Mock Test Answers each section (provides section id and mock test result id)
+   */
+  @Post('submit-section')
+  @ApiOperation({
+    summary: 'Submit answers for a test section',
+    description: 'Submits answers for a specific section of a mock test',
+  })
+  @ApiResponse({
+    status: HttpStatus.OK,
+    description: 'Section answers submitted successfully',
+  })
+  @ApiResponse({
+    status: HttpStatus.NOT_FOUND,
+    description: 'Mock test or section not found',
+  })
+  @SkipCheckPermission()
+  @HttpCode(HttpStatus.OK)
+  @MessageResponse('Section answers submitted successfully')
+  async submitSectionAnswers(
+    @Body() submissionDto: TestSectionSubmissionDto,
+    @CurrentUser() user: IUser,
+  ) {
+    return await this.mockTestsService.submitSectionAnswers(
+      submissionDto,
+      user.id,
+    );
+  }
+
+  /**
    * Get Mock Test Result History
    */
   @Get('results/history')
@@ -264,5 +296,32 @@ export class MockTestsController {
       query,
       req.query,
     );
+  }
+
+  /**
+   * Get Mock Test Result by ID
+   */
+  @Get('results/:resultId')
+  @ApiOperation({
+    summary: 'Get mock test result by ID',
+    description: 'Retrieves detailed information about a specific test result',
+  })
+  @ApiParam({ name: 'resultId', description: 'Test result UUID' })
+  @ApiResponse({
+    status: HttpStatus.OK,
+    description: 'Test result retrieved successfully',
+  })
+  @ApiResponse({
+    status: HttpStatus.NOT_FOUND,
+    description: 'Test result not found',
+  })
+  @SkipCheckPermission()
+  @HttpCode(HttpStatus.OK)
+  @MessageResponse('Test result retrieved successfully')
+  async getTestResultById(
+    @Param('resultId', ParseUUIDPipe) resultId: string,
+    @CurrentUser() user: IUser,
+  ) {
+    return await this.mockTestsService.getTestResultById(resultId, user.id);
   }
 }

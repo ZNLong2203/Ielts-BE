@@ -4,7 +4,7 @@ import {
   LISTENING_BAND_SCORES,
   READING_BAND_SCORES,
 } from 'src/modules/grading/constants/grading.constants';
-import { SKILL_TYPE, SkillType } from 'src/modules/reading/types/reading.types';
+import { SECTION_TYPE, SectionType } from 'src/modules/mock-tests/constants';
 
 @Injectable()
 export class BandCalculatorService {
@@ -14,16 +14,16 @@ export class BandCalculatorService {
   calculateBandScore(
     correctAnswers: number,
     totalQuestions: number,
-    skillType: SkillType,
+    skillType: SectionType,
   ): number {
     // Normalize to 40 questions (IELTS standard)
     const normalized = Math.round((correctAnswers / totalQuestions) * 40);
 
     let bandTable: { min: number; max: number; band: number }[];
 
-    if (skillType === SKILL_TYPE.READING) {
+    if (skillType === SECTION_TYPE.READING) {
       bandTable = READING_BAND_SCORES;
-    } else if (skillType === SKILL_TYPE.LISTENING) {
+    } else if (skillType === SECTION_TYPE.LISTENING) {
       bandTable = LISTENING_BAND_SCORES;
     } else {
       throw new Error(`Unsupported skill type: ${skillType}`);
