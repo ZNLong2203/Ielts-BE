@@ -241,7 +241,6 @@ CREATE TABLE test_results (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id UUID REFERENCES users(id) ON DELETE CASCADE,
     mock_test_id UUID REFERENCES mock_tests(id) ON DELETE CASCADE,
-    overall_score DECIMAL(5,2),
     band_score DECIMAL(2,1),
     reading_score DECIMAL(5,2),
     writing_score DECIMAL(5,2),
