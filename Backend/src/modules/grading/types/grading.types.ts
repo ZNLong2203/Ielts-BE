@@ -1,5 +1,7 @@
 // Backend/src/modules/grading/types/grading.types.ts
 
+import { QuestionType } from 'src/modules/exercises/constants';
+
 export interface QuestionOption {
   id: string;
   matching_option_id?: string;
@@ -10,17 +12,17 @@ export interface QuestionOption {
 
 export interface Question {
   id: string;
-  question_type: string;
+  question_type: QuestionType;
   question_text: string;
   question_options: QuestionOption[];
   points?: number;
 }
 
-// User answer can be: string, string[], or Record<string, string>
-// Multiple choice: string (option id) or string[] (for multiple answers)
-// Fill in the blank: Record<string, string> (mapping blank ids to user inputs)
+// User answer can be: string, string[]
+// Multiple choice: string[] (for multiple answers)
+// Fill in the blank: string (user input)
 // True/False: string ('true' or 'false' or 'not given')
-// Matching: Record<string, string> (mapping left item ids to right item ids)
+// Matching: string (uuid of selected matching option)
 export type UserAnswer = string | string[] | null | undefined;
 
 export interface GradingResult {

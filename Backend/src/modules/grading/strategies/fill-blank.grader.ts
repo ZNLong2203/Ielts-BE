@@ -10,6 +10,7 @@ export class FillBlankGrader implements Grader {
   /**
    * Grade fill in the blank question
    * Accepts variations and ignores case/punctuation
+   * userAnswer: string
    */
   grade(question: Question, userAnswer: UserAnswer): GradingResult {
     const correctOptions = question.question_options.filter(

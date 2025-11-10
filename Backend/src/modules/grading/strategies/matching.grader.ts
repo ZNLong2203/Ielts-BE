@@ -9,7 +9,7 @@ import {
 export class MatchingGrader implements Grader {
   /**
    * Grade matching question
-   * UserAnswer format: string (uuid of answers)
+   * userAnswer: string (uuid of selected matching option)
    */
   grade(question: Question, userAnswer: UserAnswer): GradingResult {
     const points = 1;

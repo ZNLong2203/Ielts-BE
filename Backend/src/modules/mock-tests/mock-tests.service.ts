@@ -99,7 +99,7 @@ export class MockTestsService {
     // Validate sections for test type
     this.validateTestSections(
       createDto.test_type as unknown as SectionType,
-      createDto.sections,
+      createDto.test_sections,
     );
 
     return await this.prisma.$transaction(async (tx) => {
@@ -117,8 +117,8 @@ export class MockTestsService {
       });
 
       // Create test sections if provided
-      if (createDto.sections && createDto.sections.length > 0) {
-        for (const [index, sectionDto] of createDto.sections.entries()) {
+      if (createDto.test_sections && createDto.test_sections.length > 0) {
+        for (const [index, sectionDto] of createDto.test_sections.entries()) {
           await tx.test_sections.create({
             data: {
               mock_test_id: mockTest.id,
@@ -281,49 +281,104 @@ export class MockTestsService {
       }
     }
 
-    const updatedTest = await this.prisma.mock_tests.update({
-      where: { id },
-      data: {
-        title: updateDto.title,
-        test_type: updateDto.test_type,
-        description: updateDto.description,
-        instructions: updateDto.instructions,
-        difficulty_level: updateDto.difficulty_level?.toString(),
-        duration: updateDto.duration || existingTest.duration,
-        updated_at: new Date(),
-      },
-      include: {
-        test_sections: {
-          where: { deleted: false },
-          include: {
-            exercises: {
-              where: { deleted: false },
-              include: {
-                _count: {
-                  select: {
-                    questions: {
-                      where: { deleted: false },
+    return await this.prisma.$transaction(async (tx) => {
+      const updatedTest = await tx.mock_tests.update({
+        where: { id },
+        data: {
+          title: updateDto.title,
+          test_type: updateDto.test_type,
+          description: updateDto.description,
+          instructions: updateDto.instructions,
+          difficulty_level: updateDto.difficulty_level?.toString(),
+          duration: updateDto.duration || existingTest.duration,
+          updated_at: new Date(),
+        },
+      });
+
+      // update test sections if provided
+      if (updateDto.test_sections && updateDto.test_sections.length > 0) {
+        const sectionIdsToKeep = updateDto.test_sections
+          .map((s) => s.section_id)
+          .filter((id): id is string => typeof id === 'string');
+
+        // Soft delete sections not in the update list
+        await tx.test_sections.updateMany({
+          where: {
+            mock_test_id: id,
+            id: { notIn: sectionIdsToKeep },
+            deleted: false,
+          },
+          data: { deleted: true, updated_at: new Date() },
+        });
+
+        for (const [index, sectionDto] of updateDto.test_sections.entries()) {
+          if (sectionDto.section_id) {
+            // Update existing section
+            await tx.test_sections.update({
+              where: { id: sectionDto.section_id },
+              data: {
+                section_name: sectionDto.section_name,
+                section_type: sectionDto.section_type,
+                duration:
+                  sectionDto.duration ||
+                  this.getDefaultSectionTimeLimit(sectionDto.section_type),
+                ordering: sectionDto.ordering ?? index + 1,
+                description: sectionDto.instructions,
+                updated_at: new Date(),
+              },
+            });
+          } else {
+            // Create new section
+            await tx.test_sections.create({
+              data: {
+                mock_test_id: id,
+                section_name: sectionDto.section_name,
+                section_type: sectionDto.section_type,
+                duration:
+                  sectionDto.duration ||
+                  this.getDefaultSectionTimeLimit(sectionDto.section_type),
+                ordering: sectionDto.ordering ?? index + 1,
+                description: sectionDto.instructions,
+              },
+            });
+          }
+        }
+      }
+
+      this.logger.log(`Updated mock test: ${updatedTest.title}`);
+
+      return await tx.mock_tests.findUniqueOrThrow({
+        where: { id: existingTest.id },
+        include: {
+          test_sections: {
+            where: { deleted: false },
+            include: {
+              exercises: {
+                where: { deleted: false },
+                include: {
+                  _count: {
+                    select: {
+                      questions: {
+                        where: { deleted: false },
+                      },
                     },
                   },
                 },
+                orderBy: { ordering: 'asc' },
               },
-              orderBy: { ordering: 'asc' },
+            },
+            orderBy: { ordering: 'asc' },
+          },
+          _count: {
+            select: {
+              test_sections: {
+                where: { deleted: false },
+              },
             },
           },
-          orderBy: { ordering: 'asc' },
         },
-        _count: {
-          select: {
-            test_sections: {
-              where: { deleted: false },
-            },
-          },
-        },
-      },
+      });
     });
-
-    this.logger.log(`Updated mock test: ${id}`);
-    return updatedTest;
   }
 
   /**
@@ -601,6 +656,10 @@ export class MockTestsService {
       where: whereCondition,
     });
   }
+
+  /**
+   * Submit Test
+   */
 
   // ======= PRIVATE HELPER METHODS =======
 

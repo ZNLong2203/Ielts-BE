@@ -21,6 +21,15 @@ import {
 } from 'src/modules/mock-tests/constants';
 
 export class CreateTestSectionDto {
+  @ApiPropertyOptional({
+    description:
+      'Test section ID (for updates, if new test section, leave empty)',
+    example: 'section-uuid-1234',
+  })
+  @IsOptional()
+  @IsString()
+  section_id?: string;
+
   @ApiProperty({
     description: 'Section name',
     example: 'Reading Section',
@@ -134,5 +143,5 @@ export class CreateMockTestDto {
   @IsArray()
   @ValidateNested({ each: true })
   @Type(() => CreateTestSectionDto)
-  sections?: CreateTestSectionDto[];
+  test_sections?: CreateTestSectionDto[];
 }
