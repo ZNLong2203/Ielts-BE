@@ -75,7 +75,7 @@ export class CreateTestSectionDto {
   @IsOptional()
   @IsString()
   @Length(0, 2000)
-  instructions?: string;
+  description?: string;
 }
 
 export class CreateMockTestDto {

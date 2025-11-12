@@ -135,7 +135,7 @@ export class MockTestsService {
                 sectionDto.duration ||
                 this.getDefaultSectionTimeLimit(sectionDto.section_type),
               ordering: sectionDto.ordering ?? index + 1,
-              description: sectionDto.instructions,
+              description: sectionDto.description,
             },
           });
         }
@@ -330,7 +330,7 @@ export class MockTestsService {
                   sectionDto.duration ||
                   this.getDefaultSectionTimeLimit(sectionDto.section_type),
                 ordering: sectionDto.ordering ?? index + 1,
-                description: sectionDto.instructions,
+                description: sectionDto.description,
                 updated_at: new Date(),
               },
             });
@@ -345,7 +345,7 @@ export class MockTestsService {
                   sectionDto.duration ||
                   this.getDefaultSectionTimeLimit(sectionDto.section_type),
                 ordering: sectionDto.ordering ?? index + 1,
-                description: sectionDto.instructions,
+                description: sectionDto.description,
               },
             });
           }
