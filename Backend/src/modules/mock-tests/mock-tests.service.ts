@@ -655,7 +655,7 @@ export class MockTestsService {
       select: {
         id: true,
         status: true,
-        overall_score: true,
+        band_score: true,
         time_taken: true,
         created_at: true,
         updated_at: true,

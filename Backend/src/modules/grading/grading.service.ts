@@ -141,12 +141,12 @@ export class GradingService {
   }
 
   /**
-   * Calculate overall test score and band (for all 4 skills)
+   * Calculate overall test band score (for all 4 skills)
    * @param readingScore: number
    * @param listeningScore: number
    * @param writingScore: number
    * @param speakingScore: number
-   * @returns overall_score: number
+   * @returns band_score: number (rounded to nearest 0.5)
    */
   calculateOverallTestScore(
     readingScore: number | null,

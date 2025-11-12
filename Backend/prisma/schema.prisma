@@ -450,7 +450,6 @@ model test_results {
   id               String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   user_id          String?           @db.Uuid
   mock_test_id     String?           @db.Uuid
-  overall_score    Decimal?          @db.Decimal(5, 2)
   band_score       Decimal?          @db.Decimal(2, 1)
   reading_score    Decimal?          @db.Decimal(5, 2)
   writing_score    Decimal?          @db.Decimal(5, 2)

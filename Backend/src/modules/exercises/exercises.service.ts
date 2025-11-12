@@ -335,8 +335,31 @@ export class ExerciseService {
             },
           },
         },
-        questions: {
+        question_groups: {
           where: { deleted: false },
+          include: {
+            matching_options: {
+              where: { deleted: false },
+              orderBy: { ordering: 'asc' },
+            },
+            questions: {
+              where: { deleted: false },
+              include: {
+                question_options: {
+                  where: { deleted: false },
+                  orderBy: { ordering: 'asc' },
+                },
+              },
+              orderBy: { ordering: 'asc' },
+            },
+          },
+          orderBy: { ordering: 'asc' },
+        },
+        questions: {
+          where: { 
+            deleted: false,
+            question_group_id: null,
+          },
           include: {
             question_options: {
               where: { deleted: false },
@@ -352,26 +375,82 @@ export class ExerciseService {
       throw new NotFoundException('Exercise not found');
     }
 
-    // check media urls in questions is audio will return hls url
-    for (const question of exercise.questions) {
-      if (question.audio_url) {
-        const hlsUrl = await this.videoService.getVideoHLSUrl(
-          question.audio_url,
+    // Process question groups with async audio URL conversion
+    const questionGroups = await Promise.all(
+      exercise.question_groups.map(async (group) => {
+        const questions = await Promise.all(
+          group.questions.map(async (question) => {
+            // Check audio URLs
+            let audioUrl = question.audio_url;
+            if (audioUrl) {
+              audioUrl = await this.videoService.getVideoHLSUrl(audioUrl);
+            }
+
+            return {
+              ...question,
+              audio_url: audioUrl,
+              question_options: question.question_options,
+              // Parse stored answer data
+              ...(this.requiresCorrectAnswer(question.question_type) &&
+              question.explanation
+                ? this.parseAnswerData(question.explanation)
+                : {}),
+            };
+          }),
         );
-        question.audio_url = hlsUrl;
-      }
+
+        return {
+          id: group.id,
+          exercise_id: group.exercise_id,
+          image_url: group.image_url,
+          group_title: group.group_title,
+          group_instruction: group.group_instruction,
+          passage_reference: group.passage_reference,
+          question_type: group.question_type,
+          ordering: group.ordering,
+          question_range: group.question_range,
+          correct_answer_count: group.correct_answer_count,
+          matching_options: group.matching_options,
+          questions,
+        };
+      }),
+    );
+
+    // Process ungrouped questions with async audio URL conversion
+    const questions = await Promise.all(
+      exercise.questions.map(async (question) => {
+        // Check audio URLs
+        let audioUrl = question.audio_url;
+        if (audioUrl) {
+          audioUrl = await this.videoService.getVideoHLSUrl(audioUrl);
+        }
+
+        return {
+          ...question,
+          audio_url: audioUrl,
+          question_options: question.question_options,
+          // Parse stored answer data
+          ...(this.requiresCorrectAnswer(question.question_type) &&
+          question.explanation
+            ? this.parseAnswerData(question.explanation)
+            : {}),
+        };
+      }),
+    );
+
+    // Process exercise audio URL
+    const content = exercise.content as any;
+    let audioUrl = content?.media_url;
+    if (audioUrl && (audioUrl.includes('.mp3') || audioUrl.includes('.wav'))) {
+      audioUrl = await this.videoService.getVideoHLSUrl(audioUrl);
     }
 
     return {
       ...exercise,
-      questions: exercise.questions.map((question) => ({
-        ...question,
-        // Parse stored answer data
-        ...(this.requiresCorrectAnswer(question.question_type) &&
-        question.explanation
-          ? this.parseAnswerData(question.explanation)
-          : {}),
-      })),
+      audio_url: audioUrl,
+      skill_type: exercise.skill_type,
+      question_groups: questionGroups,
+      questions,
     };
   }
 
