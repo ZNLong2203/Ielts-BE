@@ -24,50 +24,6 @@ import {
 } from './dto/create-mock-test.dto';
 import { UpdateMockTestDto } from './dto/update-mock-test.dto';
 
-// Type definitions for better type safety
-type MockTestWithIncludes = Prisma.mock_testsGetPayload<{
-  include: {
-    test_sections: {
-      where: {
-        deleted: false;
-      };
-      include: {
-        exercises: {
-          where: {
-            deleted: false;
-          };
-          include: {
-            _count: {
-              select: {
-                questions: {
-                  where: {
-                    deleted: false;
-                  };
-                };
-              };
-            };
-          };
-          orderBy: {
-            ordering: 'asc';
-          };
-        };
-      };
-      orderBy: {
-        ordering: 'asc';
-      };
-    };
-    _count: {
-      select: {
-        test_sections: {
-          where: {
-            deleted: false;
-          };
-        };
-      };
-    };
-  };
-}>;
-
 interface TestSection {
   section_name: string;
   section_type: SectionType;
@@ -90,7 +46,7 @@ export class MockTestsService {
   /**
    * Create Mock Test with Sections
    */
-  async create(createDto: CreateMockTestDto): Promise<MockTestWithIncludes> {
+  async create(createDto: CreateMockTestDto) {
     // Check if test with same title exists
     const existingTest = await this.prisma.mock_tests.findFirst({
       where: {
@@ -215,7 +171,7 @@ export class MockTestsService {
   /**
    * Get Mock Test by ID
    */
-  async findOne(id: string): Promise<MockTestWithIncludes> {
+  async findOne(id: string) {
     const mockTest = await this.prisma.mock_tests.findFirst({
       where: {
         id,
@@ -228,9 +184,17 @@ export class MockTestsService {
             exercises: {
               where: { deleted: false },
               include: {
-                _count: {
+                question_groups: {
                   select: {
                     questions: {
+                      where: { deleted: false },
+                      include: {
+                        question_options: {
+                          where: { deleted: false },
+                        },
+                      },
+                    },
+                    matching_options: {
                       where: { deleted: false },
                     },
                   },
@@ -240,13 +204,6 @@ export class MockTestsService {
             },
           },
           orderBy: { ordering: 'asc' },
-        },
-        _count: {
-          select: {
-            test_sections: {
-              where: { deleted: false },
-            },
-          },
         },
       },
     });
@@ -261,10 +218,7 @@ export class MockTestsService {
   /**
    * Update Mock Test
    */
-  async update(
-    id: string,
-    updateDto: UpdateMockTestDto,
-  ): Promise<MockTestWithIncludes> {
+  async update(id: string, updateDto: UpdateMockTestDto) {
     const existingTest = await this.prisma.mock_tests.findFirst({
       where: { id, deleted: false },
     });
