@@ -139,42 +139,34 @@ INSERT INTO section_progress (id, user_id, section_id, course_id, completed_less
 ('560e8400-e29b-41d4-a716-446655440005', '550e8400-e29b-41d4-a716-446655440006', 'c50e8400-e29b-41d4-a716-446655440005', '950e8400-e29b-41d4-a716-446655440003', 1, 1, 100.00, NOW() - INTERVAL '15 days', NOW() - INTERVAL '2 days'),
 ('560e8400-e29b-41d4-a716-446655440006', '550e8400-e29b-41d4-a716-446655440006', 'c50e8400-e29b-41d4-a716-446655440007', '950e8400-e29b-41d4-a716-446655440004', 0, 1, 0.00, NOW() - INTERVAL '5 days', NULL);
 
--- Insert sample mock tests
+-- Insert IELTS Mock Tests (4 complete tests: Reading, Listening, Writing, Speaking)
 INSERT INTO mock_tests (id, title, description, test_type, duration, total_questions, difficulty_level, target_band_score, instructions, created_by) VALUES
-('160e8400-e29b-41d4-a716-446655440001', 'IELTS Academic Full Test 1', 'Complete IELTS Academic practice test covering all four skills', 'full_test', 165, 40, 'intermediate', 7.0, 'This is a complete IELTS Academic test. You will have 60 minutes for Reading, 60 minutes for Writing, 30 minutes for Listening, and 15 minutes for Speaking.', '550e8400-e29b-41d4-a716-446655440002'),
-('160e8400-e29b-41d4-a716-446655440002', 'Reading Practice Test A', 'Academic Reading practice with 3 passages and various question types', 'reading', 60, 40, 'intermediate', 6.5, 'Read the three passages and answer all questions. You have 60 minutes total. Transfer your answers to the answer sheet.', '550e8400-e29b-41d4-a716-446655440002'),
-('160e8400-e29b-41d4-a716-446655440003', 'Writing Task 1 & 2 Practice', 'Academic Writing practice test with Task 1 and Task 2', 'writing', 60, 2, 'advanced', 7.5, 'Complete both writing tasks. Task 1 should be at least 150 words, Task 2 should be at least 250 words.', '550e8400-e29b-41d4-a716-446655440003'),
-('160e8400-e29b-41d4-a716-446655440004', 'Listening Skills Test', 'Comprehensive listening practice with all four sections', 'listening', 30, 40, 'intermediate', 6.5, 'Listen to the audio and answer all questions. You will hear each section only once.', '550e8400-e29b-41d4-a716-446655440003'),
-('160e8400-e29b-41d4-a716-446655440005', 'Speaking Mock Interview', 'Full speaking test simulation with all three parts', 'speaking', 15, 3, 'intermediate', 7.0, 'This is a complete IELTS Speaking test simulation. Answer naturally and speak clearly.', '550e8400-e29b-41d4-a716-446655440002'),
-('160e8400-e29b-41d4-a716-446655440006', 'General Training Practice', 'GT reading and writing practice test', 'full_test', 150, 42, 'beginner', 6.0, 'This is a General Training IELTS test. Complete all sections within the time limit.', '550e8400-e29b-41d4-a716-446655440003');
+('160e8400-e29b-41d4-a716-446655440010', 'IELTS Academic Reading Test', 'Complete Academic Reading test with 3 passages and 40 questions covering all question types', 'reading', 60, 40, 'intermediate', 6.5, 'You have 60 minutes to read three passages and answer 40 questions. Read each passage carefully and answer all questions. Transfer your answers to the answer sheet.', '550e8400-e29b-41d4-a716-446655440002'),
+('160e8400-e29b-41d4-a716-446655440011', 'IELTS Academic Listening Test', 'Complete Academic Listening test with 4 sections and 40 questions', 'listening', 30, 40, 'intermediate', 6.5, 'You will hear four recordings. Listen carefully as you will hear each recording only once. Answer all 40 questions. You have 30 minutes to complete the test.', '550e8400-e29b-41d4-a716-446655440002'),
+('160e8400-e29b-41d4-a716-446655440012', 'IELTS Academic Writing Test', 'Complete Academic Writing test with Task 1 and Task 2', 'writing', 60, 2, 'intermediate', 6.5, 'Complete both writing tasks. Task 1: Write at least 150 words describing the visual information. Task 2: Write at least 250 words responding to the essay question. You have 60 minutes total.', '550e8400-e29b-41d4-a716-446655440002'),
+('160e8400-e29b-41d4-a716-446655440013', 'IELTS Academic Speaking Test', 'Complete Academic Speaking test with all three parts', 'speaking', 15, 3, 'intermediate', 6.5, 'This is a complete IELTS Speaking test. Part 1: Answer personal questions. Part 2: Speak for 2 minutes on a given topic. Part 3: Discuss abstract topics. Speak naturally and clearly.', '550e8400-e29b-41d4-a716-446655440002');
 
--- Insert sample test sections
+-- Insert test sections for 4 IELTS mock tests
 INSERT INTO test_sections (id, mock_test_id, section_name, section_type, description, duration, ordering) VALUES
--- Full test sections
-('300e8400-e29b-41d4-a716-446655440001', '160e8400-e29b-41d4-a716-446655440001', 'Reading Section', 'reading', 'Academic Reading with 3 passages and 40 questions', 60, 1),
-('300e8400-e29b-41d4-a716-446655440002', '160e8400-e29b-41d4-a716-446655440001', 'Writing Section', 'writing', 'Academic Writing Task 1 and Task 2', 60, 2),
-('300e8400-e29b-41d4-a716-446655440003', '160e8400-e29b-41d4-a716-446655440001', 'Listening Section', 'listening', 'Academic Listening with 4 sections and 40 questions', 30, 3),
-('300e8400-e29b-41d4-a716-446655440004', '160e8400-e29b-41d4-a716-446655440001', 'Speaking Section', 'speaking', 'Academic Speaking with 3 parts', 15, 4),
+-- Reading Test sections (3 passages)
+('300e8400-e29b-41d4-a716-446655440100', '160e8400-e29b-41d4-a716-446655440010', 'Passage 1', 'reading', 'First reading passage with questions 1-13', 20, 1),
+('300e8400-e29b-41d4-a716-446655440101', '160e8400-e29b-41d4-a716-446655440010', 'Passage 2', 'reading', 'Second reading passage with questions 14-27', 20, 2),
+('300e8400-e29b-41d4-a716-446655440102', '160e8400-e29b-41d4-a716-446655440010', 'Passage 3', 'reading', 'Third reading passage with questions 28-40', 20, 3),
 
--- Reading only test sections
-('300e8400-e29b-41d4-a716-446655440005', '160e8400-e29b-41d4-a716-446655440002', 'Passage 1', 'reading', 'First reading passage with questions 1-13', 20, 1),
-('300e8400-e29b-41d4-a716-446655440006', '160e8400-e29b-41d4-a716-446655440002', 'Passage 2', 'reading', 'Second reading passage with questions 14-26', 20, 2),
-('300e8400-e29b-41d4-a716-446655440007', '160e8400-e29b-41d4-a716-446655440002', 'Passage 3', 'reading', 'Third reading passage with questions 27-40', 20, 3),
+-- Listening Test sections (4 sections)
+('300e8400-e29b-41d4-a716-446655440103', '160e8400-e29b-41d4-a716-446655440011', 'Section 1', 'listening', 'Conversation between two people in everyday context', 7, 1),
+('300e8400-e29b-41d4-a716-446655440104', '160e8400-e29b-41d4-a716-446655440011', 'Section 2', 'listening', 'Monologue in everyday context', 7, 2),
+('300e8400-e29b-41d4-a716-446655440105', '160e8400-e29b-41d4-a716-446655440011', 'Section 3', 'listening', 'Conversation in educational context', 8, 3),
+('300e8400-e29b-41d4-a716-446655440106', '160e8400-e29b-41d4-a716-446655440011', 'Section 4', 'listening', 'Academic lecture', 8, 4),
 
--- Writing only test sections
-('300e8400-e29b-41d4-a716-446655440008', '160e8400-e29b-41d4-a716-446655440003', 'Task 1', 'writing', 'Academic Writing Task 1 - Chart Description', 20, 1),
-('300e8400-e29b-41d4-a716-446655440009', '160e8400-e29b-41d4-a716-446655440003', 'Task 2', 'writing', 'Academic Writing Task 2 - Essay', 40, 2),
+-- Writing Test sections (2 tasks)
+('300e8400-e29b-41d4-a716-446655440107', '160e8400-e29b-41d4-a716-446655440012', 'Task 1', 'writing', 'Academic Writing Task 1 - Describe visual information (150 words)', 20, 1),
+('300e8400-e29b-41d4-a716-446655440108', '160e8400-e29b-41d4-a716-446655440012', 'Task 2', 'writing', 'Academic Writing Task 2 - Essay (250 words)', 40, 2),
 
--- Listening only test sections
-('300e8400-e29b-41d4-a716-446655440010', '160e8400-e29b-41d4-a716-446655440004', 'Section 1', 'listening', 'Conversation between two people', 7, 1),
-('300e8400-e29b-41d4-a716-446655440011', '160e8400-e29b-41d4-a716-446655440004', 'Section 2', 'listening', 'Monologue in everyday context', 7, 2),
-('300e8400-e29b-41d4-a716-446655440012', '160e8400-e29b-41d4-a716-446655440004', 'Section 3', 'listening', 'Conversation in educational context', 8, 3),
-('300e8400-e29b-41d4-a716-446655440013', '160e8400-e29b-41d4-a716-446655440004', 'Section 4', 'listening', 'Academic lecture', 8, 4),
-
--- Speaking only test sections
-('300e8400-e29b-41d4-a716-446655440014', '160e8400-e29b-41d4-a716-446655440005', 'Part 1', 'speaking', 'Personal questions and familiar topics', 5, 1),
-('300e8400-e29b-41d4-a716-446655440015', '160e8400-e29b-41d4-a716-446655440005', 'Part 2', 'speaking', 'Individual long turn with cue card', 2, 2),
-('300e8400-e29b-41d4-a716-446655440016', '160e8400-e29b-41d4-a716-446655440005', 'Part 3', 'speaking', 'Two-way discussion on abstract topics', 5, 3);
+-- Speaking Test sections (3 parts)
+('300e8400-e29b-41d4-a716-446655440109', '160e8400-e29b-41d4-a716-446655440013', 'Part 1', 'speaking', 'Introduction and interview - Personal questions', 5, 1),
+('300e8400-e29b-41d4-a716-446655440110', '160e8400-e29b-41d4-a716-446655440013', 'Part 2', 'speaking', 'Long turn - Speak for 2 minutes on a topic', 2, 2),
+('300e8400-e29b-41d4-a716-446655440111', '160e8400-e29b-41d4-a716-446655440013', 'Part 3', 'speaking', 'Discussion - Abstract topics related to Part 2', 5, 3);
 
 -- Insert sample exercises
 INSERT INTO exercises (id, lesson_id, test_section_id, title, instruction, content, exercise_type, skill_type, time_limit, max_attempts, passing_score, ordering, is_active, audio_url) VALUES
@@ -184,21 +176,7 @@ INSERT INTO exercises (id, lesson_id, test_section_id, title, instruction, conte
 ('130e8400-e29b-41d4-a716-446655440003', 'd50e8400-e29b-41d4-a716-446655440003', NULL, 'Part 1 Speaking Practice', 'Record your answers to these personal questions', '{"description": "Practice Part 1 speaking questions", "topic": "Personal information and familiar topics", "questions": ["Tell me about your hometown", "What do you do?", "What are your hobbies?"]}', 'lesson', 'speaking', 10, 1, 0.00, 1, TRUE, NULL),
 ('130e8400-e29b-41d4-a716-446655440004', 'd50e8400-e29b-41d4-a716-446655440004', NULL, 'Cue Card Practice', 'Practice with this cue card topic', '{"description": "Practice Part 2 speaking with cue card", "topic": "Describe a memorable journey", "points": ["Where you went", "When you went", "Who you went with", "What you did", "Why it was memorable"]}', 'lesson', 'speaking', 5, 2, 0.00, 1, TRUE, NULL),
 ('130e8400-e29b-41d4-a716-446655440005', 'd50e8400-e29b-41d4-a716-446655440005', NULL, 'Task 1 Writing Practice', 'Write a 150-word description of the chart', '{"description": "Practice Task 1 chart description", "chart_url": "/test/image.jpg", "chart_type": "bar", "data": "The chart shows renewable energy usage in different countries"}', 'lesson', 'writing', 60, 1, 0.00, 1, TRUE, NULL),
-('130e8400-e29b-41d4-a716-446655440006', 'd50e8400-e29b-41d4-a716-446655440006', NULL, 'Listening Comprehension', 'Listen and answer the questions', '{"description": "Practice listening comprehension", "audio_url": "/test/audio.mp3", "audio_duration": 300, "transcript": "You will hear a conversation between a student and a librarian about finding a book in the university library..."}', 'lesson', 'listening', 25, 2, 65.00, 1, TRUE, '/test/audio.mp3'),
-
--- Mock test exercises (linked to test_sections)
-('130e8400-e29b-41d4-a716-446655440007', NULL, '300e8400-e29b-41d4-a716-446655440001', 'Academic Reading Section 1', 'Read the passage and answer questions 1-13', '{"passage": "Academic reading passage 1...", "questions": []}', 'mock_test', 'reading', 20, 1, 0.00, 1, TRUE, NULL),
-('130e8400-e29b-41d4-a716-446655440008', NULL, '300e8400-e29b-41d4-a716-446655440001', 'Academic Reading Section 2', 'Read the passage and answer questions 14-26', '{"passage": "Academic reading passage 2...", "questions": []}', 'mock_test', 'reading', 20, 1, 0.00, 2, TRUE, NULL),
-('130e8400-e29b-41d4-a716-446655440009', NULL, '300e8400-e29b-41d4-a716-446655440001', 'Academic Reading Section 3', 'Read the passage and answer questions 27-40', '{"passage": "Academic reading passage 3...", "questions": []}', 'mock_test', 'reading', 20, 1, 0.00, 3, TRUE, NULL),
-('130e8400-e29b-41d4-a716-446655440010', NULL, '300e8400-e29b-41d4-a716-446655440002', 'Academic Writing Task 1', 'Write a 150-word report describing the chart', '{"chart_url": "/images/default_image.jpg"}', 'mock_test', 'writing', 20, 1, 0.00, 1, TRUE, NULL),
-('130e8400-e29b-41d4-a716-446655440011', NULL, '300e8400-e29b-41d4-a716-446655440002', 'Academic Writing Task 2', 'Write a 250-word essay on the given topic', '{"topic": "Some people believe that...", "essay_type": "opinion"}', 'mock_test', 'writing', 40, 1, 0.00, 2, TRUE, NULL),
-('130e8400-e29b-41d4-a716-446655440012', NULL, '300e8400-e29b-41d4-a716-446655440003', 'Listening Section 1', 'Listen to the conversation and answer questions 1-10', '{"audio_url": "/test/audio.mp3", "audio_duration": 600, "transcript": "You will hear a conversation between two people..."}', 'mock_test', 'listening', 10, 1, 0.00, 1, TRUE, '/test/audio.mp3'),
-('130e8400-e29b-41d4-a716-446655440013', NULL, '300e8400-e29b-41d4-a716-446655440003', 'Listening Section 2', 'Listen to the monologue and answer questions 11-20', '{"audio_url": "/test/audio.mp3", "audio_duration": 600, "transcript": "You will hear a monologue about..."}', 'mock_test', 'listening', 10, 1, 0.00, 2, TRUE, '/test/audio.mp3'),
-('130e8400-e29b-41d4-a716-446655440014', NULL, '300e8400-e29b-41d4-a716-446655440003', 'Listening Section 3', 'Listen to the conversation and answer questions 21-30', '{"audio_url": "/test/audio.mp3", "audio_duration": 600, "transcript": "You will hear a conversation between..."}', 'mock_test', 'listening', 10, 1, 0.00, 3, TRUE, '/test/audio.mp3'),
-('130e8400-e29b-41d4-a716-446655440015', NULL, '300e8400-e29b-41d4-a716-446655440003', 'Listening Section 4', 'Listen to the lecture and answer questions 31-40', '{"audio_url": "/test/audio.mp3", "audio_duration": 600, "transcript": "You will hear an academic lecture about..."}', 'mock_test', 'listening', 10, 1, 0.00, 4, TRUE, '/test/audio.mp3'),
-('130e8400-e29b-41d4-a716-446655440016', NULL, '300e8400-e29b-41d4-a716-446655440004', 'Speaking Part 1', 'Answer personal questions about yourself', '{"questions": ["What is your name?", "Where are you from?", "What do you do?"], "topic": "Personal information and familiar topics"}', 'mock_test', 'speaking', 5, 1, 0.00, 1, TRUE, NULL),
-('130e8400-e29b-41d4-a716-446655440017', NULL, '300e8400-e29b-41d4-a716-446655440004', 'Speaking Part 2', 'Speak about the given topic for 2 minutes', '{"topic": "Describe a book you recently read", "cue_card": true, "points": ["What book it was", "When you read it", "What it was about", "Why you liked it"]}', 'mock_test', 'speaking', 2, 1, 0.00, 2, TRUE, NULL),
-('130e8400-e29b-41d4-a716-446655440018', NULL, '300e8400-e29b-41d4-a716-446655440004', 'Speaking Part 3', 'Discuss abstract topics related to Part 2', '{"questions": ["How has reading changed?", "What are the benefits of reading?"], "topic": "Reading and literature"}', 'mock_test', 'speaking', 5, 1, 0.00, 3, TRUE, NULL);
+('130e8400-e29b-41d4-a716-446655440006', 'd50e8400-e29b-41d4-a716-446655440006', NULL, 'Listening Comprehension', 'Listen and answer the questions', '{"description": "Practice listening comprehension", "audio_url": "/test/audio.mp3", "audio_duration": 300, "transcript": "You will hear a conversation between a student and a librarian about finding a book in the university library..."}', 'lesson', 'listening', 25, 2, 65.00, 1, TRUE, '/test/audio.mp3');
 
 -- Insert sample questions
 INSERT INTO questions (id, exercise_id, question_text, question_type, image_url, audio_url, audio_duration, reading_passage, explanation, points, ordering, difficulty_level, question_group) VALUES
@@ -208,20 +186,7 @@ INSERT INTO questions (id, exercise_id, question_text, question_type, image_url,
 ('140e8400-e29b-41d4-a716-446655440003', '130e8400-e29b-41d4-a716-446655440002', 'The passage discusses environmental issues.', 'true_false', NULL, NULL, NULL, 'Environmental protection has become increasingly important...', 'Check the topic sentences of each paragraph', 1.00, 1, 5.5, 'Statement 1'),
 ('140e8400-e29b-41d4-a716-446655440004', '130e8400-e29b-41d4-a716-446655440003', 'Tell me about your hometown.', 'speaking', NULL, NULL, NULL, NULL, 'Mention location, size, characteristics, and what you like about it', 0.00, 1, 5.0, 'Part 1'),
 ('140e8400-e29b-41d4-a716-446655440005', '130e8400-e29b-41d4-a716-446655440005', 'Describe the main trend shown in the chart.', 'essay', '/images/default_image.jpg', NULL, NULL, NULL, 'Start with an overview of the main trend', 0.00, 1, 7.0, 'Task 1'),
-('140e8400-e29b-41d4-a716-446655440006', '130e8400-e29b-41d4-a716-446655440006', 'What is the speakers main concern?', 'multiple_choice', NULL, '/images/default_image.jpg3', 300, NULL, 'Listen for key phrases that indicate concern', 1.00, 1, 6.5, 'Section 1'),
-
--- Mock test questions
-('140e8400-e29b-41d4-a716-446655440007', '130e8400-e29b-41d4-a716-446655440007', 'What is the main purpose of the passage?', 'multiple_choice', NULL, NULL, NULL, 'The development of renewable energy sources has accelerated significantly...', 'Look for the main purpose in the introduction', 1.00, 1, 6.5, 'Passage 1'),
-('140e8400-e29b-41d4-a716-446655440008', '130e8400-e29b-41d4-a716-446655440007', 'Complete the sentence: Solar energy is considered...', 'fill_blank', NULL, NULL, NULL, NULL, 'Look for the adjective describing solar energy', 1.00, 1, 6.0, 'Passage 1'),
-('140e8400-e29b-41d4-a716-446655440009', '130e8400-e29b-41d4-a716-446655440008', 'Match the following statements with the correct paragraph.', 'matching', NULL, NULL, NULL, 'Wind energy has become increasingly popular...', 'Read each paragraph carefully to match statements', 1.00, 1, 7.0, 'Passage 2'),
-('140e8400-e29b-41d4-a716-446655440010', '130e8400-e29b-41d4-a716-446655440010', 'Summarize the information in the chart.', 'essay', '/images/default_image.jpg', NULL, NULL, NULL, 'Write at least 150 words describing the chart', 0.00, 1, 7.0, 'Task 1'),
-('140e8400-e29b-41d4-a716-446655440011', '130e8400-e29b-41d4-a716-446655440011', 'Write an essay discussing both views.', 'essay', NULL, NULL, NULL, NULL, 'Write at least 250 words with clear structure', 0.00, 1, 7.5, 'Task 2'),
-('140e8400-e29b-41d4-a716-446655440012', '130e8400-e29b-41d4-a716-446655440012', 'What is the woman looking for?', 'multiple_choice', NULL, '/images/default_image.jpg3', 300, NULL, 'Listen carefully to the conversation', 1.00, 1, 6.0, 'Section 1'),
-('140e8400-e29b-41d4-a716-446655440013', '130e8400-e29b-41d4-a716-446655440012', 'Complete the form with the correct information.', 'fill_blank', NULL, '/images/default_image.jpg3', 300, NULL, 'Listen for specific details', 1.00, 1, 6.5, 'Section 1'),
-('140e8400-e29b-41d4-a716-446655440014', '130e8400-e29b-41d4-a716-446655440016', 'What is your name?', 'speaking', NULL, NULL, NULL, NULL, 'Give your full name clearly', 0.00, 1, 5.0, 'Part 1'),
-('140e8400-e29b-41d4-a716-446655440015', '130e8400-e29b-41d4-a716-446655440016', 'Where are you from?', 'speaking', NULL, NULL, NULL, NULL, 'Mention your hometown and country', 0.00, 1, 5.0, 'Part 1'),
-('140e8400-e29b-41d4-a716-446655440016', '130e8400-e29b-41d4-a716-446655440017', 'Describe a book you recently read.', 'speaking', NULL, NULL, NULL, NULL, 'Speak for 2 minutes about the book', 0.00, 1, 6.5, 'Part 2'),
-('140e8400-e29b-41d4-a716-446655440017', '130e8400-e29b-41d4-a716-446655440018', 'How has reading changed in recent years?', 'speaking', NULL, NULL, NULL, NULL, 'Discuss the topic in detail', 0.00, 1, 7.0, 'Part 3');
+('140e8400-e29b-41d4-a716-446655440006', '130e8400-e29b-41d4-a716-446655440006', 'What is the speakers main concern?', 'multiple_choice', NULL, '/images/default_image.jpg3', 300, NULL, 'Listen for key phrases that indicate concern', 1.00, 1, 6.5, 'Section 1');
 
 -- Insert sample question options
 INSERT INTO question_options (id, question_id, option_text, is_correct, ordering, explanation, point) VALUES
@@ -298,20 +263,14 @@ INSERT INTO coupon_usage (id, coupon_id, user_id, order_id, combo_id, discount_a
 INSERT INTO user_submissions (id, user_id, exercise_id, attempt_number, answers, score, max_score, time_taken, feedback, teacher_feedback, teacher_score, ai_feedback, ai_score, grading_method, graded_by, graded_at, ai_graded_at, status) VALUES
 ('320e8400-e29b-41d4-a716-446655440001', '550e8400-e29b-41d4-a716-446655440004', '130e8400-e29b-41d4-a716-446655440001', 1, '{"1": "A", "2": "B"}', 2.0, 2.0, 1800, 'Good work on reading comprehension', 'Excellent performance. Keep practicing vocabulary.', 2.0, 'Good reading skills. Work on time management.', 2.0, 'hybrid', '350e8400-e29b-41d4-a716-446655440001', NOW() - INTERVAL '2 days', NOW() - INTERVAL '2 days', 'graded'),
 ('320e8400-e29b-41d4-a716-446655440002', '550e8400-e29b-41d4-a716-446655440005', '130e8400-e29b-41d4-a716-446655440003', 1, '{"answer": "My hometown is Ho Chi Minh City..."}', 0.0, 0.0, 600, 'Good fluency and pronunciation', 'Confident speaking. Develop ideas more.', 0.0, 'Good fluency. Work on vocabulary range.', 0.0, 'hybrid', '350e8400-e29b-41d4-a716-446655440002', NOW() - INTERVAL '1 day', NOW() - INTERVAL '1 day', 'graded'),
-('320e8400-e29b-41d4-a716-446655440003', '550e8400-e29b-41d4-a716-446655440006', '130e8400-e29b-41d4-a716-446655440005', 1, '{"task1": "The chart shows the percentage of..."}', 0.0, 0.0, 3600, 'Well-structured response', 'Good organization. Improve grammar accuracy.', 0.0, 'Good structure. Needs more complex vocabulary.', 0.0, 'ai', NULL, NULL, NOW() - INTERVAL '3 days', 'ai_graded'),
-('320e8400-e29b-41d4-a716-446655440004', '550e8400-e29b-41d4-a716-446655440004', '130e8400-e29b-41d4-a716-446655440007', 1, '{"1": "A", "2": "B", "3": "C"}', 3.0, 3.0, 1200, 'Good performance in mock test', 'Excellent work on Passage 1.', 3.0, 'Strong reading comprehension.', 3.0, 'hybrid', '350e8400-e29b-41d4-a716-446655440001', NOW() - INTERVAL '1 day', NOW() - INTERVAL '1 day', 'graded'),
-('320e8400-e29b-41d4-a716-446655440005', '550e8400-e29b-41d4-a716-446655440005', '130e8400-e29b-41d4-a716-446655440010', 1, '{"task1": "The bar chart illustrates..."}', 0.0, 0.0, 1200, 'Good description of the chart', 'Well-organized Task 1 response.', 0.0, 'Good overview. Work on data analysis.', 0.0, 'teacher', '350e8400-e29b-41d4-a716-446655440002', NOW() - INTERVAL '2 days', NULL, 'graded');
+('320e8400-e29b-41d4-a716-446655440003', '550e8400-e29b-41d4-a716-446655440006', '130e8400-e29b-41d4-a716-446655440005', 1, '{"task1": "The chart shows the percentage of..."}', 0.0, 0.0, 3600, 'Well-structured response', 'Good organization. Improve grammar accuracy.', 0.0, 'Good structure. Needs more complex vocabulary.', 0.0, 'ai', NULL, NULL, NOW() - INTERVAL '3 days', 'ai_graded');
 
 -- Insert sample question answers
 INSERT INTO question_answers (id, submission_id, question_id, answer_text, selected_options, media_url, is_correct, points_earned, ai_feedback, ai_points, teacher_feedback, teacher_points, grading_method) VALUES
 ('330e8400-e29b-41d4-a716-446655440001', '320e8400-e29b-41d4-a716-446655440001', '140e8400-e29b-41d4-a716-446655440001', NULL, ARRAY['150e8400-e29b-41d4-a716-446655440001']::uuid[], NULL, TRUE, 1.0, 'Correct answer. Good comprehension.', 1.0, 'Well done!', 1.0, 'hybrid'),
 ('330e8400-e29b-41d4-a716-446655440002', '320e8400-e29b-41d4-a716-446655440001', '140e8400-e29b-41d4-a716-446655440002', NULL, ARRAY['150e8400-e29b-41d4-a716-446655440004']::uuid[], NULL, TRUE, 1.0, 'Correct answer. Good analysis.', 1.0, 'Excellent!', 1.0, 'hybrid'),
 ('330e8400-e29b-41d4-a716-446655440003', '320e8400-e29b-41d4-a716-446655440002', '140e8400-e29b-41d4-a716-446655440004', 'My hometown is Ho Chi Minh City, which is the largest city in Vietnam. It is located in the south of the country and has a population of about 9 million people. I like living here because it is very dynamic and has many opportunities for work and study.', NULL, '/images/default_image.jpg3', NULL, 0.0, 'Good fluency and pronunciation. Develop ideas more.', 0.0, 'Confident speaking. Work on vocabulary range.', 0.0, 'hybrid'),
-('330e8400-e29b-41d4-a716-446655440004', '320e8400-e29b-41d4-a716-446655440003', '140e8400-e29b-41d4-a716-446655440005', 'The chart shows the percentage of renewable energy sources used in different countries in 2020. Overall, Germany had the highest percentage at 45%, followed by Denmark at 40%. The lowest percentage was in Japan at 15%.', NULL, NULL, NULL, 0.0, 'Good overview. Work on data analysis and vocabulary.', 0.0, 'Well-structured response. Improve grammar.', 0.0, 'ai'),
-('330e8400-e29b-41d4-a716-446655440005', '320e8400-e29b-41d4-a716-446655440004', '140e8400-e29b-41d4-a716-446655440007', NULL, ARRAY['150e8400-e29b-41d4-a716-446655440001']::uuid[], NULL, TRUE, 1.0, 'Correct answer. Good reading skills.', 1.0, 'Excellent work!', 1.0, 'hybrid'),
-('330e8400-e29b-41d4-a716-446655440006', '320e8400-e29b-41d4-a716-446655440004', '140e8400-e29b-41d4-a716-446655440008', 'sustainable', NULL, NULL, TRUE, 1.0, 'Correct answer. Good vocabulary.', 1.0, 'Perfect!', 1.0, 'hybrid'),
-('330e8400-e29b-41d4-a716-446655440007', '320e8400-e29b-41d4-a716-446655440004', '140e8400-e29b-41d4-a716-446655440009', NULL, ARRAY['150e8400-e29b-41d4-a716-446655440001']::uuid[], NULL, TRUE, 1.0, 'Correct matching. Good comprehension.', 1.0, 'Well done!', 1.0, 'hybrid'),
-('330e8400-e29b-41d4-a716-446655440008', '320e8400-e29b-41d4-a716-446655440005', '140e8400-e29b-41d4-a716-446655440010', 'The bar chart illustrates the percentage of renewable energy sources used in different countries in 2020. Overall, Germany had the highest percentage at 45%, followed by Denmark at 40%. The lowest percentage was in Japan at 15%.', NULL, NULL, NULL, 0.0, 'Good overview. Work on data analysis.', 0.0, 'Well-organized Task 1 response.', 0.0, 'teacher');
+('330e8400-e29b-41d4-a716-446655440004', '320e8400-e29b-41d4-a716-446655440003', '140e8400-e29b-41d4-a716-446655440005', 'The chart shows the percentage of renewable energy sources used in different countries in 2020. Overall, Germany had the highest percentage at 45%, followed by Denmark at 40%. The lowest percentage was in Japan at 15%.', NULL, NULL, NULL, 0.0, 'Good overview. Work on data analysis and vocabulary.', 0.0, 'Well-structured response. Improve grammar.', 0.0, 'ai');
 
 -- Insert sample blog categories
 INSERT INTO blog_categories (id, name, slug, description, ordering, is_active) VALUES
@@ -416,28 +375,6 @@ INSERT INTO question_options (id, question_id, option_text, is_correct, ordering
 ('150e8400-e29b-41d4-a716-446655440028', '140e8400-e29b-41d4-a716-446655440025', 'Negative and critical', FALSE, 2, 'Not the tone of the speaker', 0.00),
 ('150e8400-e29b-41d4-a716-446655440029', '140e8400-e29b-41d4-a716-446655440025', 'Neutral and objective', FALSE, 3, 'The speaker shows personal opinion', 0.00),
 ('150e8400-e29b-41d4-a716-446655440030', '140e8400-e29b-41d4-a716-446655440025', 'Uncertain and hesitant', FALSE, 4, 'The speaker seems confident in their views', 0.00);
-
--- Insert sample test results
-INSERT INTO test_results (id, user_id, mock_test_id, band_score, reading_score, writing_score, listening_score, speaking_score, time_taken, recommendations, strengths, weaknesses, status) VALUES
-('190e8400-e29b-41d4-a716-446655440001', '550e8400-e29b-41d4-a716-446655440004', '160e8400-e29b-41d4-a716-446655440001', 7.0, 7.5, 6.5, 7.0, 7.0, 160, 'Focus on writing Task 2 structure and vocabulary', ARRAY['Reading comprehension', 'Listening accuracy'], ARRAY['Writing coherence', 'Complex sentence structures'], 'completed'),
-('190e8400-e29b-41d4-a716-446655440002', '550e8400-e29b-41d4-a716-446655440005', '160e8400-e29b-41d4-a716-446655440002', 6.5, 6.5, 0, 0, 0, 55, 'Work on time management and vocabulary', ARRAY['Skimming and scanning'], ARRAY['Academic vocabulary', 'Question types'], 'completed'),
-('190e8400-e29b-41d4-a716-446655440003', '550e8400-e29b-41d4-a716-446655440006', '160e8400-e29b-41d4-a716-446655440003', 7.5, 0, 7.5, 0, 0, 58, 'Excellent progress in writing skills', ARRAY['Task 1 description', 'Grammar accuracy'], ARRAY['Task 2 examples', 'Word count management'], 'completed'),
-('190e8400-e29b-41d4-a716-446655440004', '550e8400-e29b-41d4-a716-446655440004', '160e8400-e29b-41d4-a716-446655440004', 6.0, 0, 0, 6.0, 0, 28, 'Practice with different accents', ARRAY['Note-taking skills'], ARRAY['Multiple choice questions', 'Spelling accuracy'], 'completed'),
-('190e8400-e29b-41d4-a716-446655440005', '550e8400-e29b-41d4-a716-446655440005', '160e8400-e29b-41d4-a716-446655440005', 6.5, 0, 0, 0, 6.5, 14, 'Build confidence and fluency', ARRAY['Pronunciation', 'Part 1 responses'], ARRAY['Part 2 development', 'Part 3 analysis'], 'completed'),
-('190e8400-e29b-41d4-a716-446655440006', '550e8400-e29b-41d4-a716-446655440006', '160e8400-e29b-41d4-a716-446655440006', 5.5, 6.0, 5.0, 5.5, 6.0, 145, 'Focus on writing improvement', ARRAY['Speaking fluency', 'Reading speed'], ARRAY['Writing task achievement', 'Grammar range'], 'completed');
-
--- Insert sample section results
-INSERT INTO section_results (id, test_result_id, test_section_id, band_score, time_taken, correct_answers, total_questions, detailed_answers, ai_feedback, ai_score, teacher_feedback, teacher_score, grading_method, graded_by, graded_at) VALUES
--- Full test section results
-('310e8400-e29b-41d4-a716-446655440001', '190e8400-e29b-41d4-a716-446655440001', '300e8400-e29b-41d4-a716-446655440001', 7.5, 3600, 30, 40, '{"answers": {"1": "A", "2": "B", "3": "C"}}', 'Good reading comprehension skills. Work on time management.', 7.5, 'Excellent performance in reading. Focus on vocabulary.', 7.5, 'hybrid', '350e8400-e29b-41d4-a716-446655440001', NOW() - INTERVAL '5 days'),
-('310e8400-e29b-41d4-a716-446655440002', '190e8400-e29b-41d4-a716-446655440001', '300e8400-e29b-41d4-a716-446655440002', 6.5, 3600, 0, 2, '{"task1": "The chart shows...", "task2": "Some people believe..."}', 'Good structure but needs more complex vocabulary.', 6.5, 'Well-organized essays. Improve grammar accuracy.', 6.5, 'hybrid', '350e8400-e29b-41d4-a716-446655440001', NOW() - INTERVAL '5 days'),
-('310e8400-e29b-41d4-a716-446655440003', '190e8400-e29b-41d4-a716-446655440001', '300e8400-e29b-41d4-a716-446655440003', 7.0, 1800, 28, 40, '{"answers": {"1": "library", "2": "student"}}', 'Good listening skills. Practice with different accents.', 7.0, 'Strong listening comprehension.', 7.0, 'hybrid', '350e8400-e29b-41d4-a716-446655440001', NOW() - INTERVAL '5 days'),
-('310e8400-e29b-41d4-a716-446655440004', '190e8400-e29b-41d4-a716-446655440001', '300e8400-e29b-41d4-a716-446655440004', 7.0, 900, 0, 3, '{"part1": "My name is...", "part2": "I would like to describe...", "part3": "I think that..."}', 'Good fluency and pronunciation. Develop ideas more.', 7.0, 'Confident speaking. Work on Part 3 depth.', 7.0, 'hybrid', '350e8400-e29b-41d4-a716-446655440001', NOW() - INTERVAL '5 days'),
-
--- Reading only test section results
-('310e8400-e29b-41d4-a716-446655440005', '190e8400-e29b-41d4-a716-446655440002', '300e8400-e29b-41d4-a716-446655440005', 6.5, 1200, 10, 13, '{"answers": {"1": "A", "2": "B"}}', 'Good skimming skills. Work on vocabulary.', 6.5, 'Solid performance in Passage 1.', 6.5, 'hybrid', '350e8400-e29b-41d4-a716-446655440001', NOW() - INTERVAL '3 days'),
-('310e8400-e29b-41d4-a716-446655440006', '190e8400-e29b-41d4-a716-446655440002', '300e8400-e29b-41d4-a716-446655440006', 6.5, 1200, 9, 13, '{"answers": {"14": "C", "15": "A"}}', 'Good comprehension. Time management needs improvement.', 6.5, 'Well done on Passage 2.', 6.5, 'hybrid', '350e8400-e29b-41d4-a716-446655440001', NOW() - INTERVAL '3 days'),
-('310e8400-e29b-41d4-a716-446655440007', '190e8400-e29b-41d4-a716-446655440002', '300e8400-e29b-41d4-a716-446655440007', 6.5, 1200, 8, 14, '{"answers": {"27": "B", "28": "A"}}', 'Challenging passage handled well.', 6.5, 'Good effort on the most difficult passage.', 6.5, 'hybrid', '350e8400-e29b-41d4-a716-446655440001', NOW() - INTERVAL '3 days');
 
 -- Insert exercises for new lessons
 INSERT INTO exercises (id, lesson_id, test_section_id, title, instruction, content, exercise_type, skill_type, time_limit, max_attempts, passing_score, ordering, is_active, audio_url) VALUES
@@ -580,3 +517,523 @@ INSERT INTO question_options (id, question_id, option_text, is_correct, ordering
 ('150e8400-e29b-41d4-a716-446655440068', '140e8400-e29b-41d4-a716-446655440050', 'To sell products', FALSE, 2, 'Not mentioned', 0.00),
 ('150e8400-e29b-41d4-a716-446655440069', '140e8400-e29b-41d4-a716-446655440050', 'To provide information', FALSE, 3, 'Too general', 0.00),
 ('150e8400-e29b-41d4-a716-446655440070', '140e8400-e29b-41d4-a716-446655440050', 'To recruit staff', FALSE, 4, 'Not the purpose', 0.00);
+
+-- Insert additional mock tests
+INSERT INTO mock_tests (id, title, description, test_type, duration, total_questions, difficulty_level, target_band_score, instructions, created_by) VALUES
+('160e8400-e29b-41d4-a716-446655440007', 'IELTS Academic Full Test 2', 'Complete IELTS Academic practice test with advanced questions', 'full_test', 165, 40, 'advanced', 7.5, 'This is an advanced IELTS Academic test. Focus on time management and accuracy.', '550e8400-e29b-41d4-a716-446655440002'),
+('160e8400-e29b-41d4-a716-446655440008', 'Reading Practice Test B', 'Advanced reading practice with complex passages', 'reading', 60, 40, 'advanced', 7.5, 'Read three challenging passages and answer all questions within 60 minutes.', '550e8400-e29b-41d4-a716-446655440002'),
+('160e8400-e29b-41d4-a716-446655440009', 'Listening Advanced Test', 'Advanced listening with complex accents and fast speech', 'listening', 30, 40, 'advanced', 7.5, 'Listen carefully to all four sections. Pay attention to details and spelling.', '550e8400-e29b-41d4-a716-446655440003');
+
+-- Insert test sections for new mock tests
+INSERT INTO test_sections (id, mock_test_id, section_name, section_type, description, duration, ordering) VALUES
+-- Full test 2 sections
+('300e8400-e29b-41d4-a716-446655440017', '160e8400-e29b-41d4-a716-446655440007', 'Reading Section', 'reading', 'Advanced Academic Reading with 3 passages', 60, 1),
+('300e8400-e29b-41d4-a716-446655440018', '160e8400-e29b-41d4-a716-446655440007', 'Writing Section', 'writing', 'Advanced Academic Writing Task 1 and Task 2', 60, 2),
+('300e8400-e29b-41d4-a716-446655440019', '160e8400-e29b-41d4-a716-446655440007', 'Listening Section', 'listening', 'Advanced Academic Listening with 4 sections', 30, 3),
+('300e8400-e29b-41d4-a716-446655440020', '160e8400-e29b-41d4-a716-446655440007', 'Speaking Section', 'speaking', 'Advanced Academic Speaking with 3 parts', 15, 4),
+-- Reading test B sections
+('300e8400-e29b-41d4-a716-446655440021', '160e8400-e29b-41d4-a716-446655440008', 'Passage 1', 'reading', 'Advanced reading passage with questions 1-13', 20, 1),
+('300e8400-e29b-41d4-a716-446655440022', '160e8400-e29b-41d4-a716-446655440008', 'Passage 2', 'reading', 'Advanced reading passage with questions 14-27', 20, 2),
+('300e8400-e29b-41d4-a716-446655440023', '160e8400-e29b-41d4-a716-446655440008', 'Passage 3', 'reading', 'Advanced reading passage with questions 28-40', 20, 3),
+-- Listening advanced test sections
+('300e8400-e29b-41d4-a716-446655440024', '160e8400-e29b-41d4-a716-446655440009', 'Section 1', 'listening', 'Advanced conversation with complex vocabulary', 7, 1),
+('300e8400-e29b-41d4-a716-446655440025', '160e8400-e29b-41d4-a716-446655440009', 'Section 2', 'listening', 'Advanced monologue with detailed information', 7, 2),
+('300e8400-e29b-41d4-a716-446655440026', '160e8400-e29b-41d4-a716-446655440009', 'Section 3', 'listening', 'Advanced academic conversation', 8, 3),
+('300e8400-e29b-41d4-a716-446655440027', '160e8400-e29b-41d4-a716-446655440009', 'Section 4', 'listening', 'Advanced academic lecture with complex topics', 8, 4);
+
+-- Insert exercises for new mock tests
+INSERT INTO exercises (id, lesson_id, test_section_id, title, instruction, content, exercise_type, skill_type, time_limit, max_attempts, passing_score, ordering, is_active, audio_url) VALUES
+-- Full test 2 exercises
+('130e8400-e29b-41d4-a716-446655440036', NULL, '300e8400-e29b-41d4-a716-446655440017', 'Advanced Reading Passage 1', 'Read the passage and answer questions 1-13', '{"passage": "The evolution of human language has been a subject of intense research and debate among linguists, anthropologists, and cognitive scientists. Language is not merely a tool for communication but a complex system that shapes our thoughts, cultures, and social interactions. The origins of language remain one of the greatest mysteries in human evolution, with theories ranging from gradual development over millions of years to a sudden emergence in modern humans."}', 'mock_test', 'reading', 20, 1, 0.00, 1, TRUE, NULL),
+('130e8400-e29b-41d4-a716-446655440037', NULL, '300e8400-e29b-41d4-a716-446655440017', 'Advanced Reading Passage 2', 'Read the passage and answer questions 14-27', '{"passage": "Climate science has revealed that the Earth''s climate system is far more complex than previously understood. The interplay between atmospheric composition, ocean currents, solar radiation, and biological processes creates a delicate balance that has maintained relatively stable conditions for thousands of years. However, human activities have introduced unprecedented changes to this system, leading to concerns about long-term stability and the potential for catastrophic climate events."}', 'mock_test', 'reading', 20, 1, 0.00, 2, TRUE, NULL),
+('130e8400-e29b-41d4-a716-446655440038', NULL, '300e8400-e29b-41d4-a716-446655440017', 'Advanced Reading Passage 3', 'Read the passage and answer questions 28-40', '{"passage": "The field of quantum computing represents one of the most promising frontiers in modern technology. Unlike classical computers that use bits, quantum computers utilize quantum bits or qubits, which can exist in multiple states simultaneously. This property, known as superposition, allows quantum computers to perform certain calculations exponentially faster than their classical counterparts, potentially revolutionizing fields such as cryptography, drug discovery, and artificial intelligence."}', 'mock_test', 'reading', 20, 1, 0.00, 3, TRUE, NULL),
+('130e8400-e29b-41d4-a716-446655440039', NULL, '300e8400-e29b-41d4-a716-446655440018', 'Advanced Writing Task 1', 'Write a 150-word report describing the diagram', '{"chart_url": "/test/image.jpg", "chart_type": "process", "description": "The diagram shows the process of water treatment in a modern facility"}', 'mock_test', 'writing', 20, 1, 0.00, 1, TRUE, NULL),
+('130e8400-e29b-41d4-a716-446655440040', NULL, '300e8400-e29b-41d4-a716-446655440018', 'Advanced Writing Task 2', 'Write a 250-word essay on the given topic', '{"topic": "Some argue that space exploration is a waste of resources, while others believe it is essential for humanity''s future. Discuss both views and give your opinion.", "essay_type": "discussion"}', 'mock_test', 'writing', 40, 1, 0.00, 2, TRUE, NULL),
+('130e8400-e29b-41d4-a716-446655440041', NULL, '300e8400-e29b-41d4-a716-446655440019', 'Advanced Listening Section 1', 'Listen to the conversation and answer questions 1-10', '{"audio_url": "/test/audio.mp3", "audio_duration": 600, "transcript": "You will hear a conversation between a university student and a professor discussing research methodology..."}', 'mock_test', 'listening', 7, 1, 0.00, 1, TRUE, '/test/audio.mp3'),
+('130e8400-e29b-41d4-a716-446655440042', NULL, '300e8400-e29b-41d4-a716-446655440019', 'Advanced Listening Section 2', 'Listen to the monologue and answer questions 11-20', '{"audio_url": "/test/audio.mp3", "audio_duration": 600, "transcript": "You will hear a lecture about urban planning and sustainable development..."}', 'mock_test', 'listening', 7, 1, 0.00, 2, TRUE, '/test/audio.mp3'),
+('130e8400-e29b-41d4-a716-446655440043', NULL, '300e8400-e29b-41d4-a716-446655440019', 'Advanced Listening Section 3', 'Listen to the conversation and answer questions 21-30', '{"audio_url": "/test/audio.mp3", "audio_duration": 600, "transcript": "You will hear a discussion between two researchers about their findings..."}', 'mock_test', 'listening', 8, 1, 0.00, 3, TRUE, '/test/audio.mp3'),
+('130e8400-e29b-41d4-a716-446655440044', NULL, '300e8400-e29b-41d4-a716-446655440019', 'Advanced Listening Section 4', 'Listen to the lecture and answer questions 31-40', '{"audio_url": "/test/audio.mp3", "audio_duration": 600, "transcript": "You will hear an academic lecture about neuroscience and brain plasticity..."}', 'mock_test', 'listening', 8, 1, 0.00, 4, TRUE, '/test/audio.mp3'),
+('130e8400-e29b-41d4-a716-446655440045', NULL, '300e8400-e29b-41d4-a716-446655440020', 'Advanced Speaking Part 1', 'Answer personal questions about yourself', '{"questions": ["What is your full name?", "Where do you come from?", "What do you study or work?"], "topic": "Personal information"}', 'mock_test', 'speaking', 5, 1, 0.00, 1, TRUE, NULL),
+('130e8400-e29b-41d4-a716-446655440046', NULL, '300e8400-e29b-41d4-a716-446655440020', 'Advanced Speaking Part 2', 'Speak about the given topic for 2 minutes', '{"topic": "Describe a scientific discovery that interests you", "cue_card": true, "points": ["What the discovery is", "When it was made", "Who made it", "Why it interests you", "How it affects society"]}', 'mock_test', 'speaking', 2, 1, 0.00, 2, TRUE, NULL),
+('130e8400-e29b-41d4-a716-446655440047', NULL, '300e8400-e29b-41d4-a716-446655440020', 'Advanced Speaking Part 3', 'Discuss abstract topics related to Part 2', '{"questions": ["How has science changed our lives?", "What are the ethical implications of scientific research?"], "topic": "Science and society"}', 'mock_test', 'speaking', 5, 1, 0.00, 3, TRUE, NULL),
+-- Reading test B exercises
+('130e8400-e29b-41d4-a716-446655440048', NULL, '300e8400-e29b-41d4-a716-446655440021', 'Advanced Passage 1', 'Read the passage and answer questions 1-13', '{"passage": "The concept of artificial intelligence has evolved dramatically since its inception in the mid-20th century. Initially conceived as machines capable of performing tasks that would require human intelligence, AI has now become a transformative force across multiple industries. Machine learning, a subset of AI, enables systems to learn and improve from experience without being explicitly programmed, opening new possibilities for automation and decision-making."}', 'mock_test', 'reading', 20, 1, 0.00, 1, TRUE, NULL),
+('130e8400-e29b-41d4-a716-446655440049', NULL, '300e8400-e29b-41d4-a716-446655440022', 'Advanced Passage 2', 'Read the passage and answer questions 14-27', '{"passage": "Biodiversity conservation has become a critical global priority as species extinction rates accelerate. Ecosystems depend on the intricate relationships between different species, and the loss of even a single species can have cascading effects throughout an ecosystem. Conservation efforts must balance the needs of human populations with the preservation of natural habitats, requiring innovative approaches that integrate scientific research, policy development, and community engagement."}', 'mock_test', 'reading', 20, 1, 0.00, 2, TRUE, NULL),
+('130e8400-e29b-41d4-a716-446655440050', NULL, '300e8400-e29b-41d4-a716-446655440023', 'Advanced Passage 3', 'Read the passage and answer questions 28-40', '{"passage": "The study of consciousness remains one of the most challenging and fascinating areas of scientific inquiry. Philosophers and scientists have debated the nature of consciousness for centuries, with questions about how subjective experiences arise from physical processes in the brain. Recent advances in neuroscience have provided new insights, but the hard problem of consciousness—explaining how and why we have subjective experiences—remains largely unresolved."}', 'mock_test', 'reading', 20, 1, 0.00, 3, TRUE, NULL),
+-- Listening advanced test exercises
+('130e8400-e29b-41d4-a716-446655440051', NULL, '300e8400-e29b-41d4-a716-446655440024', 'Advanced Listening Section 1', 'Listen and answer questions 1-10', '{"audio_url": "/test/audio.mp3", "audio_duration": 600, "transcript": "You will hear a conversation between a graduate student and a supervisor about thesis research..."}', 'mock_test', 'listening', 7, 1, 0.00, 1, TRUE, '/test/audio.mp3'),
+('130e8400-e29b-41d4-a716-446655440052', NULL, '300e8400-e29b-41d4-a716-446655440025', 'Advanced Listening Section 2', 'Listen and answer questions 11-20', '{"audio_url": "/test/audio.mp3", "audio_duration": 600, "transcript": "You will hear a presentation about renewable energy technologies and their implementation..."}', 'mock_test', 'listening', 7, 1, 0.00, 2, TRUE, '/test/audio.mp3'),
+('130e8400-e29b-41d4-a716-446655440053', NULL, '300e8400-e29b-41d4-a716-446655440026', 'Advanced Listening Section 3', 'Listen and answer questions 21-30', '{"audio_url": "/test/audio.mp3", "audio_duration": 600, "transcript": "You will hear a discussion between two academics about research methodology and data analysis..."}', 'mock_test', 'listening', 8, 1, 0.00, 3, TRUE, '/test/audio.mp3'),
+('130e8400-e29b-41d4-a716-446655440054', NULL, '300e8400-e29b-41d4-a716-446655440027', 'Advanced Listening Section 4', 'Listen and answer questions 31-40', '{"audio_url": "/test/audio.mp3", "audio_duration": 600, "transcript": "You will hear a lecture about cognitive psychology and memory formation..."}', 'mock_test', 'listening', 8, 1, 0.00, 4, TRUE, '/test/audio.mp3');
+
+-- Insert question groups for new exercises
+INSERT INTO question_groups (id, exercise_id, image_url, group_title, group_instruction, passage_reference, question_type, ordering, question_range, correct_answer_count) VALUES
+-- Question groups for full test 2 reading
+('160e8400-e29b-41d4-a716-446655440020', '130e8400-e29b-41d4-a716-446655440036', NULL, 'Questions 1-6', 'Multiple choice questions', 'The evolution of human language has been a subject of intense research and debate among linguists, anthropologists, and cognitive scientists. Language is not merely a tool for communication but a complex system that shapes our thoughts, cultures, and social interactions. The origins of language remain one of the greatest mysteries in human evolution, with theories ranging from gradual development over millions of years to a sudden emergence in modern humans.', 'multiple_choice', 1, '1-6', 6),
+('160e8400-e29b-41d4-a716-446655440021', '130e8400-e29b-41d4-a716-446655440036', NULL, 'Questions 7-13', 'True/False/Not Given questions', 'The evolution of human language has been a subject of intense research and debate among linguists, anthropologists, and cognitive scientists. Language is not merely a tool for communication but a complex system that shapes our thoughts, cultures, and social interactions. The origins of language remain one of the greatest mysteries in human evolution, with theories ranging from gradual development over millions of years to a sudden emergence in modern humans.', 'true_false', 2, '7-13', 7),
+('160e8400-e29b-41d4-a716-446655440022', '130e8400-e29b-41d4-a716-446655440037', NULL, 'Questions 14-20', 'Matching headings to paragraphs', 'Climate science has revealed that the Earth''s climate system is far more complex than previously understood. The interplay between atmospheric composition, ocean currents, solar radiation, and biological processes creates a delicate balance that has maintained relatively stable conditions for thousands of years. However, human activities have introduced unprecedented changes to this system, leading to concerns about long-term stability and the potential for catastrophic climate events.', 'matching', 1, '14-20', 7),
+('160e8400-e29b-41d4-a716-446655440023', '130e8400-e29b-41d4-a716-446655440037', NULL, 'Questions 21-27', 'Summary completion', 'Climate science has revealed that the Earth''s climate system is far more complex than previously understood. The interplay between atmospheric composition, ocean currents, solar radiation, and biological processes creates a delicate balance that has maintained relatively stable conditions for thousands of years. However, human activities have introduced unprecedented changes to this system, leading to concerns about long-term stability and the potential for catastrophic climate events.', 'fill_blank', 2, '21-27', 7),
+('160e8400-e29b-41d4-a716-446655440024', '130e8400-e29b-41d4-a716-446655440038', NULL, 'Questions 28-35', 'Multiple choice questions', 'The field of quantum computing represents one of the most promising frontiers in modern technology. Unlike classical computers that use bits, quantum computers utilize quantum bits or qubits, which can exist in multiple states simultaneously. This property, known as superposition, allows quantum computers to perform certain calculations exponentially faster than their classical counterparts, potentially revolutionizing fields such as cryptography, drug discovery, and artificial intelligence.', 'multiple_choice', 1, '28-35', 8),
+('160e8400-e29b-41d4-a716-446655440025', '130e8400-e29b-41d4-a716-446655440038', NULL, 'Questions 36-40', 'Sentence completion', 'The field of quantum computing represents one of the most promising frontiers in modern technology. Unlike classical computers that use bits, quantum computers utilize quantum bits or qubits, which can exist in multiple states simultaneously. This property, known as superposition, allows quantum computers to perform certain calculations exponentially faster than their classical counterparts, potentially revolutionizing fields such as cryptography, drug discovery, and artificial intelligence.', 'fill_blank', 2, '36-40', 5),
+-- Question groups for reading test B
+('160e8400-e29b-41d4-a716-446655440026', '130e8400-e29b-41d4-a716-446655440048', NULL, 'Questions 1-5', 'Multiple choice questions', 'The concept of artificial intelligence has evolved dramatically since its inception in the mid-20th century. Initially conceived as machines capable of performing tasks that would require human intelligence, AI has now become a transformative force across multiple industries. Machine learning, a subset of AI, enables systems to learn and improve from experience without being explicitly programmed, opening new possibilities for automation and decision-making.', 'multiple_choice', 1, '1-5', 5),
+('160e8400-e29b-41d4-a716-446655440027', '130e8400-e29b-41d4-a716-446655440048', NULL, 'Questions 6-13', 'True/False/Not Given', 'The concept of artificial intelligence has evolved dramatically since its inception in the mid-20th century. Initially conceived as machines capable of performing tasks that would require human intelligence, AI has now become a transformative force across multiple industries. Machine learning, a subset of AI, enables systems to learn and improve from experience without being explicitly programmed, opening new possibilities for automation and decision-making.', 'true_false', 2, '6-13', 8),
+('160e8400-e29b-41d4-a716-446655440028', '130e8400-e29b-41d4-a716-446655440049', NULL, 'Questions 14-20', 'Matching information to paragraphs', 'Biodiversity conservation has become a critical global priority as species extinction rates accelerate. Ecosystems depend on the intricate relationships between different species, and the loss of even a single species can have cascading effects throughout an ecosystem. Conservation efforts must balance the needs of human populations with the preservation of natural habitats, requiring innovative approaches that integrate scientific research, policy development, and community engagement.', 'matching', 1, '14-20', 7),
+('160e8400-e29b-41d4-a716-446655440029', '130e8400-e29b-41d4-a716-446655440049', NULL, 'Questions 21-27', 'Summary completion', 'Biodiversity conservation has become a critical global priority as species extinction rates accelerate. Ecosystems depend on the intricate relationships between different species, and the loss of even a single species can have cascading effects throughout an ecosystem. Conservation efforts must balance the needs of human populations with the preservation of natural habitats, requiring innovative approaches that integrate scientific research, policy development, and community engagement.', 'fill_blank', 2, '21-27', 7),
+('160e8400-e29b-41d4-a716-446655440030', '130e8400-e29b-41d4-a716-446655440050', NULL, 'Questions 28-35', 'Multiple choice questions', 'The study of consciousness remains one of the most challenging and fascinating areas of scientific inquiry. Philosophers and scientists have debated the nature of consciousness for centuries, with questions about how subjective experiences arise from physical processes in the brain. Recent advances in neuroscience have provided new insights, but the hard problem of consciousness—explaining how and why we have subjective experiences—remains largely unresolved.', 'multiple_choice', 1, '28-35', 8),
+('160e8400-e29b-41d4-a716-446655440031', '130e8400-e29b-41d4-a716-446655440050', NULL, 'Questions 36-40', 'Sentence completion', 'The study of consciousness remains one of the most challenging and fascinating areas of scientific inquiry. Philosophers and scientists have debated the nature of consciousness for centuries, with questions about how subjective experiences arise from physical processes in the brain. Recent advances in neuroscience have provided new insights, but the hard problem of consciousness—explaining how and why we have subjective experiences—remains largely unresolved.', 'fill_blank', 2, '36-40', 5),
+-- Question groups for listening advanced test
+('160e8400-e29b-41d4-a716-446655440032', '130e8400-e29b-41d4-a716-446655440051', NULL, 'Questions 1-10', 'Listen to Section 1 and answer questions 1-10', NULL, 'multiple_choice', 1, '1-10', 10),
+('160e8400-e29b-41d4-a716-446655440033', '130e8400-e29b-41d4-a716-446655440052', NULL, 'Questions 11-20', 'Listen to Section 2 and answer questions 11-20', NULL, 'fill_blank', 1, '11-20', 10),
+('160e8400-e29b-41d4-a716-446655440034', '130e8400-e29b-41d4-a716-446655440053', NULL, 'Questions 21-30', 'Listen to Section 3 and answer questions 21-30', NULL, 'multiple_choice', 1, '21-30', 10),
+('160e8400-e29b-41d4-a716-446655440035', '130e8400-e29b-41d4-a716-446655440054', NULL, 'Questions 31-40', 'Listen to Section 4 and answer questions 31-40', NULL, 'fill_blank', 1, '31-40', 10);
+
+-- Insert matching options for matching question groups
+INSERT INTO matching_options (id, set_id, option_text, ordering) VALUES
+-- Matching options for question group 022
+('170e8400-e29b-41d4-a716-446655440010', '160e8400-e29b-41d4-a716-446655440022', 'The complexity of climate systems', 1),
+('170e8400-e29b-41d4-a716-446655440011', '160e8400-e29b-41d4-a716-446655440022', 'Factors affecting climate balance', 2),
+('170e8400-e29b-41d4-a716-446655440012', '160e8400-e29b-41d4-a716-446655440022', 'Historical climate stability', 3),
+('170e8400-e29b-41d4-a716-446655440013', '160e8400-e29b-41d4-a716-446655440022', 'Human impact on climate', 4),
+('170e8400-e29b-41d4-a716-446655440014', '160e8400-e29b-41d4-a716-446655440022', 'Concerns about future stability', 5),
+('170e8400-e29b-41d4-a716-446655440015', '160e8400-e29b-41d4-a716-446655440022', 'Potential catastrophic events', 6),
+('170e8400-e29b-41d4-a716-446655440016', '160e8400-e29b-41d4-a716-446655440022', 'The need for action', 7),
+-- Matching options for question group 028
+('170e8400-e29b-41d4-a716-446655440017', '160e8400-e29b-41d4-a716-446655440028', 'The importance of biodiversity', 1),
+('170e8400-e29b-41d4-a716-446655440018', '160e8400-e29b-41d4-a716-446655440028', 'Ecosystem relationships', 2),
+('170e8400-e29b-41d4-a716-446655440019', '160e8400-e29b-41d4-a716-446655440028', 'Cascading effects of species loss', 3),
+('170e8400-e29b-41d4-a716-446655440020', '160e8400-e29b-41d4-a716-446655440028', 'Balancing human and environmental needs', 4),
+('170e8400-e29b-41d4-a716-446655440021', '160e8400-e29b-41d4-a716-446655440028', 'Innovative conservation approaches', 5),
+('170e8400-e29b-41d4-a716-446655440022', '160e8400-e29b-41d4-a716-446655440028', 'Integration of research and policy', 6),
+('170e8400-e29b-41d4-a716-446655440023', '160e8400-e29b-41d4-a716-446655440028', 'Community engagement in conservation', 7);
+
+-- Insert questions for new question groups
+INSERT INTO questions (id, exercise_id, question_group_id, question_text, question_type, image_url, audio_url, audio_duration, reading_passage, explanation, points, ordering, difficulty_level, question_group) VALUES
+-- Questions for full test 2 reading passage 1
+('140e8400-e29b-41d4-a716-446655440051', '130e8400-e29b-41d4-a716-446655440036', '160e8400-e29b-41d4-a716-446655440020', 'What is the main focus of the passage?', 'multiple_choice', NULL, NULL, NULL, 'The evolution of human language has been a subject of intense research...', '{"correct_answer": "Language evolution research"}', 1.00, 1, 7.0, 'Passage 1'),
+('140e8400-e29b-41d4-a716-446655440052', '130e8400-e29b-41d4-a716-446655440036', '160e8400-e29b-41d4-a716-446655440020', 'According to the passage, language is described as:', 'multiple_choice', NULL, NULL, NULL, NULL, '{"correct_answer": "A complex system shaping thoughts"}', 1.00, 2, 7.5, 'Passage 1'),
+('140e8400-e29b-41d4-a716-446655440053', '130e8400-e29b-41d4-a716-446655440036', '160e8400-e29b-41d4-a716-446655440021', 'The origins of language are well understood.', 'true_false', NULL, NULL, NULL, NULL, '{"correct_answer": "False"}', 1.00, 7, 6.5, 'Passage 1'),
+-- Questions for full test 2 reading passage 2
+('140e8400-e29b-41d4-a716-446655440054', '130e8400-e29b-41d4-a716-446655440037', '160e8400-e29b-41d4-a716-446655440022', 'Paragraph A', 'matching', NULL, NULL, NULL, 'Climate science has revealed that the Earth''s climate system is far more complex than previously understood...', '{"correct_answer": "The complexity of climate systems"}', 1.00, 14, 7.0, 'Passage 2'),
+('140e8400-e29b-41d4-a716-446655440055', '130e8400-e29b-41d4-a716-446655440037', '160e8400-e29b-41d4-a716-446655440022', 'Paragraph B', 'matching', NULL, NULL, NULL, 'The interplay between atmospheric composition, ocean currents, solar radiation, and biological processes...', '{"correct_answer": "Factors affecting climate balance"}', 1.00, 15, 7.5, 'Passage 2'),
+('140e8400-e29b-41d4-a716-446655440056', '130e8400-e29b-41d4-a716-446655440037', '160e8400-e29b-41d4-a716-446655440023', 'Fill in the blank: The climate system has maintained _____ conditions for thousands of years.', 'fill_blank', NULL, NULL, NULL, NULL, '{"correct_answer": "stable"}', 1.00, 21, 7.0, 'Passage 2'),
+-- Questions for full test 2 reading passage 3
+('140e8400-e29b-41d4-a716-446655440057', '130e8400-e29b-41d4-a716-446655440038', '160e8400-e29b-41d4-a716-446655440024', 'What is the main advantage of quantum computers?', 'multiple_choice', NULL, NULL, NULL, 'The field of quantum computing represents one of the most promising frontiers...', '{"correct_answer": "Exponential speed in calculations"}', 1.00, 28, 7.5, 'Passage 3'),
+('140e8400-e29b-41d4-a716-446655440058', '130e8400-e29b-41d4-a716-446655440038', '160e8400-e29b-41d4-a716-446655440025', 'Complete: Quantum computers use _____ instead of bits.', 'fill_blank', NULL, NULL, NULL, NULL, '{"correct_answer": "qubits"}', 1.00, 36, 7.0, 'Passage 3'),
+-- Questions for reading test B passage 1
+('140e8400-e29b-41d4-a716-446655440059', '130e8400-e29b-41d4-a716-446655440048', '160e8400-e29b-41d4-a716-446655440026', 'What is machine learning?', 'multiple_choice', NULL, NULL, NULL, 'The concept of artificial intelligence has evolved dramatically...', '{"correct_answer": "A subset of AI that learns from experience"}', 1.00, 1, 7.0, 'Passage 1'),
+('140e8400-e29b-41d4-a716-446655440060', '130e8400-e29b-41d4-a716-446655440048', '160e8400-e29b-41d4-a716-446655440027', 'AI was first conceived in the 21st century.', 'true_false', NULL, NULL, NULL, NULL, '{"correct_answer": "False"}', 1.00, 6, 6.5, 'Passage 1'),
+-- Questions for reading test B passage 2
+('140e8400-e29b-41d4-a716-446655440061', '130e8400-e29b-41d4-a716-446655440049', '160e8400-e29b-41d4-a716-446655440028', 'Paragraph A', 'matching', NULL, NULL, NULL, 'Biodiversity conservation has become a critical global priority...', '{"correct_answer": "The importance of biodiversity"}', 1.00, 14, 7.0, 'Passage 2'),
+('140e8400-e29b-41d4-a716-446655440062', '130e8400-e29b-41d4-a716-446655440049', '160e8400-e29b-41d4-a716-446655440029', 'Complete: Conservation efforts must _____ human needs with habitat preservation.', 'fill_blank', NULL, NULL, NULL, NULL, '{"correct_answer": "balance"}', 1.00, 21, 7.0, 'Passage 2'),
+-- Questions for reading test B passage 3
+('140e8400-e29b-41d4-a716-446655440063', '130e8400-e29b-41d4-a716-446655440050', '160e8400-e29b-41d4-a716-446655440030', 'What is the hard problem of consciousness?', 'multiple_choice', NULL, NULL, NULL, 'The study of consciousness remains one of the most challenging...', '{"correct_answer": "Explaining subjective experiences"}', 1.00, 28, 7.5, 'Passage 3'),
+('140e8400-e29b-41d4-a716-446655440064', '130e8400-e29b-41d4-a716-446655440050', '160e8400-e29b-41d4-a716-446655440031', 'Fill in the blank: Consciousness involves _____ experiences from physical processes.', 'fill_blank', NULL, NULL, NULL, NULL, '{"correct_answer": "subjective"}', 1.00, 36, 7.0, 'Passage 3'),
+-- Questions for listening advanced test
+('140e8400-e29b-41d4-a716-446655440065', '130e8400-e29b-41d4-a716-446655440051', '160e8400-e29b-41d4-a716-446655440032', 'What is the main topic of the conversation?', 'multiple_choice', NULL, '/test/audio.mp3', 600, NULL, '{"correct_answer": "Thesis research methodology"}', 1.00, 1, 7.0, 'Section 1'),
+('140e8400-e29b-41d4-a716-446655440066', '130e8400-e29b-41d4-a716-446655440052', '160e8400-e29b-41d4-a716-446655440033', 'Complete: Renewable energy technologies include solar, wind, and _____ power.', 'fill_blank', NULL, '/test/audio.mp3', 600, NULL, '{"correct_answer": "hydroelectric"}', 1.00, 11, 7.0, 'Section 2'),
+('140e8400-e29b-41d4-a716-446655440067', '130e8400-e29b-41d4-a716-446655440053', '160e8400-e29b-41d4-a716-446655440034', 'What research method do they discuss?', 'multiple_choice', NULL, '/test/audio.mp3', 600, NULL, '{"correct_answer": "Data analysis techniques"}', 1.00, 21, 7.5, 'Section 3'),
+('140e8400-e29b-41d4-a716-446655440068', '130e8400-e29b-41d4-a716-446655440054', '160e8400-e29b-41d4-a716-446655440035', 'Fill in the blank: Brain plasticity refers to the brain''s ability to _____ and adapt.', 'fill_blank', NULL, '/test/audio.mp3', 600, NULL, '{"correct_answer": "reorganize"}', 1.00, 31, 7.0, 'Section 4');
+
+-- Insert question options for new multiple choice questions
+INSERT INTO question_options (id, question_id, option_text, is_correct, ordering, explanation, point) VALUES
+-- Options for question 051
+('150e8400-e29b-41d4-a716-446655440071', '140e8400-e29b-41d4-a716-446655440051', 'Language evolution research', TRUE, 1, 'Main focus of the passage', 1.00),
+('150e8400-e29b-41d4-a716-446655440072', '140e8400-e29b-41d4-a716-446655440051', 'Communication methods', FALSE, 2, 'Too narrow', 0.00),
+('150e8400-e29b-41d4-a716-446655440073', '140e8400-e29b-41d4-a716-446655440051', 'Cultural differences', FALSE, 3, 'Not the main focus', 0.00),
+('150e8400-e29b-41d4-a716-446655440074', '140e8400-e29b-41d4-a716-446655440051', 'Social interactions', FALSE, 4, 'Only one aspect', 0.00),
+-- Options for question 052
+('150e8400-e29b-41d4-a716-446655440075', '140e8400-e29b-41d4-a716-446655440052', 'A complex system shaping thoughts', TRUE, 1, 'Directly stated in the passage', 1.00),
+('150e8400-e29b-41d4-a716-446655440076', '140e8400-e29b-41d4-a716-446655440052', 'A simple communication tool', FALSE, 2, 'Contradicts the passage', 0.00),
+('150e8400-e29b-41d4-a716-446655440077', '140e8400-e29b-41d4-a716-446655440052', 'A recent human invention', FALSE, 3, 'Not mentioned', 0.00),
+('150e8400-e29b-41d4-a716-446655440078', '140e8400-e29b-41d4-a716-446655440052', 'A biological necessity only', FALSE, 4, 'Too narrow', 0.00),
+-- Options for question 057
+('150e8400-e29b-41d4-a716-446655440079', '140e8400-e29b-41d4-a716-446655440057', 'Exponential speed in calculations', TRUE, 1, 'Main advantage mentioned', 1.00),
+('150e8400-e29b-41d4-a716-446655440080', '140e8400-e29b-41d4-a716-446655440057', 'Lower energy consumption', FALSE, 2, 'Not mentioned', 0.00),
+('150e8400-e29b-41d4-a716-446655440081', '140e8400-e29b-41d4-a716-446655440057', 'Smaller physical size', FALSE, 3, 'Not discussed', 0.00),
+('150e8400-e29b-41d4-a716-446655440082', '140e8400-e29b-41d4-a716-446655440057', 'Easier programming', FALSE, 4, 'Not mentioned', 0.00),
+-- Options for question 059
+('150e8400-e29b-41d4-a716-446655440083', '140e8400-e29b-41d4-a716-446655440059', 'A subset of AI that learns from experience', TRUE, 1, 'Correct definition', 1.00),
+('150e8400-e29b-41d4-a716-446655440084', '140e8400-e29b-41d4-a716-446655440059', 'A type of computer hardware', FALSE, 2, 'Incorrect', 0.00),
+('150e8400-e29b-41d4-a716-446655440085', '140e8400-e29b-41d4-a716-446655440059', 'A programming language', FALSE, 3, 'Not mentioned', 0.00),
+('150e8400-e29b-41d4-a716-446655440086', '140e8400-e29b-41d4-a716-446655440059', 'A database system', FALSE, 4, 'Not related', 0.00),
+-- Options for question 063
+('150e8400-e29b-41d4-a716-446655440087', '140e8400-e29b-41d4-a716-446655440063', 'Explaining subjective experiences', TRUE, 1, 'The hard problem definition', 1.00),
+('150e8400-e29b-41d4-a716-446655440088', '140e8400-e29b-41d4-a716-446655440063', 'Understanding brain structure', FALSE, 2, 'Not the hard problem', 0.00),
+('150e8400-e29b-41d4-a716-446655440089', '140e8400-e29b-41d4-a716-446655440063', 'Measuring consciousness', FALSE, 3, 'Not mentioned', 0.00),
+('150e8400-e29b-41d4-a716-446655440090', '140e8400-e29b-41d4-a716-446655440063', 'Treating mental disorders', FALSE, 4, 'Not discussed', 0.00),
+-- Options for question 065
+('150e8400-e29b-41d4-a716-446655440091', '140e8400-e29b-41d4-a716-446655440065', 'Thesis research methodology', TRUE, 1, 'Main topic of conversation', 1.00),
+('150e8400-e29b-41d4-a716-446655440092', '140e8400-e29b-41d4-a716-446655440065', 'University admission', FALSE, 2, 'Not mentioned', 0.00),
+('150e8400-e29b-41d4-a716-446655440093', '140e8400-e29b-41d4-a716-446655440065', 'Job interview', FALSE, 3, 'Not the topic', 0.00),
+('150e8400-e29b-41d4-a716-446655440094', '140e8400-e29b-41d4-a716-446655440065', 'Course registration', FALSE, 4, 'Not discussed', 0.00),
+-- Options for question 067
+('150e8400-e29b-41d4-a716-446655440095', '140e8400-e29b-41d4-a716-446655440067', 'Data analysis techniques', TRUE, 1, 'Main research method discussed', 1.00),
+('150e8400-e29b-41d4-a716-446655440096', '140e8400-e29b-41d4-a716-446655440067', 'Survey methods', FALSE, 2, 'Not mentioned', 0.00),
+('150e8400-e29b-41d4-a716-446655440097', '140e8400-e29b-41d4-a716-446655440067', 'Interview techniques', FALSE, 3, 'Not discussed', 0.00),
+('150e8400-e29b-41d4-a716-446655440098', '140e8400-e29b-41d4-a716-446655440067', 'Observation methods', FALSE, 4, 'Not the focus', 0.00);
+
+-- ============================================
+-- IELTS MOCK TESTS DATA (4 Complete Tests)
+-- ============================================
+
+-- Insert exercises for 4 IELTS mock tests
+INSERT INTO exercises (id, lesson_id, test_section_id, title, instruction, content, exercise_type, skill_type, time_limit, max_attempts, passing_score, ordering, is_active, audio_url) VALUES
+-- Reading Test exercises (3 passages)
+('130e8400-e29b-41d4-a716-446655440100', NULL, '300e8400-e29b-41d4-a716-446655440100', 'Reading Passage 1', 'Read the passage and answer questions 1-13', '{"passage": "The history of human migration is a fascinating subject that spans thousands of years. Early humans began migrating from Africa approximately 60,000 years ago, gradually populating different continents. This migration was driven by various factors including climate change, the search for food and resources, and population pressure. Archaeological evidence shows that these early migrations were not random but followed specific routes, often along coastlines and river valleys where resources were more abundant."}', 'mock_test', 'reading', 20, 1, 0.00, 1, TRUE, NULL),
+('130e8400-e29b-41d4-a716-446655440101', NULL, '300e8400-e29b-41d4-a716-446655440101', 'Reading Passage 2', 'Read the passage and answer questions 14-27', '{"passage": "The development of modern medicine has revolutionized healthcare and extended human life expectancy significantly. From the discovery of antibiotics to advanced surgical techniques, medical science has made remarkable progress. However, challenges remain, including antibiotic resistance, the rising cost of healthcare, and ensuring access to medical services in developing countries. The future of medicine lies in personalized treatments, gene therapy, and preventive care."}', 'mock_test', 'reading', 20, 1, 0.00, 1, TRUE, NULL),
+('130e8400-e29b-41d4-a716-446655440102', NULL, '300e8400-e29b-41d4-a716-446655440102', 'Reading Passage 3', 'Read the passage and answer questions 28-40', '{"passage": "The impact of social media on modern society is profound and multifaceted. While it has connected billions of people worldwide and facilitated information sharing, it has also raised concerns about privacy, mental health, and the spread of misinformation. Research indicates that excessive social media use can lead to anxiety and depression, particularly among young people. However, when used responsibly, social media can be a powerful tool for education, activism, and community building."}', 'mock_test', 'reading', 20, 1, 0.00, 1, TRUE, NULL),
+
+-- Listening Test exercises (4 sections)
+('130e8400-e29b-41d4-a716-446655440103', NULL, '300e8400-e29b-41d4-a716-446655440103', 'Listening Section 1', 'Listen to the conversation and answer questions 1-10', '{"audio_url": "/test/listening_section1.mp3", "audio_duration": 600, "transcript": "You will hear a conversation between a student and a university accommodation officer about finding accommodation..."}', 'mock_test', 'listening', 7, 1, 0.00, 1, TRUE, '/test/listening_section1.mp3'),
+('130e8400-e29b-41d4-a716-446655440104', NULL, '300e8400-e29b-41d4-a716-446655440104', 'Listening Section 2', 'Listen to the monologue and answer questions 11-20', '{"audio_url": "/test/listening_section2.mp3", "audio_duration": 600, "transcript": "You will hear a talk about a local museum and its facilities..."}', 'mock_test', 'listening', 7, 1, 0.00, 1, TRUE, '/test/listening_section2.mp3'),
+('130e8400-e29b-41d4-a716-446655440105', NULL, '300e8400-e29b-41d4-a716-446655440105', 'Listening Section 3', 'Listen to the conversation and answer questions 21-30', '{"audio_url": "/test/listening_section3.mp3", "audio_duration": 600, "transcript": "You will hear a conversation between two students discussing a research project..."}', 'mock_test', 'listening', 8, 1, 0.00, 1, TRUE, '/test/listening_section3.mp3'),
+('130e8400-e29b-41d4-a716-446655440106', NULL, '300e8400-e29b-41d4-a716-446655440106', 'Listening Section 4', 'Listen to the lecture and answer questions 31-40', '{"audio_url": "/test/listening_section4.mp3", "audio_duration": 600, "transcript": "You will hear a lecture about marine biology and ocean conservation..."}', 'mock_test', 'listening', 8, 1, 0.00, 1, TRUE, '/test/listening_section4.mp3'),
+
+-- Writing Test exercises (2 tasks)
+('130e8400-e29b-41d4-a716-446655440107', NULL, '300e8400-e29b-41d4-a716-446655440107', 'Writing Task 1', 'Write a 150-word report describing the visual information', '{"chart_url": "/test/writing_task1_chart.jpg", "chart_type": "bar", "description": "The bar chart shows the percentage of households with internet access in five countries from 2000 to 2020"}', 'mock_test', 'writing', 20, 1, 0.00, 1, TRUE, NULL),
+('130e8400-e29b-41d4-a716-446655440108', NULL, '300e8400-e29b-41d4-a716-446655440108', 'Writing Task 2', 'Write a 250-word essay on the given topic', '{"topic": "Some people believe that university education should be free for all students, while others argue that students should pay for their own education. Discuss both views and give your own opinion.", "essay_type": "discussion"}', 'mock_test', 'writing', 40, 1, 0.00, 1, TRUE, NULL),
+
+-- Speaking Test exercises (3 parts)
+('130e8400-e29b-41d4-a716-446655440109', NULL, '300e8400-e29b-41d4-a716-446655440109', 'Speaking Part 1', 'Answer personal questions about yourself', '{"questions": ["What is your full name?", "Where are you from?", "Do you work or study?", "What do you like about your hometown?"], "topic": "Personal information and familiar topics"}', 'mock_test', 'speaking', 5, 1, 0.00, 1, TRUE, NULL),
+('130e8400-e29b-41d4-a716-446655440110', NULL, '300e8400-e29b-41d4-a716-446655440110', 'Speaking Part 2', 'Speak about the given topic for 2 minutes', '{"topic": "Describe a place you would like to visit", "cue_card": true, "points": ["Where this place is", "What you know about it", "What you would like to do there", "Why you would like to visit it"]}', 'mock_test', 'speaking', 2, 1, 0.00, 1, TRUE, NULL),
+('130e8400-e29b-41d4-a716-446655440111', NULL, '300e8400-e29b-41d4-a716-446655440111', 'Speaking Part 3', 'Discuss abstract topics related to Part 2', '{"questions": ["How has tourism changed in recent years?", "What are the benefits and drawbacks of tourism?", "How can governments manage tourism effectively?"], "topic": "Travel and tourism"}', 'mock_test', 'speaking', 5, 1, 0.00, 1, TRUE, NULL);
+
+-- Insert question groups for Reading Test (Passage 1)
+INSERT INTO question_groups (id, exercise_id, image_url, group_title, group_instruction, passage_reference, question_type, ordering, question_range, correct_answer_count) VALUES
+('160e8400-e29b-41d4-a716-446655440100', '130e8400-e29b-41d4-a716-446655440100', NULL, 'Questions 1-6', 'Multiple choice questions', 'The history of human migration is a fascinating subject that spans thousands of years. Early humans began migrating from Africa approximately 60,000 years ago, gradually populating different continents. This migration was driven by various factors including climate change, the search for food and resources, and population pressure. Archaeological evidence shows that these early migrations were not random but followed specific routes, often along coastlines and river valleys where resources were more abundant.', 'multiple_choice', 1, '1-6', 6),
+('160e8400-e29b-41d4-a716-446655440101', '130e8400-e29b-41d4-a716-446655440100', NULL, 'Questions 7-13', 'True/False/Not Given questions', 'The history of human migration is a fascinating subject that spans thousands of years. Early humans began migrating from Africa approximately 60,000 years ago, gradually populating different continents. This migration was driven by various factors including climate change, the search for food and resources, and population pressure. Archaeological evidence shows that these early migrations were not random but followed specific routes, often along coastlines and river valleys where resources were more abundant.', 'true_false', 2, '7-13', 7),
+
+-- Question groups for Reading Test (Passage 2)
+('160e8400-e29b-41d4-a716-446655440102', '130e8400-e29b-41d4-a716-446655440101', NULL, 'Questions 14-20', 'Matching headings to paragraphs', 'The development of modern medicine has revolutionized healthcare and extended human life expectancy significantly. From the discovery of antibiotics to advanced surgical techniques, medical science has made remarkable progress. However, challenges remain, including antibiotic resistance, the rising cost of healthcare, and ensuring access to medical services in developing countries. The future of medicine lies in personalized treatments, gene therapy, and preventive care.', 'matching', 1, '14-20', 7),
+('160e8400-e29b-41d4-a716-446655440103', '130e8400-e29b-41d4-a716-446655440101', NULL, 'Questions 21-27', 'Summary completion', 'The development of modern medicine has revolutionized healthcare and extended human life expectancy significantly. From the discovery of antibiotics to advanced surgical techniques, medical science has made remarkable progress. However, challenges remain, including antibiotic resistance, the rising cost of healthcare, and ensuring access to medical services in developing countries. The future of medicine lies in personalized treatments, gene therapy, and preventive care.', 'fill_blank', 2, '21-27', 7),
+
+-- Question groups for Reading Test (Passage 3)
+('160e8400-e29b-41d4-a716-446655440104', '130e8400-e29b-41d4-a716-446655440102', NULL, 'Questions 28-35', 'Multiple choice questions', 'The impact of social media on modern society is profound and multifaceted. While it has connected billions of people worldwide and facilitated information sharing, it has also raised concerns about privacy, mental health, and the spread of misinformation. Research indicates that excessive social media use can lead to anxiety and depression, particularly among young people. However, when used responsibly, social media can be a powerful tool for education, activism, and community building.', 'multiple_choice', 1, '28-35', 8),
+('160e8400-e29b-41d4-a716-446655440105', '130e8400-e29b-41d4-a716-446655440102', NULL, 'Questions 36-40', 'Sentence completion', 'The impact of social media on modern society is profound and multifaceted. While it has connected billions of people worldwide and facilitated information sharing, it has also raised concerns about privacy, mental health, and the spread of misinformation. Research indicates that excessive social media use can lead to anxiety and depression, particularly among young people. However, when used responsibly, social media can be a powerful tool for education, activism, and community building.', 'fill_blank', 2, '36-40', 5),
+
+-- Question groups for Listening Test (4 sections)
+('160e8400-e29b-41d4-a716-446655440106', '130e8400-e29b-41d4-a716-446655440103', NULL, 'Questions 1-10', 'Listen to Section 1 and answer questions 1-10', NULL, 'multiple_choice', 1, '1-10', 10),
+('160e8400-e29b-41d4-a716-446655440107', '130e8400-e29b-41d4-a716-446655440104', NULL, 'Questions 11-20', 'Listen to Section 2 and answer questions 11-20', NULL, 'fill_blank', 1, '11-20', 10),
+('160e8400-e29b-41d4-a716-446655440108', '130e8400-e29b-41d4-a716-446655440105', NULL, 'Questions 21-30', 'Listen to Section 3 and answer questions 21-30', NULL, 'multiple_choice', 1, '21-30', 10),
+('160e8400-e29b-41d4-a716-446655440109', '130e8400-e29b-41d4-a716-446655440106', NULL, 'Questions 31-40', 'Listen to Section 4 and answer questions 31-40', NULL, 'fill_blank', 1, '31-40', 10);
+
+-- Insert questions for Reading Test (Passage 1 - Questions 1-13)
+INSERT INTO questions (id, exercise_id, question_group_id, question_text, question_type, image_url, audio_url, audio_duration, reading_passage, explanation, points, ordering, difficulty_level, question_group) VALUES
+-- Passage 1: Multiple choice questions (1-6)
+('140e8400-e29b-41d4-a716-446655440100', '130e8400-e29b-41d4-a716-446655440100', '160e8400-e29b-41d4-a716-446655440100', 'What is the main topic of the passage?', 'multiple_choice', NULL, NULL, NULL, NULL, '{"correct_answer": "Human migration history"}', 1.00, 1, 6.5, 'Passage 1'),
+('140e8400-e29b-41d4-a716-446655440101', '130e8400-e29b-41d4-a716-446655440100', '160e8400-e29b-41d4-a716-446655440100', 'When did early humans begin migrating from Africa?', 'multiple_choice', NULL, NULL, NULL, NULL, '{"correct_answer": "Approximately 60,000 years ago"}', 1.00, 2, 6.0, 'Passage 1'),
+('140e8400-e29b-41d4-a716-446655440102', '130e8400-e29b-41d4-a716-446655440100', '160e8400-e29b-41d4-a716-446655440100', 'What was NOT mentioned as a factor driving migration?', 'multiple_choice', NULL, NULL, NULL, NULL, '{"correct_answer": "Technological advancement"}', 1.00, 3, 7.0, 'Passage 1'),
+('140e8400-e29b-41d4-a716-446655440103', '130e8400-e29b-41d4-a716-446655440100', '160e8400-e29b-41d4-a716-446655440100', 'According to the passage, early migrations followed:', 'multiple_choice', NULL, NULL, NULL, NULL, '{"correct_answer": "Specific routes along coastlines and rivers"}', 1.00, 4, 6.5, 'Passage 1'),
+('140e8400-e29b-41d4-a716-446655440104', '130e8400-e29b-41d4-a716-446655440100', '160e8400-e29b-41d4-a716-446655440100', 'The passage suggests that migration routes were chosen based on:', 'multiple_choice', NULL, NULL, NULL, NULL, '{"correct_answer": "Availability of resources"}', 1.00, 5, 7.0, 'Passage 1'),
+('140e8400-e29b-41d4-a716-446655440105', '130e8400-e29b-41d4-a716-446655440100', '160e8400-e29b-41d4-a716-446655440100', 'What evidence supports the claim about migration routes?', 'multiple_choice', NULL, NULL, NULL, NULL, '{"correct_answer": "Archaeological evidence"}', 1.00, 6, 6.5, 'Passage 1'),
+
+-- Passage 1: True/False/Not Given questions (7-13)
+('140e8400-e29b-41d4-a716-446655440106', '130e8400-e29b-41d4-a716-446655440100', '160e8400-e29b-41d4-a716-446655440101', 'Early human migration was a random process.', 'true_false', NULL, NULL, NULL, NULL, '{"correct_answer": "False"}', 1.00, 7, 6.0, 'Passage 1'),
+('140e8400-e29b-41d4-a716-446655440107', '130e8400-e29b-41d4-a716-446655440100', '160e8400-e29b-41d4-a716-446655440101', 'Climate change was one of the factors driving migration.', 'true_false', NULL, NULL, NULL, NULL, '{"correct_answer": "True"}', 1.00, 8, 5.5, 'Passage 1'),
+('140e8400-e29b-41d4-a716-446655440108', '130e8400-e29b-41d4-a716-446655440100', '160e8400-e29b-41d4-a716-446655440101', 'All continents were populated at the same time.', 'true_false', NULL, NULL, NULL, NULL, '{"correct_answer": "False"}', 1.00, 9, 6.5, 'Passage 1'),
+('140e8400-e29b-41d4-a716-446655440109', '130e8400-e29b-41d4-a716-446655440100', '160e8400-e29b-41d4-a716-446655440101', 'River valleys provided better resources than other areas.', 'true_false', NULL, NULL, NULL, NULL, '{"correct_answer": "True"}', 1.00, 10, 6.0, 'Passage 1'),
+('140e8400-e29b-41d4-a716-446655440110', '130e8400-e29b-41d4-a716-446655440100', '160e8400-e29b-41d4-a716-446655440101', 'The passage mentions specific dates for all migration events.', 'true_false', NULL, NULL, NULL, NULL, '{"correct_answer": "False"}', 1.00, 11, 7.0, 'Passage 1'),
+('140e8400-e29b-41d4-a716-446655440111', '130e8400-e29b-41d4-a716-446655440100', '160e8400-e29b-41d4-a716-446655440101', 'Population pressure contributed to migration.', 'true_false', NULL, NULL, NULL, NULL, '{"correct_answer": "True"}', 1.00, 12, 6.0, 'Passage 1'),
+('140e8400-e29b-41d4-a716-446655440112', '130e8400-e29b-41d4-a716-446655440100', '160e8400-e29b-41d4-a716-446655440101', 'Archaeological evidence is the only source of information about migration.', 'true_false', NULL, NULL, NULL, NULL, '{"correct_answer": "Not Given"}', 1.00, 13, 7.0, 'Passage 1');
+
+-- Insert question options for Reading Test Passage 1 (Multiple choice questions 1-6)
+INSERT INTO question_options (id, question_id, option_text, is_correct, ordering, explanation, point) VALUES
+-- Options for question 100
+('150e8400-e29b-41d4-a716-446655440100', '140e8400-e29b-41d4-a716-446655440100', 'Human migration history', TRUE, 1, 'Main topic of the passage', 1.00),
+('150e8400-e29b-41d4-a716-446655440101', '140e8400-e29b-41d4-a716-446655440100', 'African history', FALSE, 2, 'Too narrow', 0.00),
+('150e8400-e29b-41d4-a716-446655440102', '140e8400-e29b-41d4-a716-446655440100', 'Archaeological methods', FALSE, 3, 'Not the main topic', 0.00),
+('150e8400-e29b-41d4-a716-446655440103', '140e8400-e29b-41d4-a716-446655440100', 'Climate change effects', FALSE, 4, 'Only one aspect', 0.00),
+-- Options for question 101
+('150e8400-e29b-41d4-a716-446655440104', '140e8400-e29b-41d4-a716-446655440101', 'Approximately 60,000 years ago', TRUE, 1, 'Directly stated in passage', 1.00),
+('150e8400-e29b-41d4-a716-446655440105', '140e8400-e29b-41d4-a716-446655440101', '100,000 years ago', FALSE, 2, 'Not mentioned', 0.00),
+('150e8400-e29b-41d4-a716-446655440106', '140e8400-e29b-41d4-a716-446655440101', '40,000 years ago', FALSE, 3, 'Incorrect date', 0.00),
+('150e8400-e29b-41d4-a716-446655440107', '140e8400-e29b-41d4-a716-446655440101', '80,000 years ago', FALSE, 4, 'Not mentioned', 0.00),
+-- Options for question 102
+('150e8400-e29b-41d4-a716-446655440108', '140e8400-e29b-41d4-a716-446655440102', 'Technological advancement', TRUE, 1, 'Not mentioned as a factor', 1.00),
+('150e8400-e29b-41d4-a716-446655440109', '140e8400-e29b-41d4-a716-446655440102', 'Climate change', FALSE, 2, 'Mentioned as a factor', 0.00),
+('150e8400-e29b-41d4-a716-446655440110', '140e8400-e29b-41d4-a716-446655440102', 'Search for food', FALSE, 3, 'Mentioned as a factor', 0.00),
+('150e8400-e29b-41d4-a716-446655440111', '140e8400-e29b-41d4-a716-446655440102', 'Population pressure', FALSE, 4, 'Mentioned as a factor', 0.00),
+-- Options for question 103
+('150e8400-e29b-41d4-a716-446655440112', '140e8400-e29b-41d4-a716-446655440103', 'Specific routes along coastlines and rivers', TRUE, 1, 'Directly stated', 1.00),
+('150e8400-e29b-41d4-a716-446655440113', '140e8400-e29b-41d4-a716-446655440103', 'Random paths', FALSE, 2, 'Contradicts passage', 0.00),
+('150e8400-e29b-41d4-a716-446655440114', '140e8400-e29b-41d4-a716-446655440103', 'Direct routes', FALSE, 3, 'Not mentioned', 0.00),
+('150e8400-e29b-41d4-a716-446655440115', '140e8400-e29b-41d4-a716-446655440103', 'Mountain passes', FALSE, 4, 'Not mentioned', 0.00),
+-- Options for question 104
+('150e8400-e29b-41d4-a716-446655440116', '140e8400-e29b-41d4-a716-446655440104', 'Availability of resources', TRUE, 1, 'Implied in passage', 1.00),
+('150e8400-e29b-41d4-a716-446655440117', '140e8400-e29b-41d4-a716-446655440104', 'Weather conditions', FALSE, 2, 'Not the main reason', 0.00),
+('150e8400-e29b-41d4-a716-446655440118', '140e8400-e29b-41d4-a716-446655440104', 'Distance from origin', FALSE, 3, 'Not mentioned', 0.00),
+('150e8400-e29b-41d4-a716-446655440119', '140e8400-e29b-41d4-a716-446655440104', 'Population density', FALSE, 4, 'Not mentioned', 0.00),
+-- Options for question 105
+('150e8400-e29b-41d4-a716-446655440120', '140e8400-e29b-41d4-a716-446655440105', 'Archaeological evidence', TRUE, 1, 'Directly stated', 1.00),
+('150e8400-e29b-41d4-a716-446655440121', '140e8400-e29b-41d4-a716-446655440105', 'Written records', FALSE, 2, 'Not mentioned', 0.00),
+('150e8400-e29b-41d4-a716-446655440122', '140e8400-e29b-41d4-a716-446655440105', 'Oral traditions', FALSE, 3, 'Not mentioned', 0.00),
+('150e8400-e29b-41d4-a716-446655440123', '140e8400-e29b-41d4-a716-446655440105', 'Genetic studies', FALSE, 4, 'Not mentioned', 0.00);
+
+-- Insert questions for Reading Test (Passage 2 - Questions 14-27)
+INSERT INTO questions (id, exercise_id, question_group_id, question_text, question_type, image_url, audio_url, audio_duration, reading_passage, explanation, points, ordering, difficulty_level, question_group) VALUES
+-- Passage 2: Matching headings (14-20)
+('140e8400-e29b-41d4-a716-446655440113', '130e8400-e29b-41d4-a716-446655440101', '160e8400-e29b-41d4-a716-446655440102', 'Paragraph A', 'matching', NULL, NULL, NULL, NULL, '{"correct_answer": "Medical progress and achievements"}', 1.00, 14, 7.0, 'Passage 2'),
+('140e8400-e29b-41d4-a716-446655440114', '130e8400-e29b-41d4-a716-446655440101', '160e8400-e29b-41d4-a716-446655440102', 'Paragraph B', 'matching', NULL, NULL, NULL, NULL, '{"correct_answer": "Current challenges in healthcare"}', 1.00, 15, 7.0, 'Passage 2'),
+('140e8400-e29b-41d4-a716-446655440115', '130e8400-e29b-41d4-a716-446655440101', '160e8400-e29b-41d4-a716-446655440102', 'Paragraph C', 'matching', NULL, NULL, NULL, NULL, '{"correct_answer": "Future directions in medicine"}', 1.00, 16, 7.5, 'Passage 2'),
+('140e8400-e29b-41d4-a716-446655440116', '130e8400-e29b-41d4-a716-446655440101', '160e8400-e29b-41d4-a716-446655440102', 'Paragraph D', 'matching', NULL, NULL, NULL, NULL, '{"correct_answer": "Impact on life expectancy"}', 1.00, 17, 6.5, 'Passage 2'),
+('140e8400-e29b-41d4-a716-446655440117', '130e8400-e29b-41d4-a716-446655440101', '160e8400-e29b-41d4-a716-446655440102', 'Paragraph E', 'matching', NULL, NULL, NULL, NULL, '{"correct_answer": "Antibiotic resistance concerns"}', 1.00, 18, 7.0, 'Passage 2'),
+('140e8400-e29b-41d4-a716-446655440118', '130e8400-e29b-41d4-a716-446655440101', '160e8400-e29b-41d4-a716-446655440102', 'Paragraph F', 'matching', NULL, NULL, NULL, NULL, '{"correct_answer": "Healthcare accessibility issues"}', 1.00, 19, 7.0, 'Passage 2'),
+('140e8400-e29b-41d4-a716-446655440119', '130e8400-e29b-41d4-a716-446655440101', '160e8400-e29b-41d4-a716-446655440102', 'Paragraph G', 'matching', NULL, NULL, NULL, NULL, '{"correct_answer": "Personalized treatment approaches"}', 1.00, 20, 7.5, 'Passage 2'),
+
+-- Passage 2: Summary completion (21-27)
+('140e8400-e29b-41d4-a716-446655440120', '130e8400-e29b-41d4-a716-446655440101', '160e8400-e29b-41d4-a716-446655440103', 'Modern medicine has _____ healthcare significantly.', 'fill_blank', NULL, NULL, NULL, NULL, '{"correct_answer": "revolutionized"}', 1.00, 21, 6.5, 'Passage 2'),
+('140e8400-e29b-41d4-a716-446655440121', '130e8400-e29b-41d4-a716-446655440101', '160e8400-e29b-41d4-a716-446655440103', 'The discovery of _____ was a major medical breakthrough.', 'fill_blank', NULL, NULL, NULL, NULL, '{"correct_answer": "antibiotics"}', 1.00, 22, 6.0, 'Passage 2'),
+('140e8400-e29b-41d4-a716-446655440122', '130e8400-e29b-41d4-a716-446655440101', '160e8400-e29b-41d4-a716-446655440103', 'One challenge facing medicine is _____ resistance.', 'fill_blank', NULL, NULL, NULL, NULL, '{"correct_answer": "antibiotic"}', 1.00, 23, 6.5, 'Passage 2'),
+('140e8400-e29b-41d4-a716-446655440123', '130e8400-e29b-41d4-a716-446655440101', '160e8400-e29b-41d4-a716-446655440103', 'Access to medical services in _____ countries remains a problem.', 'fill_blank', NULL, NULL, NULL, NULL, '{"correct_answer": "developing"}', 1.00, 24, 6.0, 'Passage 2'),
+('140e8400-e29b-41d4-a716-446655440124', '130e8400-e29b-41d4-a716-446655440101', '160e8400-e29b-41d4-a716-446655440103', 'The future of medicine includes _____ treatments.', 'fill_blank', NULL, NULL, NULL, NULL, '{"correct_answer": "personalized"}', 1.00, 25, 7.0, 'Passage 2'),
+('140e8400-e29b-41d4-a716-446655440125', '130e8400-e29b-41d4-a716-446655440101', '160e8400-e29b-41d4-a716-446655440103', 'Gene therapy is mentioned as a future _____ in medicine.', 'fill_blank', NULL, NULL, NULL, NULL, '{"correct_answer": "direction"}', 1.00, 26, 7.0, 'Passage 2'),
+('140e8400-e29b-41d4-a716-446655440126', '130e8400-e29b-41d4-a716-446655440101', '160e8400-e29b-41d4-a716-446655440103', 'Preventive care is part of the future of _____.', 'fill_blank', NULL, NULL, NULL, NULL, '{"correct_answer": "medicine"}', 1.00, 27, 6.0, 'Passage 2');
+
+-- Insert matching options for Passage 2 (Questions 14-20)
+INSERT INTO matching_options (id, set_id, option_text, ordering) VALUES
+('170e8400-e29b-41d4-a716-446655440100', '160e8400-e29b-41d4-a716-446655440102', 'Medical progress and achievements', 1),
+('170e8400-e29b-41d4-a716-446655440101', '160e8400-e29b-41d4-a716-446655440102', 'Current challenges in healthcare', 2),
+('170e8400-e29b-41d4-a716-446655440102', '160e8400-e29b-41d4-a716-446655440102', 'Future directions in medicine', 3),
+('170e8400-e29b-41d4-a716-446655440103', '160e8400-e29b-41d4-a716-446655440102', 'Impact on life expectancy', 4),
+('170e8400-e29b-41d4-a716-446655440104', '160e8400-e29b-41d4-a716-446655440102', 'Antibiotic resistance concerns', 5),
+('170e8400-e29b-41d4-a716-446655440105', '160e8400-e29b-41d4-a716-446655440102', 'Healthcare accessibility issues', 6),
+('170e8400-e29b-41d4-a716-446655440106', '160e8400-e29b-41d4-a716-446655440102', 'Personalized treatment approaches', 7),
+('170e8400-e29b-41d4-a716-446655440107', '160e8400-e29b-41d4-a716-446655440102', 'Rising healthcare costs', 8),
+('170e8400-e29b-41d4-a716-446655440108', '160e8400-e29b-41d4-a716-446655440102', 'Surgical techniques advancement', 9);
+
+-- Insert questions for Reading Test (Passage 3 - Questions 28-40)
+INSERT INTO questions (id, exercise_id, question_group_id, question_text, question_type, image_url, audio_url, audio_duration, reading_passage, explanation, points, ordering, difficulty_level, question_group) VALUES
+-- Passage 3: Multiple choice questions (28-35)
+('140e8400-e29b-41d4-a716-446655440127', '130e8400-e29b-41d4-a716-446655440102', '160e8400-e29b-41d4-a716-446655440104', 'What is the main focus of the passage?', 'multiple_choice', NULL, NULL, NULL, NULL, '{"correct_answer": "Social media impact on society"}', 1.00, 28, 6.5, 'Passage 3'),
+('140e8400-e29b-41d4-a716-446655440128', '130e8400-e29b-41d4-a716-446655440102', '160e8400-e29b-41d4-a716-446655440104', 'According to the passage, social media has:', 'multiple_choice', NULL, NULL, NULL, NULL, '{"correct_answer": "Connected billions of people worldwide"}', 1.00, 29, 6.0, 'Passage 3'),
+('140e8400-e29b-41d4-a716-446655440129', '130e8400-e29b-41d4-a716-446655440102', '160e8400-e29b-41d4-a716-446655440104', 'What concern is mentioned about social media?', 'multiple_choice', NULL, NULL, NULL, NULL, '{"correct_answer": "Privacy and mental health issues"}', 1.00, 30, 7.0, 'Passage 3'),
+('140e8400-e29b-41d4-a716-446655440130', '130e8400-e29b-41d4-a716-446655440102', '160e8400-e29b-41d4-a716-446655440104', 'Research indicates that excessive social media use can lead to:', 'multiple_choice', NULL, NULL, NULL, NULL, '{"correct_answer": "Anxiety and depression"}', 1.00, 31, 6.5, 'Passage 3'),
+('140e8400-e29b-41d4-a716-446655440131', '130e8400-e29b-41d4-a716-446655440102', '160e8400-e29b-41d4-a716-446655440104', 'Who is most affected by social media-related mental health issues?', 'multiple_choice', NULL, NULL, NULL, NULL, '{"correct_answer": "Young people"}', 1.00, 32, 6.0, 'Passage 3'),
+('140e8400-e29b-41d4-a716-446655440132', '130e8400-e29b-41d4-a716-446655440102', '160e8400-e29b-41d4-a716-446655440104', 'When used responsibly, social media can be a tool for:', 'multiple_choice', NULL, NULL, NULL, NULL, '{"correct_answer": "Education, activism, and community building"}', 1.00, 33, 7.0, 'Passage 3'),
+('140e8400-e29b-41d4-a716-446655440133', '130e8400-e29b-41d4-a716-446655440102', '160e8400-e29b-41d4-a716-446655440104', 'The passage suggests that social media impact is:', 'multiple_choice', NULL, NULL, NULL, NULL, '{"correct_answer": "Both positive and negative"}', 1.00, 34, 7.0, 'Passage 3'),
+('140e8400-e29b-41d4-a716-446655440134', '130e8400-e29b-41d4-a716-446655440102', '160e8400-e29b-41d4-a716-446655440104', 'What is NOT mentioned as a concern about social media?', 'multiple_choice', NULL, NULL, NULL, NULL, '{"correct_answer": "Physical health problems"}', 1.00, 35, 7.5, 'Passage 3'),
+
+-- Passage 3: Sentence completion (36-40)
+('140e8400-e29b-41d4-a716-446655440135', '130e8400-e29b-41d4-a716-446655440102', '160e8400-e29b-41d4-a716-446655440105', 'Social media has _____ billions of people worldwide.', 'fill_blank', NULL, NULL, NULL, NULL, '{"correct_answer": "connected"}', 1.00, 36, 6.0, 'Passage 3'),
+('140e8400-e29b-41d4-a716-446655440136', '130e8400-e29b-41d4-a716-446655440102', '160e8400-e29b-41d4-a716-446655440105', 'Concerns about _____ have been raised regarding social media.', 'fill_blank', NULL, NULL, NULL, NULL, '{"correct_answer": "privacy"}', 1.00, 37, 6.5, 'Passage 3'),
+('140e8400-e29b-41d4-a716-446655440137', '130e8400-e29b-41d4-a716-446655440102', '160e8400-e29b-41d4-a716-446655440105', 'The spread of _____ is a concern with social media.', 'fill_blank', NULL, NULL, NULL, NULL, '{"correct_answer": "misinformation"}', 1.00, 38, 7.0, 'Passage 3'),
+('140e8400-e29b-41d4-a716-446655440138', '130e8400-e29b-41d4-a716-446655440102', '160e8400-e29b-41d4-a716-446655440105', 'Excessive social media use can lead to anxiety and _____.', 'fill_blank', NULL, NULL, NULL, NULL, '{"correct_answer": "depression"}', 1.00, 39, 6.5, 'Passage 3'),
+('140e8400-e29b-41d4-a716-446655440139', '130e8400-e29b-41d4-a716-446655440102', '160e8400-e29b-41d4-a716-446655440105', 'Social media can be a powerful tool for education and _____.', 'fill_blank', NULL, NULL, NULL, NULL, '{"correct_answer": "activism"}', 1.00, 40, 7.0, 'Passage 3');
+
+-- Insert question options for Reading Test Passage 3 (Multiple choice questions 28-35)
+INSERT INTO question_options (id, question_id, option_text, is_correct, ordering, explanation, point) VALUES
+-- Options for question 127
+('150e8400-e29b-41d4-a716-446655440124', '140e8400-e29b-41d4-a716-446655440127', 'Social media impact on society', TRUE, 1, 'Main focus of passage', 1.00),
+('150e8400-e29b-41d4-a716-446655440125', '140e8400-e29b-41d4-a716-446655440127', 'Technology development', FALSE, 2, 'Too broad', 0.00),
+('150e8400-e29b-41d4-a716-446655440126', '140e8400-e29b-41d4-a716-446655440127', 'Mental health treatment', FALSE, 3, 'Only one aspect', 0.00),
+('150e8400-e29b-41d4-a716-446655440127', '140e8400-e29b-41d4-a716-446655440127', 'Privacy laws', FALSE, 4, 'Not the main focus', 0.00),
+-- Options for question 128
+('150e8400-e29b-41d4-a716-446655440128', '140e8400-e29b-41d4-a716-446655440128', 'Connected billions of people worldwide', TRUE, 1, 'Directly stated', 1.00),
+('150e8400-e29b-41d4-a716-446655440129', '140e8400-e29b-41d4-a716-446655440128', 'Improved physical health', FALSE, 2, 'Not mentioned', 0.00),
+('150e8400-e29b-41d4-a716-446655440130', '140e8400-e29b-41d4-a716-446655440128', 'Reduced communication', FALSE, 3, 'Contradicts passage', 0.00),
+('150e8400-e29b-41d4-a716-446655440131', '140e8400-e29b-41d4-a716-446655440128', 'Eliminated misinformation', FALSE, 4, 'Contradicts passage', 0.00),
+-- Options for question 129
+('150e8400-e29b-41d4-a716-446655440132', '140e8400-e29b-41d4-a716-446655440129', 'Privacy and mental health issues', TRUE, 1, 'Directly mentioned', 1.00),
+('150e8400-e29b-41d4-a716-446655440133', '140e8400-e29b-41d4-a716-446655440129', 'Economic problems', FALSE, 2, 'Not mentioned', 0.00),
+('150e8400-e29b-41d4-a716-446655440134', '140e8400-e29b-41d4-a716-446655440129', 'Environmental issues', FALSE, 3, 'Not mentioned', 0.00),
+('150e8400-e29b-41d4-a716-446655440135', '140e8400-e29b-41d4-a716-446655440129', 'Educational concerns', FALSE, 4, 'Not a concern', 0.00),
+-- Options for question 130
+('150e8400-e29b-41d4-a716-446655440136', '140e8400-e29b-41d4-a716-446655440130', 'Anxiety and depression', TRUE, 1, 'Directly stated', 1.00),
+('150e8400-e29b-41d4-a716-446655440137', '140e8400-e29b-41d4-a716-446655440130', 'Physical illness', FALSE, 2, 'Not mentioned', 0.00),
+('150e8400-e29b-41d4-a716-446655440138', '140e8400-e29b-41d4-a716-446655440130', 'Sleep disorders only', FALSE, 3, 'Not mentioned', 0.00),
+('150e8400-e29b-41d4-a716-446655440139', '140e8400-e29b-41d4-a716-446655440130', 'Memory loss', FALSE, 4, 'Not mentioned', 0.00),
+-- Options for question 131
+('150e8400-e29b-41d4-a716-446655440140', '140e8400-e29b-41d4-a716-446655440131', 'Young people', TRUE, 1, 'Directly stated', 1.00),
+('150e8400-e29b-41d4-a716-446655440141', '140e8400-e29b-41d4-a716-446655440131', 'Elderly people', FALSE, 2, 'Not mentioned', 0.00),
+('150e8400-e29b-41d4-a716-446655440142', '140e8400-e29b-41d4-a716-446655440131', 'All age groups equally', FALSE, 3, 'Not stated', 0.00),
+('150e8400-e29b-41d4-a716-446655440143', '140e8400-e29b-41d4-a716-446655440131', 'Middle-aged adults', FALSE, 4, 'Not mentioned', 0.00),
+-- Options for question 132
+('150e8400-e29b-41d4-a716-446655440144', '140e8400-e29b-41d4-a716-446655440132', 'Education, activism, and community building', TRUE, 1, 'Directly stated', 1.00),
+('150e8400-e29b-41d4-a716-446655440145', '140e8400-e29b-41d4-a716-446655440132', 'Business only', FALSE, 2, 'Too narrow', 0.00),
+('150e8400-e29b-41d4-a716-446655440146', '140e8400-e29b-41d4-a716-446655440132', 'Entertainment only', FALSE, 3, 'Not mentioned', 0.00),
+('150e8400-e29b-41d4-a716-446655440147', '140e8400-e29b-41d4-a716-446655440132', 'Shopping only', FALSE, 4, 'Not mentioned', 0.00),
+-- Options for question 133
+('150e8400-e29b-41d4-a716-446655440148', '140e8400-e29b-41d4-a716-446655440133', 'Both positive and negative', TRUE, 1, 'Implied in passage', 1.00),
+('150e8400-e29b-41d4-a716-446655440149', '140e8400-e29b-41d4-a716-446655440133', 'Only positive', FALSE, 2, 'Contradicts passage', 0.00),
+('150e8400-e29b-41d4-a716-446655440150', '140e8400-e29b-41d4-a716-446655440133', 'Only negative', FALSE, 3, 'Contradicts passage', 0.00),
+('150e8400-e29b-41d4-a716-446655440151', '140e8400-e29b-41d4-a716-446655440133', 'Neutral', FALSE, 4, 'Not stated', 0.00),
+-- Options for question 134
+('150e8400-e29b-41d4-a716-446655440152', '140e8400-e29b-41d4-a716-446655440134', 'Physical health problems', TRUE, 1, 'Not mentioned as concern', 1.00),
+('150e8400-e29b-41d4-a716-446655440153', '140e8400-e29b-41d4-a716-446655440134', 'Privacy', FALSE, 2, 'Mentioned as concern', 0.00),
+('150e8400-e29b-41d4-a716-446655440154', '140e8400-e29b-41d4-a716-446655440134', 'Mental health', FALSE, 3, 'Mentioned as concern', 0.00),
+('150e8400-e29b-41d4-a716-446655440155', '140e8400-e29b-41d4-a716-446655440134', 'Misinformation', FALSE, 4, 'Mentioned as concern', 0.00);
+
+-- Insert questions for Listening Test (Section 1 - Questions 1-10)
+INSERT INTO questions (id, exercise_id, question_group_id, question_text, question_type, image_url, audio_url, audio_duration, reading_passage, explanation, points, ordering, difficulty_level, question_group) VALUES
+-- Listening Section 1: Multiple choice (1-10)
+('140e8400-e29b-41d4-a716-446655440140', '130e8400-e29b-41d4-a716-446655440103', '160e8400-e29b-41d4-a716-446655440106', 'What is the student looking for?', 'multiple_choice', NULL, '/test/listening_section1.mp3', 600, NULL, '{"correct_answer": "University accommodation"}', 1.00, 1, 6.0, 'Section 1'),
+('140e8400-e29b-41d4-a716-446655440141', '130e8400-e29b-41d4-a716-446655440103', '160e8400-e29b-41d4-a716-446655440106', 'What type of accommodation does the student prefer?', 'multiple_choice', NULL, '/test/listening_section1.mp3', 600, NULL, '{"correct_answer": "Shared apartment"}', 1.00, 2, 6.5, 'Section 1'),
+('140e8400-e29b-41d4-a716-446655440142', '130e8400-e29b-41d4-a716-446655440103', '160e8400-e29b-41d4-a716-446655440106', 'What is the maximum rent the student can afford?', 'multiple_choice', NULL, '/test/listening_section1.mp3', 600, NULL, '{"correct_answer": "500 pounds per month"}', 1.00, 3, 6.0, 'Section 1'),
+('140e8400-e29b-41d4-a716-446655440143', '130e8400-e29b-41d4-a716-446655440103', '160e8400-e29b-41d4-a716-446655440106', 'When does the student need to move in?', 'multiple_choice', NULL, '/test/listening_section1.mp3', 600, NULL, '{"correct_answer": "Next month"}', 1.00, 4, 6.5, 'Section 1'),
+('140e8400-e29b-41d4-a716-446655440144', '130e8400-e29b-41d4-a716-446655440103', '160e8400-e29b-41d4-a716-446655440106', 'What facilities are important to the student?', 'multiple_choice', NULL, '/test/listening_section1.mp3', 600, NULL, '{"correct_answer": "Internet and laundry"}', 1.00, 5, 7.0, 'Section 1'),
+('140e8400-e29b-41d4-a716-446655440145', '130e8400-e29b-41d4-a716-446655440103', '160e8400-e29b-41d4-a716-446655440106', 'Complete: The student''s contact number is _____.', 'fill_blank', NULL, '/test/listening_section1.mp3', 600, NULL, '{"correct_answer": "07123456789"}', 1.00, 6, 6.5, 'Section 1'),
+('140e8400-e29b-41d4-a716-446655440146', '130e8400-e29b-41d4-a716-446655440103', '160e8400-e29b-41d4-a716-446655440106', 'Complete: The student''s email address ends with _____.', 'fill_blank', NULL, '/test/listening_section1.mp3', 600, NULL, '{"correct_answer": "@university.ac.uk"}', 1.00, 7, 7.0, 'Section 1'),
+('140e8400-e29b-41d4-a716-446655440147', '130e8400-e29b-41d4-a716-446655440103', '160e8400-e29b-41d4-a716-446655440106', 'Complete: The accommodation office is located on _____ Street.', 'fill_blank', NULL, '/test/listening_section1.mp3', 600, NULL, '{"correct_answer": "Main"}', 1.00, 8, 6.0, 'Section 1'),
+('140e8400-e29b-41d4-a716-446655440148', '130e8400-e29b-41d4-a716-446655440103', '160e8400-e29b-41d4-a716-446655440106', 'Complete: The office is open from _____ to 5pm.', 'fill_blank', NULL, '/test/listening_section1.mp3', 600, NULL, '{"correct_answer": "9am"}', 1.00, 9, 6.0, 'Section 1'),
+('140e8400-e29b-41d4-a716-446655440149', '130e8400-e29b-41d4-a716-446655440103', '160e8400-e29b-41d4-a716-446655440106', 'Complete: The student should bring a _____ when visiting the office.', 'fill_blank', NULL, '/test/listening_section1.mp3', 600, NULL, '{"correct_answer": "student ID"}', 1.00, 10, 6.5, 'Section 1');
+
+-- Insert question options for Listening Section 1 (Multiple choice questions 1-5)
+INSERT INTO question_options (id, question_id, option_text, is_correct, ordering, explanation, point) VALUES
+-- Options for question 140
+('150e8400-e29b-41d4-a716-446655440156', '140e8400-e29b-41d4-a716-446655440140', 'University accommodation', TRUE, 1, 'Correct answer', 1.00),
+('150e8400-e29b-41d4-a716-446655440157', '140e8400-e29b-41d4-a716-446655440140', 'Part-time job', FALSE, 2, 'Not mentioned', 0.00),
+('150e8400-e29b-41d4-a716-446655440158', '140e8400-e29b-41d4-a716-446655440140', 'Course information', FALSE, 3, 'Not mentioned', 0.00),
+('150e8400-e29b-41d4-a716-446655440159', '140e8400-e29b-41d4-a716-446655440140', 'Library access', FALSE, 4, 'Not mentioned', 0.00),
+-- Options for question 141
+('150e8400-e29b-41d4-a716-446655440160', '140e8400-e29b-41d4-a716-446655440141', 'Shared apartment', TRUE, 1, 'Correct answer', 1.00),
+('150e8400-e29b-41d4-a716-446655440161', '140e8400-e29b-41d4-a716-446655440141', 'Single room', FALSE, 2, 'Not preferred', 0.00),
+('150e8400-e29b-41d4-a716-446655440162', '140e8400-e29b-41d4-a716-446655440141', 'Studio flat', FALSE, 3, 'Not mentioned', 0.00),
+('150e8400-e29b-41d4-a716-446655440163', '140e8400-e29b-41d4-a716-446655440141', 'Family house', FALSE, 4, 'Not mentioned', 0.00),
+-- Options for question 142
+('150e8400-e29b-41d4-a716-446655440164', '140e8400-e29b-41d4-a716-446655440142', '500 pounds per month', TRUE, 1, 'Correct answer', 1.00),
+('150e8400-e29b-41d4-a716-446655440165', '140e8400-e29b-41d4-a716-446655440142', '400 pounds per month', FALSE, 2, 'Too low', 0.00),
+('150e8400-e29b-41d4-a716-446655440166', '140e8400-e29b-41d4-a716-446655440142', '600 pounds per month', FALSE, 3, 'Too high', 0.00),
+('150e8400-e29b-41d4-a716-446655440167', '140e8400-e29b-41d4-a716-446655440142', '700 pounds per month', FALSE, 4, 'Too high', 0.00),
+-- Options for question 143
+('150e8400-e29b-41d4-a716-446655440168', '140e8400-e29b-41d4-a716-446655440143', 'Next month', TRUE, 1, 'Correct answer', 1.00),
+('150e8400-e29b-41d4-a716-446655440169', '140e8400-e29b-41d4-a716-446655440143', 'This month', FALSE, 2, 'Not mentioned', 0.00),
+('150e8400-e29b-41d4-a716-446655440170', '140e8400-e29b-41d4-a716-446655440143', 'In two months', FALSE, 3, 'Not mentioned', 0.00),
+('150e8400-e29b-41d4-a716-446655440171', '140e8400-e29b-41d4-a716-446655440143', 'Next week', FALSE, 4, 'Not mentioned', 0.00),
+-- Options for question 144
+('150e8400-e29b-41d4-a716-446655440172', '140e8400-e29b-41d4-a716-446655440144', 'Internet and laundry', TRUE, 1, 'Correct answer', 1.00),
+('150e8400-e29b-41d4-a716-446655440173', '140e8400-e29b-41d4-a716-446655440144', 'Gym and pool', FALSE, 2, 'Not mentioned', 0.00),
+('150e8400-e29b-41d4-a716-446655440174', '140e8400-e29b-41d4-a716-446655440144', 'Parking and garden', FALSE, 3, 'Not mentioned', 0.00),
+('150e8400-e29b-41d4-a716-446655440175', '140e8400-e29b-41d4-a716-446655440144', 'Kitchen and bathroom', FALSE, 4, 'Too basic', 0.00);
+
+-- Insert questions for Listening Test (Section 2 - Questions 11-20)
+INSERT INTO questions (id, exercise_id, question_group_id, question_text, question_type, image_url, audio_url, audio_duration, reading_passage, explanation, points, ordering, difficulty_level, question_group) VALUES
+-- Listening Section 2: Fill in the blank (11-20)
+('140e8400-e29b-41d4-a716-446655440150', '130e8400-e29b-41d4-a716-446655440104', '160e8400-e29b-41d4-a716-446655440107', 'Complete: The museum was established in _____.', 'fill_blank', NULL, '/test/listening_section2.mp3', 600, NULL, '{"correct_answer": "1925"}', 1.00, 11, 6.0, 'Section 2'),
+('140e8400-e29b-41d4-a716-446655440151', '130e8400-e29b-41d4-a716-446655440104', '160e8400-e29b-41d4-a716-446655440107', 'Complete: The museum is open from _____ to 6pm.', 'fill_blank', NULL, '/test/listening_section2.mp3', 600, NULL, '{"correct_answer": "10am"}', 1.00, 12, 6.0, 'Section 2'),
+('140e8400-e29b-41d4-a716-446655440152', '130e8400-e29b-41d4-a716-446655440104', '160e8400-e29b-41d4-a716-446655440107', 'Complete: Admission is free for children under _____.', 'fill_blank', NULL, '/test/listening_section2.mp3', 600, NULL, '{"correct_answer": "12"}', 1.00, 13, 6.5, 'Section 2'),
+('140e8400-e29b-41d4-a716-446655440153', '130e8400-e29b-41d4-a716-446655440104', '160e8400-e29b-41d4-a716-446655440107', 'Complete: The museum has _____ exhibition halls.', 'fill_blank', NULL, '/test/listening_section2.mp3', 600, NULL, '{"correct_answer": "five"}', 1.00, 14, 6.5, 'Section 2'),
+('140e8400-e29b-41d4-a716-446655440154', '130e8400-e29b-41d4-a716-446655440104', '160e8400-e29b-41d4-a716-446655440107', 'Complete: The gift shop is located on the _____ floor.', 'fill_blank', NULL, '/test/listening_section2.mp3', 600, NULL, '{"correct_answer": "ground"}', 1.00, 15, 6.0, 'Section 2'),
+('140e8400-e29b-41d4-a716-446655440155', '130e8400-e29b-41d4-a716-446655440104', '160e8400-e29b-41d4-a716-446655440107', 'Complete: Guided tours are available at _____ pm.', 'fill_blank', NULL, '/test/listening_section2.mp3', 600, NULL, '{"correct_answer": "2"}', 1.00, 16, 6.5, 'Section 2'),
+('140e8400-e29b-41d4-a716-446655440156', '130e8400-e29b-41d4-a716-446655440104', '160e8400-e29b-41d4-a716-446655440107', 'Complete: The café serves _____ and light meals.', 'fill_blank', NULL, '/test/listening_section2.mp3', 600, NULL, '{"correct_answer": "coffee"}', 1.00, 17, 6.0, 'Section 2'),
+('140e8400-e29b-41d4-a716-446655440157', '130e8400-e29b-41d4-a716-446655440104', '160e8400-e29b-41d4-a716-446655440107', 'Complete: Parking is available for up to _____ cars.', 'fill_blank', NULL, '/test/listening_section2.mp3', 600, NULL, '{"correct_answer": "50"}', 1.00, 18, 7.0, 'Section 2'),
+('140e8400-e29b-41d4-a716-446655440158', '130e8400-e29b-41d4-a716-446655440104', '160e8400-e29b-41d4-a716-446655440107', 'Complete: The museum can be reached by bus number _____.', 'fill_blank', NULL, '/test/listening_section2.mp3', 600, NULL, '{"correct_answer": "42"}', 1.00, 19, 6.5, 'Section 2'),
+('140e8400-e29b-41d4-a716-446655440159', '130e8400-e29b-41d4-a716-446655440104', '160e8400-e29b-41d4-a716-446655440107', 'Complete: Special events are held on _____ evenings.', 'fill_blank', NULL, '/test/listening_section2.mp3', 600, NULL, '{"correct_answer": "Friday"}', 1.00, 20, 7.0, 'Section 2');
+
+-- Insert questions for Listening Test (Section 3 - Questions 21-30)
+INSERT INTO questions (id, exercise_id, question_group_id, question_text, question_type, image_url, audio_url, audio_duration, reading_passage, explanation, points, ordering, difficulty_level, question_group) VALUES
+-- Listening Section 3: Multiple choice (21-30)
+('140e8400-e29b-41d4-a716-446655440160', '130e8400-e29b-41d4-a716-446655440105', '160e8400-e29b-41d4-a716-446655440108', 'What is the main topic of the conversation?', 'multiple_choice', NULL, '/test/listening_section3.mp3', 600, NULL, '{"correct_answer": "Research project methodology"}', 1.00, 21, 7.0, 'Section 3'),
+('140e8400-e29b-41d4-a716-446655440161', '130e8400-e29b-41d4-a716-446655440105', '160e8400-e29b-41d4-a716-446655440108', 'What research method do they decide to use?', 'multiple_choice', NULL, '/test/listening_section3.mp3', 600, NULL, '{"correct_answer": "Questionnaire survey"}', 1.00, 22, 7.0, 'Section 3'),
+('140e8400-e29b-41d4-a716-446655440162', '130e8400-e29b-41d4-a716-446655440105', '160e8400-e29b-41d4-a716-446655440108', 'How many participants do they need?', 'multiple_choice', NULL, '/test/listening_section3.mp3', 600, NULL, '{"correct_answer": "At least 100"}', 1.00, 23, 6.5, 'Section 3'),
+('140e8400-e29b-41d4-a716-446655440163', '130e8400-e29b-41d4-a716-446655440105', '160e8400-e29b-41d4-a716-446655440108', 'When should the research be completed?', 'multiple_choice', NULL, '/test/listening_section3.mp3', 600, NULL, '{"correct_answer": "By the end of the semester"}', 1.00, 24, 6.5, 'Section 3'),
+('140e8400-e29b-41d4-a716-446655440164', '130e8400-e29b-41d4-a716-446655440105', '160e8400-e29b-41d4-a716-446655440108', 'What software will they use for data analysis?', 'multiple_choice', NULL, '/test/listening_section3.mp3', 600, NULL, '{"correct_answer": "SPSS"}', 1.00, 25, 7.5, 'Section 3'),
+('140e8400-e29b-41d4-a716-446655440165', '130e8400-e29b-41d4-a716-446655440105', '160e8400-e29b-41d4-a716-446655440108', 'Who will be responsible for writing the report?', 'multiple_choice', NULL, '/test/listening_section3.mp3', 600, NULL, '{"correct_answer": "Both students together"}', 1.00, 26, 7.0, 'Section 3'),
+('140e8400-e29b-41d4-a716-446655440166', '130e8400-e29b-41d4-a716-446655440105', '160e8400-e29b-41d4-a716-446655440108', 'What is the main challenge they face?', 'multiple_choice', NULL, '/test/listening_section3.mp3', 600, NULL, '{"correct_answer": "Finding enough participants"}', 1.00, 27, 7.0, 'Section 3'),
+('140e8400-e29b-41d4-a716-446655440167', '130e8400-e29b-41d4-a716-446655440105', '160e8400-e29b-41d4-a716-446655440108', 'Where will they distribute the questionnaires?', 'multiple_choice', NULL, '/test/listening_section3.mp3', 600, NULL, '{"correct_answer": "University library and online"}', 1.00, 28, 6.5, 'Section 3'),
+('140e8400-e29b-41d4-a716-446655440168', '130e8400-e29b-41d4-a716-446655440105', '160e8400-e29b-41d4-a716-446655440108', 'What ethical consideration do they discuss?', 'multiple_choice', NULL, '/test/listening_section3.mp3', 600, NULL, '{"correct_answer": "Participant confidentiality"}', 1.00, 29, 7.5, 'Section 3'),
+('140e8400-e29b-41d4-a716-446655440169', '130e8400-e29b-41d4-a716-446655440105', '160e8400-e29b-41d4-a716-446655440108', 'When is their next meeting scheduled?', 'multiple_choice', NULL, '/test/listening_section3.mp3', 600, NULL, '{"correct_answer": "Next Tuesday"}', 1.00, 30, 6.5, 'Section 3');
+
+-- Insert questions for Listening Test (Section 4 - Questions 31-40)
+INSERT INTO questions (id, exercise_id, question_group_id, question_text, question_type, image_url, audio_url, audio_duration, reading_passage, explanation, points, ordering, difficulty_level, question_group) VALUES
+-- Listening Section 4: Fill in the blank (31-40)
+('140e8400-e29b-41d4-a716-446655440170', '130e8400-e29b-41d4-a716-446655440106', '160e8400-e29b-41d4-a716-446655440109', 'Complete: Marine biology studies _____ and their ecosystems.', 'fill_blank', NULL, '/test/listening_section4.mp3', 600, NULL, '{"correct_answer": "ocean life"}', 1.00, 31, 7.0, 'Section 4'),
+('140e8400-e29b-41d4-a716-446655440171', '130e8400-e29b-41d4-a716-446655440106', '160e8400-e29b-41d4-a716-446655440109', 'Complete: Coral reefs are home to _____ of marine species.', 'fill_blank', NULL, '/test/listening_section4.mp3', 600, NULL, '{"correct_answer": "thousands"}', 1.00, 32, 6.5, 'Section 4'),
+('140e8400-e29b-41d4-a716-446655440172', '130e8400-e29b-41d4-a716-446655440106', '160e8400-e29b-41d4-a716-446655440109', 'Complete: Ocean pollution affects _____ of marine animals.', 'fill_blank', NULL, '/test/listening_section4.mp3', 600, NULL, '{"correct_answer": "millions"}', 1.00, 33, 7.0, 'Section 4'),
+('140e8400-e29b-41d4-a716-446655440173', '130e8400-e29b-41d4-a716-446655440106', '160e8400-e29b-41d4-a716-446655440109', 'Complete: Conservation efforts focus on protecting _____ habitats.', 'fill_blank', NULL, '/test/listening_section4.mp3', 600, NULL, '{"correct_answer": "marine"}', 1.00, 34, 6.5, 'Section 4'),
+('140e8400-e29b-41d4-a716-446655440174', '130e8400-e29b-41d4-a716-446655440106', '160e8400-e29b-41d4-a716-446655440109', 'Complete: Overfishing has led to a decline in fish _____.', 'fill_blank', NULL, '/test/listening_section4.mp3', 600, NULL, '{"correct_answer": "populations"}', 1.00, 35, 7.0, 'Section 4'),
+('140e8400-e29b-41d4-a716-446655440175', '130e8400-e29b-41d4-a716-446655440106', '160e8400-e29b-41d4-a716-446655440109', 'Complete: Marine protected areas cover _____ of the ocean.', 'fill_blank', NULL, '/test/listening_section4.mp3', 600, NULL, '{"correct_answer": "less than 5%"}', 1.00, 36, 7.5, 'Section 4'),
+('140e8400-e29b-41d4-a716-446655440176', '130e8400-e29b-41d4-a716-446655440106', '160e8400-e29b-41d4-a716-446655440109', 'Complete: Climate change causes ocean _____ to rise.', 'fill_blank', NULL, '/test/listening_section4.mp3', 600, NULL, '{"correct_answer": "temperature"}', 1.00, 37, 7.0, 'Section 4'),
+('140e8400-e29b-41d4-a716-446655440177', '130e8400-e29b-41d4-a716-446655440106', '160e8400-e29b-41d4-a716-446655440109', 'Complete: Scientists use _____ to monitor marine ecosystems.', 'fill_blank', NULL, '/test/listening_section4.mp3', 600, NULL, '{"correct_answer": "satellite technology"}', 1.00, 38, 7.5, 'Section 4'),
+('140e8400-e29b-41d4-a716-446655440178', '130e8400-e29b-41d4-a716-446655440106', '160e8400-e29b-41d4-a716-446655440109', 'Complete: Sustainable fishing practices help preserve ocean _____.', 'fill_blank', NULL, '/test/listening_section4.mp3', 600, NULL, '{"correct_answer": "biodiversity"}', 1.00, 39, 7.5, 'Section 4'),
+('140e8400-e29b-41d4-a716-446655440179', '130e8400-e29b-41d4-a716-446655440106', '160e8400-e29b-41d4-a716-446655440109', 'Complete: Public awareness is crucial for ocean _____.', 'fill_blank', NULL, '/test/listening_section4.mp3', 600, NULL, '{"correct_answer": "conservation"}', 1.00, 40, 7.0, 'Section 4');
+
+-- Insert question options for Listening Section 3 (Multiple choice questions 21-30)
+INSERT INTO question_options (id, question_id, option_text, is_correct, ordering, explanation, point) VALUES
+-- Options for question 160
+('150e8400-e29b-41d4-a716-446655440176', '140e8400-e29b-41d4-a716-446655440160', 'Research project methodology', TRUE, 1, 'Main topic', 1.00),
+('150e8400-e29b-41d4-a716-446655440177', '140e8400-e29b-41d4-a716-446655440160', 'University courses', FALSE, 2, 'Not mentioned', 0.00),
+('150e8400-e29b-41d4-a716-446655440178', '140e8400-e29b-41d4-a716-446655440160', 'Job applications', FALSE, 3, 'Not mentioned', 0.00),
+('150e8400-e29b-41d4-a716-446655440179', '140e8400-e29b-41d4-a716-446655440160', 'Exam preparation', FALSE, 4, 'Not mentioned', 0.00),
+-- Options for question 161
+('150e8400-e29b-41d4-a716-446655440180', '140e8400-e29b-41d4-a716-446655440161', 'Questionnaire survey', TRUE, 1, 'Correct method', 1.00),
+('150e8400-e29b-41d4-a716-446655440181', '140e8400-e29b-41d4-a716-446655440161', 'Laboratory experiments', FALSE, 2, 'Not chosen', 0.00),
+('150e8400-e29b-41d4-a716-446655440182', '140e8400-e29b-41d4-a716-446655440161', 'Field observations', FALSE, 3, 'Not chosen', 0.00),
+('150e8400-e29b-41d4-a716-446655440183', '140e8400-e29b-41d4-a716-446655440161', 'Case studies', FALSE, 4, 'Not chosen', 0.00),
+-- Options for question 162
+('150e8400-e29b-41d4-a716-446655440184', '140e8400-e29b-41d4-a716-446655440162', 'At least 100', TRUE, 1, 'Correct number', 1.00),
+('150e8400-e29b-41d4-a716-446655440185', '140e8400-e29b-41d4-a716-446655440162', 'At least 50', FALSE, 2, 'Too few', 0.00),
+('150e8400-e29b-41d4-a716-446655440186', '140e8400-e29b-41d4-a716-446655440162', 'At least 200', FALSE, 3, 'Too many', 0.00),
+('150e8400-e29b-41d4-a716-446655440187', '140e8400-e29b-41d4-a716-446655440162', 'At least 150', FALSE, 4, 'Not mentioned', 0.00),
+-- Options for question 163
+('150e8400-e29b-41d4-a716-446655440188', '140e8400-e29b-41d4-a716-446655440163', 'By the end of the semester', TRUE, 1, 'Correct deadline', 1.00),
+('150e8400-e29b-41d4-a716-446655440189', '140e8400-e29b-41d4-a716-446655440163', 'Next month', FALSE, 2, 'Too soon', 0.00),
+('150e8400-e29b-41d4-a716-446655440190', '140e8400-e29b-41d4-a716-446655440163', 'Next year', FALSE, 3, 'Too late', 0.00),
+('150e8400-e29b-41d4-a716-446655440191', '140e8400-e29b-41d4-a716-446655440163', 'In two weeks', FALSE, 4, 'Not mentioned', 0.00),
+-- Options for question 164
+('150e8400-e29b-41d4-a716-446655440192', '140e8400-e29b-41d4-a716-446655440164', 'SPSS', TRUE, 1, 'Correct software', 1.00),
+('150e8400-e29b-41d4-a716-446655440193', '140e8400-e29b-41d4-a716-446655440164', 'Excel', FALSE, 2, 'Not mentioned', 0.00),
+('150e8400-e29b-41d4-a716-446655440194', '140e8400-e29b-41d4-a716-446655440164', 'Python', FALSE, 3, 'Not mentioned', 0.00),
+('150e8400-e29b-41d4-a716-446655440195', '140e8400-e29b-41d4-a716-446655440164', 'Word', FALSE, 4, 'Not mentioned', 0.00),
+-- Options for question 165
+('150e8400-e29b-41d4-a716-446655440196', '140e8400-e29b-41d4-a716-446655440165', 'Both students together', TRUE, 1, 'Correct answer', 1.00),
+('150e8400-e29b-41d4-a716-446655440197', '140e8400-e29b-41d4-a716-446655440165', 'Student A only', FALSE, 2, 'Not mentioned', 0.00),
+('150e8400-e29b-41d4-a716-446655440198', '140e8400-e29b-41d4-a716-446655440165', 'Student B only', FALSE, 3, 'Not mentioned', 0.00),
+('150e8400-e29b-41d4-a716-446655440199', '140e8400-e29b-41d4-a716-446655440165', 'Their supervisor', FALSE, 4, 'Not mentioned', 0.00),
+-- Options for question 166
+('150e8400-e29b-41d4-a716-446655440200', '140e8400-e29b-41d4-a716-446655440166', 'Finding enough participants', TRUE, 1, 'Main challenge', 1.00),
+('150e8400-e29b-41d4-a716-446655440201', '140e8400-e29b-41d4-a716-446655440166', 'Lack of funding', FALSE, 2, 'Not mentioned', 0.00),
+('150e8400-e29b-41d4-a716-446655440202', '140e8400-e29b-41d4-a716-446655440166', 'Time constraints', FALSE, 3, 'Not the main challenge', 0.00),
+('150e8400-e29b-41d4-a716-446655440203', '140e8400-e29b-41d4-a716-446655440166', 'Technical difficulties', FALSE, 4, 'Not mentioned', 0.00),
+-- Options for question 167
+('150e8400-e29b-41d4-a716-446655440204', '140e8400-e29b-41d4-a716-446655440167', 'University library and online', TRUE, 1, 'Correct locations', 1.00),
+('150e8400-e29b-41d4-a716-446655440205', '140e8400-e29b-41d4-a716-446655440167', 'Only online', FALSE, 2, 'Too narrow', 0.00),
+('150e8400-e29b-41d4-a716-446655440206', '140e8400-e29b-41d4-a716-446655440167', 'Only on campus', FALSE, 3, 'Too narrow', 0.00),
+('150e8400-e29b-41d4-a716-446655440207', '140e8400-e29b-41d4-a716-446655440167', 'Shopping centers', FALSE, 4, 'Not mentioned', 0.00),
+-- Options for question 168
+('150e8400-e29b-41d4-a716-446655440208', '140e8400-e29b-41d4-a716-446655440168', 'Participant confidentiality', TRUE, 1, 'Correct consideration', 1.00),
+('150e8400-e29b-41d4-a716-446655440209', '140e8400-e29b-41d4-a716-446655440168', 'Data storage', FALSE, 2, 'Not the main concern', 0.00),
+('150e8400-e29b-41d4-a716-446655440210', '140e8400-e29b-41d4-a716-446655440168', 'Report formatting', FALSE, 3, 'Not mentioned', 0.00),
+('150e8400-e29b-41d4-a716-446655440211', '140e8400-e29b-41d4-a716-446655440168', 'Time management', FALSE, 4, 'Not mentioned', 0.00),
+-- Options for question 169
+('150e8400-e29b-41d4-a716-446655440212', '140e8400-e29b-41d4-a716-446655440169', 'Next Tuesday', TRUE, 1, 'Correct date', 1.00),
+('150e8400-e29b-41d4-a716-446655440213', '140e8400-e29b-41d4-a716-446655440169', 'Next Monday', FALSE, 2, 'Not mentioned', 0.00),
+('150e8400-e29b-41d4-a716-446655440214', '140e8400-e29b-41d4-a716-446655440169', 'Next Wednesday', FALSE, 3, 'Not mentioned', 0.00),
+('150e8400-e29b-41d4-a716-446655440215', '140e8400-e29b-41d4-a716-446655440169', 'This Friday', FALSE, 4, 'Not mentioned', 0.00);
+
+-- Insert question groups for Writing Test (Task 1 and Task 2)
+INSERT INTO question_groups (id, exercise_id, image_url, group_title, group_instruction, passage_reference, question_type, ordering, question_range, correct_answer_count) VALUES
+-- Writing Task 1
+('160e8400-e29b-41d4-a716-446655440110', '130e8400-e29b-41d4-a716-446655440107', '/test/writing_task1_chart.jpg', 'Task 1', 'Write a 150-word report describing the bar chart showing internet access in five countries from 2000 to 2020', NULL, 'essay', 1, '1', 1),
+-- Writing Task 2
+('160e8400-e29b-41d4-a716-446655440111', '130e8400-e29b-41d4-a716-446655440108', NULL, 'Task 2', 'Write a 250-word essay discussing both views on free university education and give your own opinion', NULL, 'essay', 1, '2', 1);
+
+-- Insert questions for Writing Test
+INSERT INTO questions (id, exercise_id, question_group_id, question_text, question_type, image_url, audio_url, audio_duration, reading_passage, explanation, points, ordering, difficulty_level, question_group) VALUES
+-- Writing Task 1
+('140e8400-e29b-41d4-a716-446655440180', '130e8400-e29b-41d4-a716-446655440107', '160e8400-e29b-41d4-a716-446655440110', 'The bar chart shows the percentage of households with internet access in five countries from 2000 to 2020. Summarize the information by selecting and reporting the main features, and make comparisons where relevant.', 'essay', '/test/writing_task1_chart.jpg', NULL, NULL, NULL, '{"word_count": 150, "criteria": "Task achievement, Coherence and cohesion, Lexical resource, Grammatical range and accuracy"}', 0.00, 1, 6.5, 'Task 1'),
+-- Writing Task 2
+('140e8400-e29b-41d4-a716-446655440181', '130e8400-e29b-41d4-a716-446655440108', '160e8400-e29b-41d4-a716-446655440111', 'Some people believe that university education should be free for all students, while others argue that students should pay for their own education. Discuss both views and give your own opinion.', 'essay', NULL, NULL, NULL, NULL, '{"word_count": 250, "criteria": "Task response, Coherence and cohesion, Lexical resource, Grammatical range and accuracy"}', 0.00, 1, 6.5, 'Task 2');
+
+-- Insert question groups for Speaking Test (Part 1, 2, 3)
+INSERT INTO question_groups (id, exercise_id, image_url, group_title, group_instruction, passage_reference, question_type, ordering, question_range, correct_answer_count) VALUES
+-- Speaking Part 1
+('160e8400-e29b-41d4-a716-446655440112', '130e8400-e29b-41d4-a716-446655440109', NULL, 'Part 1: Introduction and Interview', 'Answer personal questions about yourself and familiar topics', NULL, 'speaking', 1, '1-4', 4),
+-- Speaking Part 2
+('160e8400-e29b-41d4-a716-446655440113', '130e8400-e29b-41d4-a716-446655440110', NULL, 'Part 2: Long Turn', 'Speak for 2 minutes about a place you would like to visit', NULL, 'speaking', 1, '2', 1),
+-- Speaking Part 3
+('160e8400-e29b-41d4-a716-446655440114', '130e8400-e29b-41d4-a716-446655440111', NULL, 'Part 3: Discussion', 'Discuss abstract topics related to travel and tourism', NULL, 'speaking', 1, '3-5', 3);
+
+-- Insert questions for Speaking Test
+INSERT INTO questions (id, exercise_id, question_group_id, question_text, question_type, image_url, audio_url, audio_duration, reading_passage, explanation, points, ordering, difficulty_level, question_group) VALUES
+-- Speaking Part 1
+('140e8400-e29b-41d4-a716-446655440182', '130e8400-e29b-41d4-a716-446655440109', '160e8400-e29b-41d4-a716-446655440112', 'What is your full name?', 'speaking', NULL, NULL, NULL, NULL, '{"criteria": "Fluency and coherence, Lexical resource, Grammatical range and accuracy, Pronunciation"}', 0.00, 1, 5.0, 'Part 1'),
+('140e8400-e29b-41d4-a716-446655440183', '130e8400-e29b-41d4-a716-446655440109', '160e8400-e29b-41d4-a716-446655440112', 'Where are you from?', 'speaking', NULL, NULL, NULL, NULL, '{"criteria": "Fluency and coherence, Lexical resource, Grammatical range and accuracy, Pronunciation"}', 0.00, 2, 5.0, 'Part 1'),
+('140e8400-e29b-41d4-a716-446655440184', '130e8400-e29b-41d4-a716-446655440109', '160e8400-e29b-41d4-a716-446655440112', 'Do you work or study?', 'speaking', NULL, NULL, NULL, NULL, '{"criteria": "Fluency and coherence, Lexical resource, Grammatical range and accuracy, Pronunciation"}', 0.00, 3, 5.5, 'Part 1'),
+('140e8400-e29b-41d4-a716-446655440185', '130e8400-e29b-41d4-a716-446655440109', '160e8400-e29b-41d4-a716-446655440112', 'What do you like about your hometown?', 'speaking', NULL, NULL, NULL, NULL, '{"criteria": "Fluency and coherence, Lexical resource, Grammatical range and accuracy, Pronunciation"}', 0.00, 4, 6.0, 'Part 1'),
+-- Speaking Part 2
+('140e8400-e29b-41d4-a716-446655440186', '130e8400-e29b-41d4-a716-446655440110', '160e8400-e29b-41d4-a716-446655440113', 'Describe a place you would like to visit. You should say: where this place is, what you know about it, what you would like to do there, and explain why you would like to visit it.', 'speaking', NULL, NULL, NULL, NULL, '{"time_limit": 120, "preparation_time": 60, "criteria": "Fluency and coherence, Lexical resource, Grammatical range and accuracy, Pronunciation"}', 0.00, 1, 6.5, 'Part 2'),
+-- Speaking Part 3
+('140e8400-e29b-41d4-a716-446655440187', '130e8400-e29b-41d4-a716-446655440111', '160e8400-e29b-41d4-a716-446655440114', 'How has tourism changed in recent years?', 'speaking', NULL, NULL, NULL, NULL, '{"criteria": "Fluency and coherence, Lexical resource, Grammatical range and accuracy, Pronunciation"}', 0.00, 1, 7.0, 'Part 3'),
+('140e8400-e29b-41d4-a716-446655440188', '130e8400-e29b-41d4-a716-446655440111', '160e8400-e29b-41d4-a716-446655440114', 'What are the benefits and drawbacks of tourism?', 'speaking', NULL, NULL, NULL, NULL, '{"criteria": "Fluency and coherence, Lexical resource, Grammatical range and accuracy, Pronunciation"}', 0.00, 2, 7.0, 'Part 3'),
+('140e8400-e29b-41d4-a716-446655440189', '130e8400-e29b-41d4-a716-446655440111', '160e8400-e29b-41d4-a716-446655440114', 'How can governments manage tourism effectively?', 'speaking', NULL, NULL, NULL, NULL, '{"criteria": "Fluency and coherence, Lexical resource, Grammatical range and accuracy, Pronunciation"}', 0.00, 3, 7.5, 'Part 3');
