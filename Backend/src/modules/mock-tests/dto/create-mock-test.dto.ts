@@ -162,6 +162,7 @@ export class OnlyOneAnswerTypeConstraint
       obj.multiple_choice_answers,
       obj.true_false_answers,
       obj.matching_answers,
+      obj.essay_answers,
     ].filter((answer) => answer !== undefined);
 
     return definedAnswers.length <= 1;
@@ -206,6 +207,14 @@ export class UserAnswerSubmissionDto {
   @IsOptional()
   @IsString()
   matching_answers?: string;
+
+  @ApiProperty({
+    description: 'Answer for essay/writing questions',
+    example: 'The chart shows the percentage of...',
+  })
+  @IsOptional()
+  @IsString()
+  essay_answers?: string;
 
   @ApiProperty({
     description: 'Audio file URL for speaking questions (after upload)',
@@ -282,7 +291,8 @@ export class TestSectionSubmissionDto {
   answers: TestAnswerSubmissionDto[];
 
   @ApiPropertyOptional({
-    description: 'Audio data for speaking section (audio URLs and question texts)',
+    description:
+      'Audio data for speaking section (audio URLs and question texts)',
     type: 'array',
     items: {
       type: 'object',
@@ -305,11 +315,17 @@ export class SpeakingAudioDataDto {
   @IsString()
   question_id: string;
 
-  @ApiProperty({ description: 'Audio file URL', example: 'https://minio.example.com/audio/recording.webm' })
+  @ApiProperty({
+    description: 'Audio file URL',
+    example: 'https://minio.example.com/audio/recording.webm',
+  })
   @IsString()
   audio_url: string;
 
-  @ApiProperty({ description: 'Question text', example: 'What is your full name?' })
+  @ApiProperty({
+    description: 'Question text',
+    example: 'What is your full name?',
+  })
   @IsString()
   question_text: string;
 }

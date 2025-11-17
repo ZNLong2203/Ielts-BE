@@ -20,13 +20,21 @@ import { PrismaService } from 'src/prisma/prisma.service';
 import { UtilsService } from 'src/utils/utils.service';
 import { SpeakingService } from 'src/modules/speaking/speaking.service';
 import { FilesService } from 'src/modules/files/files.service';
+import { WritingService } from 'src/modules/writing/writing.service';
 import {
   CreateMockTestDto,
   TestSectionSubmissionDto,
   UserAnswerSubmissionDto,
 } from './dto/create-mock-test.dto';
 import { UpdateMockTestDto } from './dto/update-mock-test.dto';
-import { SpeakingQuestion, SpeakingPart, TranscribeAndGradeDto } from 'src/modules/speaking/dto/grade-speaking.dto';
+import {
+  SpeakingPart,
+  TranscribeAndGradeDto,
+} from 'src/modules/speaking/dto/grade-speaking.dto';
+import {
+  GradeWritingDto,
+  WritingTaskType,
+} from 'src/modules/writing/dto/grade-writing.dto';
 
 interface TestSection {
   section_name: string;
@@ -47,6 +55,7 @@ export class MockTestsService {
     private readonly gradingService: GradingService,
     private readonly speakingService: SpeakingService,
     private readonly filesService: FilesService,
+    private readonly writingService: WritingService,
   ) {}
 
   /**
@@ -661,6 +670,15 @@ export class MockTestsService {
       return await this.submitSpeakingSection(answers, testResult, testSection);
     }
 
+    // Handle writing section with AI grading
+    if (testSection.section_type === TEST_TYPE.WRITING) {
+      return await this.handleWritingSectionSubmission(
+        answers,
+        testResult,
+        testSection,
+      );
+    }
+
     // find all questions in the section
     const questions = await this.prisma.questions.findMany({
       where: {
@@ -1018,9 +1036,7 @@ export class MockTestsService {
     bandScore = Math.round(bandScore * 2) / 2;
 
     // Calculate overall averages for all questions (for detailed results)
-    const allDetailedResults = questionResults.filter(
-      (r) => r && r.grading,
-    );
+    const allDetailedResults = questionResults.filter((r) => r && r.grading);
     let totalFluency = 0;
     let totalLexical = 0;
     let totalGrammar = 0;
@@ -1042,10 +1058,16 @@ export class MockTestsService {
       if (result.grading.strengths && Array.isArray(result.grading.strengths)) {
         allStrengths.push(...result.grading.strengths);
       }
-      if (result.grading.weaknesses && Array.isArray(result.grading.weaknesses)) {
+      if (
+        result.grading.weaknesses &&
+        Array.isArray(result.grading.weaknesses)
+      ) {
         allWeaknesses.push(...result.grading.weaknesses);
       }
-      if (result.grading.suggestions && Array.isArray(result.grading.suggestions)) {
+      if (
+        result.grading.suggestions &&
+        Array.isArray(result.grading.suggestions)
+      ) {
         allSuggestions.push(...result.grading.suggestions);
       }
       if (result.grading.detailedFeedback) {
@@ -1097,33 +1119,81 @@ export class MockTestsService {
             all_questions: allDetailedResults,
             part_scores: partScores,
             part_averages: {
-              [SpeakingPart.PART_1]: partResults[SpeakingPart.PART_1].results.length > 0
-                ? {
-                    fluencyCoherence: Math.round(partResults[SpeakingPart.PART_1].avgFluency * 2) / 2,
-                    lexicalResource: Math.round(partResults[SpeakingPart.PART_1].avgLexical * 2) / 2,
-                    grammaticalRangeAccuracy: Math.round(partResults[SpeakingPart.PART_1].avgGrammar * 2) / 2,
-                    pronunciation: Math.round(partResults[SpeakingPart.PART_1].avgPronunciation * 2) / 2,
-                    overallScore: Math.round(partResults[SpeakingPart.PART_1].overallScore * 2) / 2,
-                  }
-                : null,
-              [SpeakingPart.PART_2]: partResults[SpeakingPart.PART_2].results.length > 0
-                ? {
-                    fluencyCoherence: Math.round(partResults[SpeakingPart.PART_2].avgFluency * 2) / 2,
-                    lexicalResource: Math.round(partResults[SpeakingPart.PART_2].avgLexical * 2) / 2,
-                    grammaticalRangeAccuracy: Math.round(partResults[SpeakingPart.PART_2].avgGrammar * 2) / 2,
-                    pronunciation: Math.round(partResults[SpeakingPart.PART_2].avgPronunciation * 2) / 2,
-                    overallScore: Math.round(partResults[SpeakingPart.PART_2].overallScore * 2) / 2,
-                  }
-                : null,
-              [SpeakingPart.PART_3]: partResults[SpeakingPart.PART_3].results.length > 0
-                ? {
-                    fluencyCoherence: Math.round(partResults[SpeakingPart.PART_3].avgFluency * 2) / 2,
-                    lexicalResource: Math.round(partResults[SpeakingPart.PART_3].avgLexical * 2) / 2,
-                    grammaticalRangeAccuracy: Math.round(partResults[SpeakingPart.PART_3].avgGrammar * 2) / 2,
-                    pronunciation: Math.round(partResults[SpeakingPart.PART_3].avgPronunciation * 2) / 2,
-                    overallScore: Math.round(partResults[SpeakingPart.PART_3].overallScore * 2) / 2,
-                  }
-                : null,
+              [SpeakingPart.PART_1]:
+                partResults[SpeakingPart.PART_1].results.length > 0
+                  ? {
+                      fluencyCoherence:
+                        Math.round(
+                          partResults[SpeakingPart.PART_1].avgFluency * 2,
+                        ) / 2,
+                      lexicalResource:
+                        Math.round(
+                          partResults[SpeakingPart.PART_1].avgLexical * 2,
+                        ) / 2,
+                      grammaticalRangeAccuracy:
+                        Math.round(
+                          partResults[SpeakingPart.PART_1].avgGrammar * 2,
+                        ) / 2,
+                      pronunciation:
+                        Math.round(
+                          partResults[SpeakingPart.PART_1].avgPronunciation * 2,
+                        ) / 2,
+                      overallScore:
+                        Math.round(
+                          partResults[SpeakingPart.PART_1].overallScore * 2,
+                        ) / 2,
+                    }
+                  : null,
+              [SpeakingPart.PART_2]:
+                partResults[SpeakingPart.PART_2].results.length > 0
+                  ? {
+                      fluencyCoherence:
+                        Math.round(
+                          partResults[SpeakingPart.PART_2].avgFluency * 2,
+                        ) / 2,
+                      lexicalResource:
+                        Math.round(
+                          partResults[SpeakingPart.PART_2].avgLexical * 2,
+                        ) / 2,
+                      grammaticalRangeAccuracy:
+                        Math.round(
+                          partResults[SpeakingPart.PART_2].avgGrammar * 2,
+                        ) / 2,
+                      pronunciation:
+                        Math.round(
+                          partResults[SpeakingPart.PART_2].avgPronunciation * 2,
+                        ) / 2,
+                      overallScore:
+                        Math.round(
+                          partResults[SpeakingPart.PART_2].overallScore * 2,
+                        ) / 2,
+                    }
+                  : null,
+              [SpeakingPart.PART_3]:
+                partResults[SpeakingPart.PART_3].results.length > 0
+                  ? {
+                      fluencyCoherence:
+                        Math.round(
+                          partResults[SpeakingPart.PART_3].avgFluency * 2,
+                        ) / 2,
+                      lexicalResource:
+                        Math.round(
+                          partResults[SpeakingPart.PART_3].avgLexical * 2,
+                        ) / 2,
+                      grammaticalRangeAccuracy:
+                        Math.round(
+                          partResults[SpeakingPart.PART_3].avgGrammar * 2,
+                        ) / 2,
+                      pronunciation:
+                        Math.round(
+                          partResults[SpeakingPart.PART_3].avgPronunciation * 2,
+                        ) / 2,
+                      overallScore:
+                        Math.round(
+                          partResults[SpeakingPart.PART_3].overallScore * 2,
+                        ) / 2,
+                    }
+                  : null,
             },
             overall_criteria_scores: {
               fluencyCoherence: Math.round(avgFluency * 2) / 2,
@@ -1185,13 +1255,468 @@ export class MockTestsService {
     });
   }
 
+  private async handleWritingSectionSubmission(
+    answers: TestSectionSubmissionDto,
+    testResult: any,
+    testSection: any,
+  ) {
+    // Get all questions in the writing section with question groups (for image_url)
+    const questions = await this.prisma.questions.findMany({
+      where: {
+        exercises: {
+          test_section_id: testSection.id,
+          deleted: false,
+        },
+        deleted: false,
+        question_type: 'essay',
+      },
+      include: {
+        question_groups: {
+          select: {
+            id: true,
+            image_url: true,
+          },
+        },
+      },
+      orderBy: { ordering: 'asc' },
+    });
+
+    if (questions.length === 0) {
+      throw new BadRequestException(
+        'No writing questions found in this section',
+      );
+    }
+
+    this.logger.log(
+      `Grading ${questions.length} writing questions for test result: ${testResult.id}`,
+    );
+
+    // Extract essay answers from submission
+    const essayAnswers: Record<string, string> = {};
+    const answerDetails: Array<{
+      question_id: string;
+      answer_length: number;
+      preview: string;
+    }> = [];
+
+    for (const answerDto of answers.answers) {
+      if (answerDto.user_answer.essay_answers) {
+        const answerText = answerDto.user_answer.essay_answers.trim();
+        const answerLength = answerText.length;
+
+        // Log each answer submission
+        answerDetails.push({
+          question_id: answerDto.question_id,
+          answer_length: answerLength,
+          preview: answerText.substring(0, 100) + '...',
+        });
+
+        // If duplicate question_id, log warning and use the first one
+        if (essayAnswers[answerDto.question_id]) {
+          this.logger.warn(
+            `Duplicate answer for question ${answerDto.question_id}. First answer length: ${essayAnswers[answerDto.question_id].length}, New answer length: ${answerLength}`,
+          );
+          // Keep the first answer, skip duplicate
+          continue;
+        }
+
+        essayAnswers[answerDto.question_id] = answerText;
+      }
+    }
+
+    // Log all answers for debugging
+    this.logger.log(
+      `Extracted ${Object.keys(essayAnswers).length} unique essay answer(s):`,
+    );
+    for (const detail of answerDetails) {
+      this.logger.log(
+        `  - Question ${detail.question_id}: ${detail.answer_length} chars - "${detail.preview}"`,
+      );
+    }
+
+    // Identify Task 1 and Task 2 questions
+    // Logic: Check question_group, question_text, ordering, and answers submitted
+    let task1Question: any = null;
+    let task2Question: any = null;
+    let task1Answer = '';
+    let task2Answer = '';
+
+    // Create a map of question_id -> question for quick lookup
+    const questionMap = new Map<string, any>();
+    for (const question of questions) {
+      questionMap.set(question.id, question);
+    }
+
+    // First pass: Identify Task 1 and Task 2 based on keywords in questions
+    for (const question of questions) {
+      const answer = essayAnswers[question.id] || '';
+      if (!answer || answer.trim().length === 0) {
+        continue; // Skip questions without answers
+      }
+
+      const isTask1 =
+        question.question_group?.toLowerCase().includes('task 1') ||
+        question.question_group?.toLowerCase().includes('task1') ||
+        question.question_text?.toLowerCase().includes('task 1') ||
+        question.question_text?.toLowerCase().includes('150') ||
+        question.question_text?.toLowerCase().includes('chart') ||
+        question.question_text?.toLowerCase().includes('graph') ||
+        question.question_text?.toLowerCase().includes('table') ||
+        question.question_text?.toLowerCase().includes('diagram');
+
+      if (isTask1 && !task1Question) {
+        task1Question = question;
+        task1Answer = answer;
+      } else if (!isTask1 && !task2Question) {
+        task2Question = question;
+        task2Answer = answer;
+      }
+    }
+
+    // Second pass: Check answers that don't have matching questions in DB
+    // This handles cases where frontend submits answers for questions not yet in DB
+    const submittedQuestionIds = Object.keys(essayAnswers);
+    for (const questionId of submittedQuestionIds) {
+      const answer = essayAnswers[questionId];
+      if (!answer || answer.trim().length === 0) {
+        continue;
+      }
+
+      // Skip if already assigned
+      if (
+        (task1Question && task1Question.id === questionId) ||
+        (task2Question && task2Question.id === questionId)
+      ) {
+        continue;
+      }
+
+      // If question exists in DB, use it; otherwise create a minimal question object
+      let question = questionMap.get(questionId);
+      if (!question) {
+        // Create a minimal question object for answers without matching DB questions
+        question = {
+          id: questionId,
+          question_text: 'Essay question',
+          question_group: null,
+          image_url: null,
+          question_groups: null,
+        };
+      }
+
+      // Check if it's Task 1 based on answer length and content
+      const answerLength = answer.trim().length;
+      const isTask1Candidate =
+        answerLength < 2000 || // Task 1 typically shorter
+        answer.toLowerCase().includes('chart') ||
+        answer.toLowerCase().includes('graph') ||
+        answer.toLowerCase().includes('table') ||
+        answer.toLowerCase().includes('diagram');
+
+      // Assign based on what's missing
+      if (!task1Question && isTask1Candidate) {
+        task1Question = question;
+        task1Answer = answer;
+      } else if (!task2Question && !isTask1Candidate) {
+        task2Question = question;
+        task2Answer = answer;
+      } else if (!task1Question) {
+        // If Task 1 still not found, assign this as Task 1
+        task1Question = question;
+        task1Answer = answer;
+      } else if (!task2Question) {
+        // If Task 2 still not found, assign this as Task 2
+        task2Question = question;
+        task2Answer = answer;
+      }
+    }
+
+    // Third pass: Use ordering from questions array (first = Task 1, second = Task 2)
+    // Only assign questions that haven't been assigned yet
+    for (let i = 0; i < questions.length; i++) {
+      const question = questions[i];
+      const answer = essayAnswers[question.id] || '';
+      if (!answer || answer.trim().length === 0) {
+        continue;
+      }
+
+      // Skip if already assigned
+      if (
+        (task1Question && task1Question.id === question.id) ||
+        (task2Question && task2Question.id === question.id)
+      ) {
+        continue;
+      }
+
+      // Assign based on ordering
+      if (!task1Question && i === 0) {
+        task1Question = question;
+        task1Answer = answer;
+      } else if (!task2Question && i === 1) {
+        task2Question = question;
+        task2Answer = answer;
+      }
+    }
+
+    // Debug logging
+    this.logger.log(
+      `Writing section has ${questions.length} question(s), ${Object.keys(essayAnswers).length} answer(s) submitted`,
+    );
+    this.logger.log(
+      `Task 1: question_id=${task1Question?.id || 'none'}, answer length=${task1Answer.length}`,
+    );
+    this.logger.log(
+      `Task 2: question_id=${task2Question?.id || 'none'}, answer length=${task2Answer.length}`,
+    );
+
+    // Prevent duplicate grading: if both tasks have the same question_id, only grade as Task 1
+    if (
+      task1Question &&
+      task2Question &&
+      task1Question.id === task2Question.id
+    ) {
+      this.logger.warn(
+        `Both Task 1 and Task 2 assigned to same question (${task1Question.id}). Only grading as Task 1.`,
+      );
+      task2Question = null;
+      task2Answer = '';
+    }
+
+    // Grade Task 1 and Task 2
+    // Add delay between requests to avoid API overload
+    const gradingPromises: Promise<any>[] = [];
+
+    if (task1Question && task1Answer.trim().length > 0) {
+      // Get image_url from question or question_group (for Task 1 - charts, graphs, diagrams)
+      const imageUrl =
+        task1Question.image_url ||
+        task1Question.question_groups?.image_url ||
+        undefined;
+
+      const gradeDto: GradeWritingDto = {
+        studentAnswer: task1Answer,
+        question: task1Question.question_text,
+        taskType: WritingTaskType.TASK_1,
+        wordLimit: '150-200 words',
+        imageUrl: imageUrl || undefined, // Optional - only for Task 1
+      };
+
+      // Start Task 1 grading immediately
+      gradingPromises.push(
+        this.writingService.gradeWritingByGemini(gradeDto).then((result) => ({
+          task: 'task1',
+          question_id: task1Question.id,
+          ...result,
+        })),
+      );
+    }
+
+    if (task2Question && task2Answer.trim().length > 0) {
+      const gradeDto: GradeWritingDto = {
+        studentAnswer: task2Answer,
+        question: task2Question.question_text,
+        taskType: WritingTaskType.TASK_2,
+        wordLimit: '250+ words',
+      };
+
+      const task2Promise = new Promise((resolve) => {
+        setTimeout(() => {
+          resolve(
+            this.writingService
+              .gradeWritingByGemini(gradeDto)
+              .then((result) => ({
+                task: 'task2',
+                question_id: task2Question.id,
+                ...result,
+              })),
+          );
+        }, 4000);
+      });
+
+      gradingPromises.push(task2Promise as Promise<any>);
+    }
+
+    if (gradingPromises.length === 0) {
+      throw new BadRequestException(
+        'No valid writing answers found. Please provide answers for at least one task.',
+      );
+    }
+
+    // Wait for all tasks to be graded
+    // Use Promise.allSettled to handle partial failures gracefully
+    const taskResultsSettled = await Promise.allSettled(gradingPromises);
+    const taskResults: any[] = [];
+    const gradingErrors: string[] = [];
+
+    for (let i = 0; i < taskResultsSettled.length; i++) {
+      const result = taskResultsSettled[i];
+      if (result.status === 'fulfilled') {
+        taskResults.push(result.value);
+      } else {
+        const taskName = i === 0 && task1Question ? 'Task 1' : 'Task 2';
+        const errorMsg = result.reason?.message || 'Unknown error';
+        gradingErrors.push(`${taskName}: ${errorMsg}`);
+        this.logger.error(`Failed to grade ${taskName}:`, result.reason);
+      }
+    }
+
+    // If all grading failed, throw error
+    if (taskResults.length === 0) {
+      throw new BadRequestException(
+        `Failed to grade writing tasks: ${gradingErrors.join('; ')}`,
+      );
+    }
+
+    // Log warnings if some tasks failed
+    if (gradingErrors.length > 0) {
+      this.logger.warn(
+        `Some writing tasks failed to grade: ${gradingErrors.join('; ')}`,
+      );
+    }
+
+    const task1Result = taskResults.find((r) => r.task === 'task1');
+    const task2Result = taskResults.find((r) => r.task === 'task2');
+
+    // Calculate overall writing score using IELTS weighting
+    // Task 2 = 2/3 weight, Task 1 = 1/3 weight
+    let overallWritingScore = 0;
+    if (task1Result && task2Result) {
+      // Both tasks: weighted average
+      overallWritingScore =
+        (task1Result.overallScore * 1 + task2Result.overallScore * 2) / 3;
+    } else if (task2Result) {
+      // Only Task 2
+      overallWritingScore = task2Result.overallScore;
+    } else if (task1Result) {
+      // Only Task 1 (shouldn't happen in real IELTS, but handle it)
+      overallWritingScore = task1Result.overallScore;
+    }
+
+    // Round to nearest 0.5
+    overallWritingScore = Math.round(overallWritingScore * 2) / 2;
+
+    // Prepare detailed answers structure
+    const detailedAnswers: any = {
+      overallScore: overallWritingScore,
+    };
+
+    // Add error information for failed tasks
+    if (gradingErrors.length > 0) {
+      detailedAnswers.gradingErrors = gradingErrors;
+      detailedAnswers.partialGrading = true;
+    }
+
+    if (task1Result) {
+      detailedAnswers.task1 = {
+        score: task1Result.overallScore,
+        taskAchievement: task1Result.taskAchievement,
+        coherenceCohesion: task1Result.coherenceCohesion,
+        lexicalResource: task1Result.lexicalResource,
+        grammaticalRangeAccuracy: task1Result.grammaticalRangeAccuracy,
+        detailedFeedback: task1Result.detailedFeedback,
+        suggestions: task1Result.suggestions,
+        strengths: task1Result.strengths,
+        weaknesses: task1Result.weaknesses,
+        detailedMetrics: task1Result.detailedMetrics?.task1,
+        upgradedEssay: task1Result.upgradedEssay,
+        sampleAnswer: task1Result.sampleAnswer,
+      };
+    } else if (task1Question && task1Answer.trim().length > 0) {
+      // Task 1 was submitted but failed to grade
+      const task1Error = gradingErrors.find((e) => e.includes('Task 1'));
+      detailedAnswers.task1 = {
+        error: task1Error || 'Failed to grade Task 1',
+        score: null,
+      };
+    }
+
+    if (task2Result) {
+      detailedAnswers.task2 = {
+        score: task2Result.overallScore,
+        taskAchievement: task2Result.taskAchievement,
+        coherenceCohesion: task2Result.coherenceCohesion,
+        lexicalResource: task2Result.lexicalResource,
+        grammaticalRangeAccuracy: task2Result.grammaticalRangeAccuracy,
+        detailedFeedback: task2Result.detailedFeedback,
+        suggestions: task2Result.suggestions,
+        strengths: task2Result.strengths,
+        weaknesses: task2Result.weaknesses,
+        detailedMetrics: task2Result.detailedMetrics?.task2,
+        upgradedEssay: task2Result.upgradedEssay,
+        sampleAnswer: task2Result.sampleAnswer,
+      };
+    } else if (task2Question && task2Answer.trim().length > 0) {
+      // Task 2 was submitted but failed to grade
+      const task2Error = gradingErrors.find((e) => e.includes('Task 2'));
+      detailedAnswers.task2 = {
+        error: task2Error || 'Failed to grade Task 2',
+        score: null,
+      };
+    }
+
+    // Save section result and update test result
+    return await this.prisma.$transaction(async (tx) => {
+      // Save section result
+      await tx.section_results.create({
+        data: {
+          test_result_id: testResult.id,
+          test_section_id: testSection.id,
+          band_score: overallWritingScore,
+          time_taken: answers.time_taken,
+          correct_answers: taskResults.length,
+          total_questions: questions.length,
+          detailed_answers: this.serializeToJson(detailedAnswers),
+          graded_at: new Date(),
+        },
+      });
+
+      // Update overall test result
+      const score = this.gradingService.calculateOverallTestScore(
+        Number(testResult.reading_score) || null,
+        Number(testResult.listening_score) || null,
+        overallWritingScore,
+        Number(testResult.speaking_score) || null,
+      );
+      await tx.test_results.update({
+        where: { id: testResult.id },
+        data: {
+          band_score: score,
+          writing_score: overallWritingScore,
+          time_taken: (testResult.time_taken || 0) + answers.time_taken,
+          updated_at: new Date(),
+        },
+      });
+
+      this.logger.log(
+        `Submitted writing section answers for test result: ${testResult.id}`,
+      );
+
+      return {
+        success: true,
+        data: {
+          band_score: overallWritingScore,
+          correct_answers: taskResults.length,
+          total_questions: questions.length,
+          detailed_answers: detailedAnswers,
+          task1_score: task1Result?.overallScore || null,
+          task2_score: task2Result?.overallScore || null,
+          weighting: {
+            task1: task1Result ? 1 / 3 : 0,
+            task2: task2Result ? 2 / 3 : 0,
+          },
+          warnings: gradingErrors.length > 0 ? gradingErrors : undefined,
+          partial_grading: gradingErrors.length > 0,
+        },
+      };
+    });
+  }
+
   // ======= PRIVATE HELPER METHODS =======
 
   private serializeToJson(data: unknown): Prisma.InputJsonValue {
     try {
       const jsonString = JSON.stringify(data);
       return JSON.parse(jsonString) as Prisma.InputJsonValue;
-    } catch (error) {
+    } catch {
       throw new Error('Failed to serialize data to JSON');
     }
   }

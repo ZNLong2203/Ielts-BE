@@ -691,7 +691,7 @@ INSERT INTO exercises (id, lesson_id, test_section_id, title, instruction, conte
 ('130e8400-e29b-41d4-a716-446655440106', NULL, '300e8400-e29b-41d4-a716-446655440106', 'Listening Section 4', 'Listen to the lecture and answer questions 31-40', '{"audio_url": "/test/listening_section4.mp3", "audio_duration": 600, "transcript": "You will hear a lecture about marine biology and ocean conservation..."}', 'mock_test', 'listening', 8, 1, 0.00, 1, TRUE, '/test/listening_section4.mp3'),
 
 -- Writing Test exercises (2 tasks)
-('130e8400-e29b-41d4-a716-446655440107', NULL, '300e8400-e29b-41d4-a716-446655440107', 'Writing Task 1', 'Write a 150-word report describing the visual information', '{"chart_url": "/test/writing_task1_chart.jpg", "chart_type": "bar", "description": "The bar chart shows the percentage of households with internet access in five countries from 2000 to 2020"}', 'mock_test', 'writing', 20, 1, 0.00, 1, TRUE, NULL),
+('130e8400-e29b-41d4-a716-446655440107', NULL, '300e8400-e29b-41d4-a716-446655440107', 'Writing Task 1', 'Write a 150-word report describing the visual information', '{"chart_url": "/test/image.jpg", "chart_type": "bar", "description": "The bar chart shows the percentage of households with internet access in five countries from 2000 to 2020"}', 'mock_test', 'writing', 20, 1, 0.00, 1, TRUE, NULL),
 ('130e8400-e29b-41d4-a716-446655440108', NULL, '300e8400-e29b-41d4-a716-446655440108', 'Writing Task 2', 'Write a 250-word essay on the given topic', '{"topic": "Some people believe that university education should be free for all students, while others argue that students should pay for their own education. Discuss both views and give your own opinion.", "essay_type": "discussion"}', 'mock_test', 'writing', 40, 1, 0.00, 1, TRUE, NULL),
 
 -- Speaking Test exercises (3 parts)
@@ -1068,14 +1068,14 @@ INSERT INTO question_options (id, question_id, option_text, is_correct, ordering
 -- Insert question groups for Writing Test (Task 1 and Task 2)
 INSERT INTO question_groups (id, exercise_id, image_url, group_title, group_instruction, passage_reference, question_type, ordering, question_range, correct_answer_count) VALUES
 -- Writing Task 1
-('160e8400-e29b-41d4-a716-446655440110', '130e8400-e29b-41d4-a716-446655440107', '/test/writing_task1_chart.jpg', 'Task 1', 'Write a 150-word report describing the bar chart showing internet access in five countries from 2000 to 2020', NULL, 'essay', 1, '1', 1),
+('160e8400-e29b-41d4-a716-446655440110', '130e8400-e29b-41d4-a716-446655440107', '/test/image.jpg', 'Task 1', 'Write a 150-word report describing the bar chart showing internet access in five countries from 2000 to 2020', NULL, 'essay', 1, '1', 1),
 -- Writing Task 2
 ('160e8400-e29b-41d4-a716-446655440111', '130e8400-e29b-41d4-a716-446655440108', NULL, 'Task 2', 'Write a 250-word essay discussing both views on free university education and give your own opinion', NULL, 'essay', 1, '2', 1);
 
 -- Insert questions for Writing Test
 INSERT INTO questions (id, exercise_id, question_group_id, question_text, question_type, image_url, audio_url, audio_duration, reading_passage, explanation, points, ordering, difficulty_level, question_group) VALUES
 -- Writing Task 1
-('140e8400-e29b-41d4-a716-446655440180', '130e8400-e29b-41d4-a716-446655440107', '160e8400-e29b-41d4-a716-446655440110', 'The bar chart shows the percentage of households with internet access in five countries from 2000 to 2020. Summarize the information by selecting and reporting the main features, and make comparisons where relevant.', 'essay', '/test/writing_task1_chart.jpg', NULL, NULL, NULL, '{"word_count": 150, "criteria": "Task achievement, Coherence and cohesion, Lexical resource, Grammatical range and accuracy"}', 0.00, 1, 6.5, 'Task 1'),
+('140e8400-e29b-41d4-a716-446655440180', '130e8400-e29b-41d4-a716-446655440107', '160e8400-e29b-41d4-a716-446655440110', 'The bar chart shows the percentage of households with internet access in five countries from 2000 to 2020. Summarize the information by selecting and reporting the main features, and make comparisons where relevant.', 'essay', '/test/image.jpg', NULL, NULL, NULL, '{"word_count": 150, "criteria": "Task achievement, Coherence and cohesion, Lexical resource, Grammatical range and accuracy"}', 0.00, 1, 6.5, 'Task 1'),
 -- Writing Task 2
 ('140e8400-e29b-41d4-a716-446655440181', '130e8400-e29b-41d4-a716-446655440108', '160e8400-e29b-41d4-a716-446655440111', 'Some people believe that university education should be free for all students, while others argue that students should pay for their own education. Discuss both views and give your own opinion.', 'essay', NULL, NULL, NULL, NULL, '{"word_count": 250, "criteria": "Task response, Coherence and cohesion, Lexical resource, Grammatical range and accuracy"}', 0.00, 1, 6.5, 'Task 2');
 

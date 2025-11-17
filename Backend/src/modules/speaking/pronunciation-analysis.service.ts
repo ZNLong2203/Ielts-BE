@@ -78,7 +78,9 @@ export class PronunciationAnalysisService {
     fileName?: string,
   ): Promise<PronunciationAnalysisResult> {
     if (!transcription || transcription.trim().length === 0) {
-      this.logger.warn('Empty transcription detected, returning default analysis');
+      this.logger.warn(
+        'Empty transcription detected, returning default analysis',
+      );
       return {
         transcription: '',
         words: [],
@@ -121,7 +123,7 @@ export class PronunciationAnalysisService {
     }
 
     const words = this.extractWords(transcription);
-    
+
     // If no words extracted, return default analysis
     if (words.length === 0) {
       this.logger.warn('No words extracted from transcription');
@@ -134,9 +136,7 @@ export class PronunciationAnalysisService {
           averageWordLength: 0,
           stressPatternMatch: 0,
         },
-        stressFeedback: [
-          'No meaningful words detected in the transcription.',
-        ],
+        stressFeedback: ['No meaningful words detected in the transcription.'],
         pronunciationScore: 0,
         detailedFeedback:
           'The transcription did not contain recognizable words. Please ensure you are speaking clearly.',

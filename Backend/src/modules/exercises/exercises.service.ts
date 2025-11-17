@@ -356,7 +356,7 @@ export class ExerciseService {
           orderBy: { ordering: 'asc' },
         },
         questions: {
-          where: { 
+          where: {
             deleted: false,
             question_group_id: null,
           },

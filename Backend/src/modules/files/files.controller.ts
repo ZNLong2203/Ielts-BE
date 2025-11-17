@@ -362,10 +362,10 @@ export class FilesController {
       'audio/x-m4a',
       'audio/x-wav',
     ];
-    
+
     // Normalize mimetype (remove charset, etc.)
     const normalizedMimeType = file.mimetype.split(';')[0].trim().toLowerCase();
-    
+
     if (!allowedTypes.includes(normalizedMimeType)) {
       throw new BadRequestException(
         `Invalid file type: ${file.mimetype}. Allowed types: ${allowedTypes.join(', ')}`,

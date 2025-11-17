@@ -6,9 +6,17 @@ import { MockTestsService } from './mock-tests.service';
 import { GradingModule } from 'src/modules/grading/grading.module';
 import { SpeakingModule } from 'src/modules/speaking/speaking.module';
 import { FilesModule } from 'src/modules/files/files.module';
+import { WritingModule } from 'src/modules/writing/writing.module';
 
 @Module({
-  imports: [PrismaModule, UtilsModule, GradingModule, SpeakingModule, FilesModule],
+  imports: [
+    PrismaModule,
+    UtilsModule,
+    GradingModule,
+    SpeakingModule,
+    FilesModule,
+    WritingModule,
+  ],
   controllers: [MockTestsController],
   providers: [MockTestsService],
   exports: [MockTestsService],

@@ -27,7 +27,11 @@ export class GeminiService {
 
   async gradeWriting(
     gradeWritingDto: GradeWritingDto,
+    retryCount = 0,
   ): Promise<WritingGradeResponse> {
+    const maxRetries = 3;
+    const baseDelay = 1000; // 1 second
+
     try {
       const prompt = this.createGradingWritingPrompt(gradeWritingDto);
 
@@ -46,6 +50,29 @@ export class GeminiService {
     } catch (error) {
       const errorMessage =
         error instanceof Error ? error.message : 'Unknown error';
+      const errorString = JSON.stringify(error);
+
+      // Check for 503 (overloaded) or 429 (rate limit) errors - retry with exponential backoff
+      const isRetryableError =
+        errorString.includes('503') ||
+        errorString.includes('overloaded') ||
+        errorString.includes('429') ||
+        errorString.includes('rate limit') ||
+        errorString.includes('UNAVAILABLE');
+
+      if (isRetryableError && retryCount < maxRetries) {
+        const delay = baseDelay * Math.pow(2, retryCount); // Exponential backoff: 1s, 2s, 4s
+        console.log(
+          `Gemini API overloaded (attempt ${retryCount + 1}/${maxRetries}). Retrying in ${delay}ms...`,
+        );
+
+        // Wait before retrying
+        await new Promise((resolve) => setTimeout(resolve, delay));
+
+        // Retry the request
+        return this.gradeWriting(gradeWritingDto, retryCount + 1);
+      }
+
       console.error('Gemini API error (gradeWriting):', errorMessage);
       // Check for network errors
       if (
@@ -59,6 +86,15 @@ export class GeminiService {
           HttpStatus.SERVICE_UNAVAILABLE,
         );
       }
+
+      // If it's a retryable error but we've exhausted retries
+      if (isRetryableError) {
+        throw new HttpException(
+          `Gemini API is currently overloaded. Please try again later.`,
+          HttpStatus.SERVICE_UNAVAILABLE,
+        );
+      }
+
       throw new HttpException(
         `Error grading writing: ${errorMessage}`,
         HttpStatus.INTERNAL_SERVER_ERROR,
@@ -209,6 +245,7 @@ export class GeminiService {
       taskType,
       wordLimit,
       additionalInstructions,
+      imageUrl,
     } = dto;
 
     const taskInstructions =
@@ -220,6 +257,8 @@ export class GeminiService {
     You are an IELTS Writing examiner. Please grade this ${taskInstructions} response according to IELTS Writing band descriptors.
 
     QUESTION: ${question}
+
+    ${imageUrl ? `VISUAL INFORMATION (Chart/Graph/Diagram): Please analyze the image at this URL: ${imageUrl}\n\n` : ''}
 
     STUDENT ANSWER: ${studentAnswer}
 
@@ -325,13 +364,37 @@ export class GeminiService {
      "sampleAnswer": "[A sample high-quality answer to this question]"
    }
 
-   Focus on:
-   1. Task Achievement: How well the student addresses the task requirements
-   2. Coherence and Cohesion: Organization and linking of ideas
-   3. Lexical Resource: Vocabulary range and accuracy
-   4. Grammatical Range and Accuracy: Grammar variety and correctness
-
-   IMPORTANT: For each score level, provide detailed description in Vietnamese explaining what this score means. Extract all collocations (word partnerships), topic-specific vocabulary, identify all errors with corrections, and provide specific improvements.
+   CRITICAL SCORING INSTRUCTIONS:
+   You MUST evaluate each of the 4 criteria INDEPENDENTLY. Each criterion can have a DIFFERENT score. Do NOT assign the same score to all criteria unless the performance is truly identical across all areas.
+   
+   1. Task Achievement (Task 1) / Task Response (Task 2): 
+      - Task 1: How well the student describes the visual information, makes comparisons, and highlights key features
+      - Task 2: How well the student addresses all parts of the question, presents a clear position, and develops ideas
+      - Score independently based on task-specific performance
+   
+   2. Coherence and Cohesion:
+      - Organization of ideas, paragraph structure, logical flow
+      - Use of linking devices, cohesive devices, referencing
+      - Score based on structure and organization quality
+   
+   3. Lexical Resource:
+      - Range and variety of vocabulary
+      - Accuracy of word choice and collocations
+      - Topic-specific vocabulary usage
+      - Score based on vocabulary quality and range
+   
+   4. Grammatical Range and Accuracy:
+      - Variety of sentence structures and grammar forms
+      - Accuracy of grammar usage
+      - Control of grammar errors
+      - Score based on grammar complexity and correctness
+   
+   IMPORTANT: 
+   - Each criterion should be scored separately (0-9 scale)
+   - Scores can and should differ if performance varies across criteria
+   - For example: A student might have good vocabulary (7.0) but poor grammar (5.0)
+   - Provide detailed description in Vietnamese explaining what each score means
+   - Extract all collocations (word partnerships), topic-specific vocabulary, identify all errors with corrections, and provide specific improvements.
    
    CRITICAL JSON REQUIREMENTS:
    1. You MUST return ONLY valid JSON - no markdown code blocks, no explanation text before or after
@@ -425,19 +488,36 @@ export class GeminiService {
         cleanedJson = cleanedJson.replace(/\[\s*,/g, '['); // Remove leading comma in arrays
         cleanedJson = cleanedJson.replace(/{\s*,/g, '{'); // Remove leading comma in objects
 
-        // Replace unescaped " with \" inside string values
         cleanedJson = cleanedJson.replace(
-          /("(?:[^"\\]|\\.)*")\s*:/g,
-          (match, key) => {
-            return match;
+          /:\s*"([^"]*(?:\\.[^"]*)*)"/g,
+          (match, content) => {
+            // Check if content already has properly escaped quotes
+            if (content.includes('\\"')) {
+              return match;
+            }
+            // Escape unescaped quotes (avoid lookbehind which may not work in all engines)
+            let escaped = '';
+            for (let i = 0; i < content.length; i++) {
+              if (content[i] === '"' && (i === 0 || content[i - 1] !== '\\')) {
+                escaped += '\\"';
+              } else {
+                escaped += content[i];
+              }
+            }
+            return `: "${escaped}"`;
           },
         );
 
         cleanedJson = cleanedJson.replace(
-          /:\s*"([^"]*)"/g,
-          (match, content) => {
-            const escaped = content.replace(/"/g, '\\"');
-            return `: "${escaped}"`;
+          /:\s*"([^"]*)"([^,}\]]*)/g,
+          (match, content, after) => {
+            // If there's content after the closing quote that looks like it should be part of the string
+            const afterTrimmed = String(after).trim();
+            if (afterTrimmed && !String(after).match(/^[\s]*[,}\]\]]/)) {
+              // This might be a malformed string, try to fix it
+              return `: "${String(content).replace(/"/g, '\\"')}"`;
+            }
+            return match;
           },
         );
 
@@ -458,30 +538,108 @@ export class GeminiService {
           parsed = JSON.parse(cleanedJson);
         } catch (secondError) {
           try {
-            const lines = cleanedJson.split('\n');
-            let newJson = '';
-            for (const line of lines) {
-              if (
-                line.trim() &&
-                !line.trim().match(/[\]\}]/) &&
-                !line.includes(':')
-              ) {
-                continue;
+            const essentialFields = [
+              'overallScore',
+              'taskAchievement',
+              'coherenceCohesion',
+              'lexicalResource',
+              'grammaticalRangeAccuracy',
+            ];
+
+            const extracted: any = {};
+
+            // Try to extract numeric fields
+            for (const field of essentialFields) {
+              const regex = new RegExp(
+                `"${field}"\\s*:\\s*(\\d+(?:\\.\\d+)?)`,
+                'g',
+              );
+              const match = cleanedJson.match(regex);
+              if (match) {
+                const value = match[0].match(/(\d+(?:\.\d+)?)/);
+                if (value) {
+                  extracted[field] = parseFloat(value[1]);
+                }
               }
-              newJson += line + '\n';
             }
-            parsed = JSON.parse(newJson);
-          } catch {
+
+            // Try to extract string fields with better quote handling
+            const stringFields = [
+              'detailedFeedback',
+              'upgradedEssay',
+              'sampleAnswer',
+            ];
+
+            for (const field of stringFields) {
+              const regex = new RegExp(
+                `"${field}"\\s*:\\s*"((?:[^"\\\\]|\\\\.)*)"`,
+                'gs',
+              );
+              const match = cleanedJson.match(regex);
+              if (match) {
+                // Extract content between quotes, handling escaped quotes
+                const content = match[0]
+                  .replace(new RegExp(`"${field}"\\s*:\\s*"`), '')
+                  .replace(/"\s*[,}]/, '');
+                extracted[field] = content.replace(/\\"/g, '"');
+              }
+            }
+
+            // Try to extract arrays
+            const arrayFields = ['suggestions', 'strengths', 'weaknesses'];
+            for (const field of arrayFields) {
+              const regex = new RegExp(
+                `"${field}"\\s*:\\s*\\[([^\\]]*)\\]`,
+                'gs',
+              );
+              const match = cleanedJson.match(regex);
+              if (match) {
+                try {
+                  // Try to parse the array content
+                  const arrayContent = match[1];
+                  const items = arrayContent
+                    .split(',')
+                    .map((item) => {
+                      const cleaned = item.trim().replace(/^"|"$/g, '');
+                      return cleaned.replace(/\\"/g, '"');
+                    })
+                    .filter((item) => item.length > 0);
+                  extracted[field] = items;
+                } catch {
+                  extracted[field] = [];
+                }
+              }
+            }
+
+            // If we extracted at least the essential fields, use them
+            if (Object.keys(extracted).length >= essentialFields.length) {
+              // Merge with defaults
+              parsed = {
+                ...this.getDefaultWritingResponse(),
+                ...extracted,
+              };
+            } else {
+              throw new Error('Could not extract essential fields');
+            }
+          } catch (extractionError) {
             console.error('Failed to parse AI response:', parseError);
             console.error('Cleaned JSON failed:', secondError);
+            console.error('Field extraction failed:', extractionError);
             console.log(
               'First 200 chars of JSON:',
               cleanedJson.substring(0, 200),
             );
-            console.log(
-              'Around error position (10973):',
-              cleanedJson.substring(10900, 11050),
+            // Try to get error position from secondError if available
+            const errorPos = (secondError as Error).message.match(
+              /position (\d+)/,
             );
+            if (errorPos) {
+              const pos = parseInt(errorPos[1], 10);
+              console.log(
+                `Around error position (${pos}):`,
+                cleanedJson.substring(Math.max(0, pos - 150), pos + 150),
+              );
+            }
             return this.getDefaultWritingResponse();
           }
         }

@@ -25,6 +25,10 @@ export class GradeWritingDto {
   @IsString()
   @IsOptional()
   additionalInstructions?: string;
+
+  @IsString()
+  @IsOptional()
+  imageUrl?: string; // For Task 1 - chart, graph, diagram image URL
 }
 
 export class WritingGradeResponse {
