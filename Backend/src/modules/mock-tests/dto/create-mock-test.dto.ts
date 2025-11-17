@@ -6,6 +6,7 @@ import {
   IsEnum,
   IsInt,
   IsNumber,
+  IsObject,
   IsOptional,
   IsString,
   Length,
@@ -206,6 +207,14 @@ export class UserAnswerSubmissionDto {
   @IsString()
   matching_answers?: string;
 
+  @ApiProperty({
+    description: 'Audio file URL for speaking questions (after upload)',
+    example: 'https://minio.example.com/audio/recording.webm',
+  })
+  @IsOptional()
+  @IsString()
+  speaking_audio_url?: string;
+
   @Validate(OnlyOneAnswerTypeConstraint)
   get answerTypeValidation() {
     return true;
@@ -271,4 +280,36 @@ export class TestSectionSubmissionDto {
   @ValidateNested({ each: true })
   @Type(() => TestAnswerSubmissionDto)
   answers: TestAnswerSubmissionDto[];
+
+  @ApiPropertyOptional({
+    description: 'Audio data for speaking section (audio URLs and question texts)',
+    type: 'array',
+    items: {
+      type: 'object',
+      properties: {
+        question_id: { type: 'string' },
+        audio_url: { type: 'string' },
+        question_text: { type: 'string' },
+      },
+    },
+  })
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => SpeakingAudioDataDto)
+  speaking_audio_data?: SpeakingAudioDataDto[];
+}
+
+export class SpeakingAudioDataDto {
+  @ApiProperty({ description: 'Question ID', example: 'question-uuid-1234' })
+  @IsString()
+  question_id: string;
+
+  @ApiProperty({ description: 'Audio file URL', example: 'https://minio.example.com/audio/recording.webm' })
+  @IsString()
+  audio_url: string;
+
+  @ApiProperty({ description: 'Question text', example: 'What is your full name?' })
+  @IsString()
+  question_text: string;
 }

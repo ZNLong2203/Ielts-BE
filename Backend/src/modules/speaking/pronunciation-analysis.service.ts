@@ -77,6 +77,35 @@ export class PronunciationAnalysisService {
     audioBuffer?: Buffer,
     fileName?: string,
   ): Promise<PronunciationAnalysisResult> {
+    if (!transcription || transcription.trim().length === 0) {
+      this.logger.warn('Empty transcription detected, returning default analysis');
+      return {
+        transcription: '',
+        words: [],
+        metrics: {
+          speechRate: 0,
+          pauseCount: 0,
+          averageWordLength: 0,
+          stressPatternMatch: 0,
+        },
+        stressFeedback: [
+          'No speech detected. Please ensure your microphone is working and try recording again.',
+        ],
+        pronunciationScore: 0,
+        detailedFeedback:
+          'No audio transcription was detected. This may indicate:\n' +
+          '1. The microphone was not working properly\n' +
+          '2. The audio file was empty or corrupted\n' +
+          '3. The recording was too quiet or silent\n\n' +
+          'Please check your microphone settings and try recording again.',
+      };
+    }
+
+    // Check if audio buffer is too small (likely empty/silent)
+    if (audioBuffer && audioBuffer.length < 1000) {
+      this.logger.warn('Audio buffer is very small, likely empty or silent');
+    }
+
     if (audioBuffer && fileName) {
       try {
         return await this.analyzePronunciationFromAudio(
@@ -92,6 +121,28 @@ export class PronunciationAnalysisService {
     }
 
     const words = this.extractWords(transcription);
+    
+    // If no words extracted, return default analysis
+    if (words.length === 0) {
+      this.logger.warn('No words extracted from transcription');
+      return {
+        transcription,
+        words: [],
+        metrics: {
+          speechRate: 0,
+          pauseCount: 0,
+          averageWordLength: 0,
+          stressPatternMatch: 0,
+        },
+        stressFeedback: [
+          'No meaningful words detected in the transcription.',
+        ],
+        pronunciationScore: 0,
+        detailedFeedback:
+          'The transcription did not contain recognizable words. Please ensure you are speaking clearly.',
+      };
+    }
+
     const wordAnalyses: WordAnalysis[] = [];
     const pronouncing = await this.loadDictionary();
 

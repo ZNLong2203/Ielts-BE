@@ -10,5 +10,6 @@ import { FilesModule } from '../files/files.module';
   controllers: [SpeakingController],
   providers: [SpeakingService, PronunciationAnalysisService],
   imports: [GeminiModule, WhisperModule, FilesModule],
+  exports: [SpeakingService],
 })
 export class SpeakingModule {}

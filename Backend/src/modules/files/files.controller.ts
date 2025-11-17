@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   Controller,
   HttpStatus,
   ParseFilePipeBuilder,
@@ -341,10 +342,6 @@ export class FilesController {
   async uploadAudio(
     @UploadedFile(
       new ParseFilePipeBuilder()
-        .addFileTypeValidator({
-          fileType:
-            'audio/mpeg|audio/wav|audio/mp3|audio/ogg|audio/m4a|audio/webm',
-        })
         .addMaxSizeValidator({
           maxSize: 50 * 1024 * 1024, // 50MB
         })
@@ -354,6 +351,26 @@ export class FilesController {
     )
     file: UploadedFileType,
   ) {
+    // Validate file type - MulterModule already filters, but double-check for safety
+    const allowedTypes = [
+      'audio/mpeg',
+      'audio/wav',
+      'audio/mp3',
+      'audio/ogg',
+      'audio/m4a',
+      'audio/webm',
+      'audio/x-m4a',
+      'audio/x-wav',
+    ];
+    
+    // Normalize mimetype (remove charset, etc.)
+    const normalizedMimeType = file.mimetype.split(';')[0].trim().toLowerCase();
+    
+    if (!allowedTypes.includes(normalizedMimeType)) {
+      throw new BadRequestException(
+        `Invalid file type: ${file.mimetype}. Allowed types: ${allowedTypes.join(', ')}`,
+      );
+    }
     const fileData = await this.filesService.uploadFile(
       file.buffer,
       file.originalname,

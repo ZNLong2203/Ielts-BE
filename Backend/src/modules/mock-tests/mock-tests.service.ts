@@ -5,6 +5,7 @@ import {
   Logger,
   NotFoundException,
 } from '@nestjs/common';
+import axios from 'axios';
 import { Prisma } from '@prisma/client';
 import { PaginationQueryDto } from 'src/common/dto/pagination-query.dto';
 import { GradingService } from 'src/modules/grading/grading.service';
@@ -17,12 +18,15 @@ import {
 } from 'src/modules/mock-tests/constants';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { UtilsService } from 'src/utils/utils.service';
+import { SpeakingService } from 'src/modules/speaking/speaking.service';
+import { FilesService } from 'src/modules/files/files.service';
 import {
   CreateMockTestDto,
   TestSectionSubmissionDto,
   UserAnswerSubmissionDto,
 } from './dto/create-mock-test.dto';
 import { UpdateMockTestDto } from './dto/update-mock-test.dto';
+import { SpeakingQuestion, SpeakingPart, TranscribeAndGradeDto } from 'src/modules/speaking/dto/grade-speaking.dto';
 
 interface TestSection {
   section_name: string;
@@ -41,6 +45,8 @@ export class MockTestsService {
     private readonly prisma: PrismaService,
     private readonly utilsService: UtilsService,
     private readonly gradingService: GradingService,
+    private readonly speakingService: SpeakingService,
+    private readonly filesService: FilesService,
   ) {}
 
   /**
@@ -622,7 +628,7 @@ export class MockTestsService {
   }
 
   /**
-   * Submit each section result (for reading and listening sections)
+   * Submit each section result (for reading, listening, and speaking sections)
    */
   async submitSectionAnswers(
     answers: TestSectionSubmissionDto,
@@ -648,6 +654,11 @@ export class MockTestsService {
 
     if (!testSection) {
       throw new NotFoundException('Test section not found for this test');
+    }
+
+    // Handle speaking section differently
+    if (testSection.section_type === TEST_TYPE.SPEAKING) {
+      return await this.submitSpeakingSection(answers, testResult, testSection);
     }
 
     // find all questions in the section
@@ -748,6 +759,427 @@ export class MockTestsService {
           correct_answers: results.correct_count,
           total_questions: results.total_count,
           detailed_answers: results.results,
+        },
+      };
+    });
+  }
+
+  /**
+   * Submit speaking section - download audio files, grade all questions, then calculate band score
+   */
+  private async submitSpeakingSection(
+    answers: TestSectionSubmissionDto,
+    testResult: any,
+    testSection: any,
+  ) {
+    const audioData = answers.speaking_audio_data || [];
+
+    // Validate audio data
+    if (!audioData || audioData.length === 0) {
+      throw new BadRequestException(
+        'No audio files provided for speaking section. Please record or upload audio for at least one question.',
+      );
+    }
+
+    this.logger.log(
+      `Grading ${audioData.length} speaking questions for test result: ${testResult.id}`,
+    );
+
+    // Grade all questions in parallel
+    const gradingPromises = audioData.map(async (audioItem) => {
+      try {
+        // Download audio file from URL
+        const audioResponse = await axios.get(audioItem.audio_url, {
+          responseType: 'arraybuffer',
+        });
+        const audioBuffer = Buffer.from(audioResponse.data);
+
+        // Determine part type from question ordering
+        const questionIndex = audioData.findIndex(
+          (item) => item.question_id === audioItem.question_id,
+        );
+        let partType: SpeakingPart = SpeakingPart.PART_1;
+        if (questionIndex >= 0 && questionIndex < 3) {
+          partType = SpeakingPart.PART_1;
+        } else if (questionIndex >= 3 && questionIndex < 6) {
+          partType = SpeakingPart.PART_2;
+        } else {
+          partType = SpeakingPart.PART_3;
+        }
+
+        // Grade the question
+        const gradeDto: TranscribeAndGradeDto = {
+          audioBuffer,
+          fileName: `speaking-${audioItem.question_id}.webm`,
+          mimetype: 'audio/webm',
+          partType,
+          questions: [
+            {
+              question: audioItem.question_text,
+            },
+          ],
+          targetDuration:
+            partType === SpeakingPart.PART_1
+              ? '4-5 minutes'
+              : partType === SpeakingPart.PART_2
+                ? '1-2 minutes'
+                : '4-5 minutes',
+        };
+
+        const result = await this.speakingService.transcribeAndGrade(gradeDto);
+        return {
+          question_id: audioItem.question_id,
+          ...result,
+        };
+      } catch (error) {
+        const errorMessage =
+          error instanceof Error ? error.message : 'Unknown error';
+        this.logger.error(
+          `Failed to grade question ${audioItem.question_id}: ${errorMessage}`,
+        );
+        throw new BadRequestException(
+          `Failed to grade question ${audioItem.question_id}: ${errorMessage}`,
+        );
+      }
+    });
+
+    // Wait for all questions to be graded
+    const questionResults = await Promise.all(gradingPromises);
+
+    // Group questions by part type and calculate scores
+    // IELTS Speaking scoring: Each part has different weight
+    // Part 1: 25%, Part 2: 35%, Part 3: 40% (standard IELTS weighting)
+    const partResults: {
+      [key: string]: {
+        results: any[];
+        avgFluency: number;
+        avgLexical: number;
+        avgGrammar: number;
+        avgPronunciation: number;
+        overallScore: number;
+      };
+    } = {
+      [SpeakingPart.PART_1]: {
+        results: [],
+        avgFluency: 0,
+        avgLexical: 0,
+        avgGrammar: 0,
+        avgPronunciation: 0,
+        overallScore: 0,
+      },
+      [SpeakingPart.PART_2]: {
+        results: [],
+        avgFluency: 0,
+        avgLexical: 0,
+        avgGrammar: 0,
+        avgPronunciation: 0,
+        overallScore: 0,
+      },
+      [SpeakingPart.PART_3]: {
+        results: [],
+        avgFluency: 0,
+        avgLexical: 0,
+        avgGrammar: 0,
+        avgPronunciation: 0,
+        overallScore: 0,
+      },
+    };
+
+    // Group results by part
+    for (const result of questionResults) {
+      if (result && result.grading) {
+        const grading = result.grading;
+        // Validate grading has all required fields
+        if (
+          typeof grading.fluencyCoherence !== 'number' ||
+          typeof grading.lexicalResource !== 'number' ||
+          typeof grading.grammaticalRangeAccuracy !== 'number' ||
+          typeof grading.pronunciation !== 'number'
+        ) {
+          this.logger.warn(
+            `Invalid grading data for question ${result.question_id}, skipping`,
+          );
+          continue;
+        }
+
+        // Determine part type from question ordering
+        const questionIndex = audioData.findIndex(
+          (item) => item.question_id === result.question_id,
+        );
+        let partType: SpeakingPart = SpeakingPart.PART_1;
+        if (questionIndex >= 0 && questionIndex < 3) {
+          partType = SpeakingPart.PART_1;
+        } else if (questionIndex >= 3 && questionIndex < 6) {
+          partType = SpeakingPart.PART_2;
+        } else {
+          partType = SpeakingPart.PART_3;
+        }
+
+        partResults[partType].results.push(result);
+      }
+    }
+
+    // Calculate average scores for each part
+    for (const partType of [
+      SpeakingPart.PART_1,
+      SpeakingPart.PART_2,
+      SpeakingPart.PART_3,
+    ]) {
+      const partData = partResults[partType];
+      if (partData.results.length === 0) continue;
+
+      let totalFluency = 0;
+      let totalLexical = 0;
+      let totalGrammar = 0;
+      let totalPronunciation = 0;
+
+      for (const result of partData.results) {
+        totalFluency += result.grading.fluencyCoherence;
+        totalLexical += result.grading.lexicalResource;
+        totalGrammar += result.grading.grammaticalRangeAccuracy;
+        totalPronunciation += result.grading.pronunciation;
+      }
+
+      partData.avgFluency = totalFluency / partData.results.length;
+      partData.avgLexical = totalLexical / partData.results.length;
+      partData.avgGrammar = totalGrammar / partData.results.length;
+      partData.avgPronunciation = totalPronunciation / partData.results.length;
+
+      // Calculate overall score for this part (average of 4 criteria)
+      partData.overallScore =
+        (partData.avgFluency +
+          partData.avgLexical +
+          partData.avgGrammar +
+          partData.avgPronunciation) /
+        4;
+    }
+
+    // Calculate weighted overall band score
+    // IELTS standard weighting: Part 1: 25%, Part 2: 35%, Part 3: 40%
+    const weights = {
+      [SpeakingPart.PART_1]: 0.25,
+      [SpeakingPart.PART_2]: 0.35,
+      [SpeakingPart.PART_3]: 0.4,
+    };
+
+    let weightedSum = 0;
+    let totalWeight = 0;
+    const partScores: Record<string, number> = {};
+
+    for (const partType of [
+      SpeakingPart.PART_1,
+      SpeakingPart.PART_2,
+      SpeakingPart.PART_3,
+    ]) {
+      const partData = partResults[partType];
+      if (partData.results.length > 0) {
+        const weight = weights[partType];
+        weightedSum += partData.overallScore * weight;
+        totalWeight += weight;
+        partScores[partType] = partData.overallScore;
+      }
+    }
+
+    // If no parts have results, fall back to simple average
+    let bandScore: number;
+    if (totalWeight > 0) {
+      bandScore = weightedSum / totalWeight;
+    } else {
+      // Fallback: simple average of all questions (if no parts are identified)
+      const allResults = questionResults.filter((r) => r && r.grading);
+      if (allResults.length === 0) {
+        throw new BadRequestException(
+          'No valid question results found. Please ensure all questions have been graded correctly.',
+        );
+      }
+
+      let totalFluency = 0;
+      let totalLexical = 0;
+      let totalGrammar = 0;
+      let totalPronunciation = 0;
+
+      for (const result of allResults) {
+        if (result.grading) {
+          totalFluency += result.grading.fluencyCoherence;
+          totalLexical += result.grading.lexicalResource;
+          totalGrammar += result.grading.grammaticalRangeAccuracy;
+          totalPronunciation += result.grading.pronunciation;
+        }
+      }
+
+      const avgFluency = totalFluency / allResults.length;
+      const avgLexical = totalLexical / allResults.length;
+      const avgGrammar = totalGrammar / allResults.length;
+      const avgPronunciation = totalPronunciation / allResults.length;
+      bandScore = (avgFluency + avgLexical + avgGrammar + avgPronunciation) / 4;
+    }
+
+    // Round to nearest 0.5
+    bandScore = Math.round(bandScore * 2) / 2;
+
+    // Calculate overall averages for all questions (for detailed results)
+    const allDetailedResults = questionResults.filter(
+      (r) => r && r.grading,
+    );
+    let totalFluency = 0;
+    let totalLexical = 0;
+    let totalGrammar = 0;
+    let totalPronunciation = 0;
+
+    // Aggregate strengths, weaknesses, and suggestions from all questions
+    const allStrengths: string[] = [];
+    const allWeaknesses: string[] = [];
+    const allSuggestions: string[] = [];
+    const allDetailedFeedbacks: string[] = [];
+
+    for (const result of allDetailedResults) {
+      totalFluency += result.grading.fluencyCoherence;
+      totalLexical += result.grading.lexicalResource;
+      totalGrammar += result.grading.grammaticalRangeAccuracy;
+      totalPronunciation += result.grading.pronunciation;
+
+      // Collect strengths, weaknesses, suggestions, and detailed feedback
+      if (result.grading.strengths && Array.isArray(result.grading.strengths)) {
+        allStrengths.push(...result.grading.strengths);
+      }
+      if (result.grading.weaknesses && Array.isArray(result.grading.weaknesses)) {
+        allWeaknesses.push(...result.grading.weaknesses);
+      }
+      if (result.grading.suggestions && Array.isArray(result.grading.suggestions)) {
+        allSuggestions.push(...result.grading.suggestions);
+      }
+      if (result.grading.detailedFeedback) {
+        allDetailedFeedbacks.push(result.grading.detailedFeedback);
+      }
+    }
+
+    const avgFluency =
+      allDetailedResults.length > 0
+        ? totalFluency / allDetailedResults.length
+        : 0;
+    const avgLexical =
+      allDetailedResults.length > 0
+        ? totalLexical / allDetailedResults.length
+        : 0;
+    const avgGrammar =
+      allDetailedResults.length > 0
+        ? totalGrammar / allDetailedResults.length
+        : 0;
+    const avgPronunciation =
+      allDetailedResults.length > 0
+        ? totalPronunciation / allDetailedResults.length
+        : 0;
+
+    // Remove duplicates and create unique arrays
+    const uniqueStrengths = Array.from(new Set(allStrengths));
+    const uniqueWeaknesses = Array.from(new Set(allWeaknesses));
+    const uniqueSuggestions = Array.from(new Set(allSuggestions));
+
+    // Validate that we have at least one valid question result
+    if (allDetailedResults.length === 0) {
+      throw new BadRequestException(
+        'No valid question results found. Please ensure all questions have been graded correctly.',
+      );
+    }
+
+    // Save section result and update test result
+    return await this.prisma.$transaction(async (tx) => {
+      // Save section result
+      await tx.section_results.create({
+        data: {
+          test_result_id: testResult.id,
+          test_section_id: testSection.id,
+          band_score: bandScore,
+          time_taken: answers.time_taken,
+          correct_answers: allDetailedResults.length,
+          total_questions: audioData.length,
+          detailed_answers: this.serializeToJson({
+            all_questions: allDetailedResults,
+            part_scores: partScores,
+            part_averages: {
+              [SpeakingPart.PART_1]: partResults[SpeakingPart.PART_1].results.length > 0
+                ? {
+                    fluencyCoherence: Math.round(partResults[SpeakingPart.PART_1].avgFluency * 2) / 2,
+                    lexicalResource: Math.round(partResults[SpeakingPart.PART_1].avgLexical * 2) / 2,
+                    grammaticalRangeAccuracy: Math.round(partResults[SpeakingPart.PART_1].avgGrammar * 2) / 2,
+                    pronunciation: Math.round(partResults[SpeakingPart.PART_1].avgPronunciation * 2) / 2,
+                    overallScore: Math.round(partResults[SpeakingPart.PART_1].overallScore * 2) / 2,
+                  }
+                : null,
+              [SpeakingPart.PART_2]: partResults[SpeakingPart.PART_2].results.length > 0
+                ? {
+                    fluencyCoherence: Math.round(partResults[SpeakingPart.PART_2].avgFluency * 2) / 2,
+                    lexicalResource: Math.round(partResults[SpeakingPart.PART_2].avgLexical * 2) / 2,
+                    grammaticalRangeAccuracy: Math.round(partResults[SpeakingPart.PART_2].avgGrammar * 2) / 2,
+                    pronunciation: Math.round(partResults[SpeakingPart.PART_2].avgPronunciation * 2) / 2,
+                    overallScore: Math.round(partResults[SpeakingPart.PART_2].overallScore * 2) / 2,
+                  }
+                : null,
+              [SpeakingPart.PART_3]: partResults[SpeakingPart.PART_3].results.length > 0
+                ? {
+                    fluencyCoherence: Math.round(partResults[SpeakingPart.PART_3].avgFluency * 2) / 2,
+                    lexicalResource: Math.round(partResults[SpeakingPart.PART_3].avgLexical * 2) / 2,
+                    grammaticalRangeAccuracy: Math.round(partResults[SpeakingPart.PART_3].avgGrammar * 2) / 2,
+                    pronunciation: Math.round(partResults[SpeakingPart.PART_3].avgPronunciation * 2) / 2,
+                    overallScore: Math.round(partResults[SpeakingPart.PART_3].overallScore * 2) / 2,
+                  }
+                : null,
+            },
+            overall_criteria_scores: {
+              fluencyCoherence: Math.round(avgFluency * 2) / 2,
+              lexicalResource: Math.round(avgLexical * 2) / 2,
+              grammaticalRangeAccuracy: Math.round(avgGrammar * 2) / 2,
+              pronunciation: Math.round(avgPronunciation * 2) / 2,
+            },
+            strengths: uniqueStrengths,
+            weaknesses: uniqueWeaknesses,
+            suggestions: uniqueSuggestions,
+            overall_feedback: allDetailedFeedbacks.join('\n\n'),
+          }),
+          graded_at: new Date(),
+        },
+      });
+
+      // Update overall test result
+      const score = this.gradingService.calculateOverallTestScore(
+        Number(testResult.reading_score) || null,
+        Number(testResult.listening_score) || null,
+        Number(testResult.writing_score) || null,
+        bandScore,
+      );
+      await tx.test_results.update({
+        where: { id: testResult.id },
+        data: {
+          band_score: score,
+          speaking_score: bandScore,
+          time_taken: (testResult.time_taken || 0) + answers.time_taken,
+          updated_at: new Date(),
+        },
+      });
+
+      this.logger.log(
+        `Submitted speaking section answers for test result: ${testResult.id}`,
+      );
+
+      return {
+        success: true,
+        data: {
+          band_score: bandScore,
+          correct_answers: allDetailedResults.length,
+          total_questions: audioData.length,
+          detailed_answers: allDetailedResults,
+          criteria_scores: {
+            fluencyCoherence: Math.round(avgFluency * 2) / 2,
+            lexicalResource: Math.round(avgLexical * 2) / 2,
+            grammaticalRangeAccuracy: Math.round(avgGrammar * 2) / 2,
+            pronunciation: Math.round(avgPronunciation * 2) / 2,
+          },
+          part_scores: partScores,
+          weighting: {
+            [SpeakingPart.PART_1]: weights[SpeakingPart.PART_1],
+            [SpeakingPart.PART_2]: weights[SpeakingPart.PART_2],
+            [SpeakingPart.PART_3]: weights[SpeakingPart.PART_3],
+          },
         },
       };
     });
