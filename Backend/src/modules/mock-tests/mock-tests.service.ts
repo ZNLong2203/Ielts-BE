@@ -203,7 +203,8 @@ export class MockTestsService {
               where: { deleted: false },
               include: {
                 question_groups: {
-                  select: {
+                  where: { deleted: false },
+                  include: {
                     questions: {
                       where: { deleted: false },
                       include: {
@@ -216,6 +217,7 @@ export class MockTestsService {
                       where: { deleted: false },
                     },
                   },
+                  orderBy: { ordering: 'asc' },
                 },
               },
               orderBy: { ordering: 'asc' },
@@ -1260,7 +1262,7 @@ export class MockTestsService {
     testResult: any,
     testSection: any,
   ) {
-    // Get all questions in the writing section with question groups (for image_url)
+    // Get all questions in the writing section with exercises (for image_url from exercise.content)
     const questions = await this.prisma.questions.findMany({
       where: {
         exercises: {
@@ -1275,6 +1277,12 @@ export class MockTestsService {
           select: {
             id: true,
             image_url: true,
+          },
+        },
+        exercises: {
+          select: {
+            id: true,
+            content: true,
           },
         },
       },
@@ -1486,11 +1494,32 @@ export class MockTestsService {
     const gradingPromises: Promise<any>[] = [];
 
     if (task1Question && task1Answer.trim().length > 0) {
-      // Get image_url from question or question_group (for Task 1 - charts, graphs, diagrams)
-      const imageUrl =
-        task1Question.image_url ||
-        task1Question.question_groups?.image_url ||
-        undefined;
+      // Get image_url from exercise.content (chart_url) first, then question or question_group
+      let imageUrl: string | undefined = undefined;
+
+      // Priority 1: Get from exercise.content (chart_url) - this is the main source for Task 1
+      if (task1Question.exercises?.content) {
+        try {
+          const exerciseContent =
+            typeof task1Question.exercises.content === 'string'
+              ? JSON.parse(task1Question.exercises.content)
+              : task1Question.exercises.content;
+          imageUrl =
+            exerciseContent.chart_url || exerciseContent.image_url || undefined;
+        } catch (e) {
+          this.logger.warn(
+            `Failed to parse exercise content for imageUrl: ${e}`,
+          );
+        }
+      }
+
+      // Priority 2: Fallback to question.image_url or question_group.image_url
+      if (!imageUrl) {
+        imageUrl =
+          task1Question.image_url ||
+          task1Question.question_groups?.image_url ||
+          undefined;
+      }
 
       const gradeDto: GradeWritingDto = {
         studentAnswer: task1Answer,
