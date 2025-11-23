@@ -1,10 +1,12 @@
 import {
+  BadRequestException,
   Body,
   Controller,
   Delete,
   Get,
   HttpCode,
   HttpStatus,
+  NotFoundException,
   Param,
   ParseFilePipeBuilder,
   ParseUUIDPipe,
@@ -22,7 +24,12 @@ import {
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
-import { MessageResponse, Public } from 'src/decorator/customize';
+import {
+  CurrentUser,
+  MessageResponse,
+  Public,
+  SkipCheckPermission,
+} from 'src/decorator/customize';
 import {
   CreateExerciseDto,
   CreateQuestionDto,
@@ -31,8 +38,13 @@ import {
   ExerciseResponseDto,
   UpdateExerciseDto,
 } from 'src/modules/exercises/dto/update-exercise.dto';
+import {
+  SubmitExerciseDto,
+  ExerciseSubmissionResponseDto,
+} from 'src/modules/exercises/dto/submit-exercise.dto';
 import { ExerciseService } from 'src/modules/exercises/exercises.service';
 import { ApiResponseDto } from 'src/modules/sections/dto/section-response.dto';
+import { IUser } from 'src/interface/users.interface';
 
 @ApiTags('Lesson Exercises')
 @Controller('lessons/:lessonId/exercises')
@@ -148,6 +160,123 @@ export class ExerciseController {
     return {
       success: true,
       data: exercises,
+    };
+  }
+
+  /**
+   * Submit exercise answers
+   */
+  @Post(':exerciseId/submit')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Submit exercise answers',
+    description:
+      'Submit answers for an exercise, grade them, and save the results. Returns the submission with scores and question results.',
+  })
+  @ApiParam({
+    name: 'lessonId',
+    description: 'Lesson ID',
+    type: 'string',
+    format: 'uuid',
+  })
+  @ApiParam({
+    name: 'exerciseId',
+    description: 'Exercise ID',
+    type: 'string',
+    format: 'uuid',
+  })
+  @ApiBody({ type: SubmitExerciseDto })
+  @ApiResponse({
+    status: 200,
+    description: 'Exercise submitted and graded successfully',
+    type: ApiResponseDto<ExerciseSubmissionResponseDto>,
+  })
+  @ApiResponse({
+    status: 400,
+    description: 'Invalid data or maximum attempts exceeded',
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'Exercise not found',
+  })
+  @SkipCheckPermission()
+  @MessageResponse('Exercise submitted successfully')
+  async submitExercise(
+    @Param('lessonId', ParseUUIDPipe) lessonId: string,
+    @Param('exerciseId', ParseUUIDPipe) exerciseId: string,
+    @Body() submitDto: SubmitExerciseDto,
+    @CurrentUser() user: IUser,
+  ) {
+    if (!user || !user.id) {
+      throw new BadRequestException('User ID is required');
+    }
+
+    const result = await this.exerciseService.submitExercise(
+      exerciseId,
+      user.id,
+      submitDto.answers,
+      submitDto.timeTaken,
+    );
+
+    return {
+      success: true,
+      data: result,
+    };
+  }
+
+  /**
+   * Get user's submission for an exercise
+   */
+  @Get(':exerciseId/submission')
+  @ApiOperation({
+    summary: 'Get user submission for exercise',
+    description:
+      "Retrieve the user's most recent submission for an exercise, including scores and question results.",
+  })
+  @ApiParam({
+    name: 'lessonId',
+    description: 'Lesson ID',
+    type: 'string',
+    format: 'uuid',
+  })
+  @ApiParam({
+    name: 'exerciseId',
+    description: 'Exercise ID',
+    type: 'string',
+    format: 'uuid',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Submission retrieved successfully',
+    type: ApiResponseDto<ExerciseSubmissionResponseDto>,
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'Exercise or submission not found',
+  })
+  @SkipCheckPermission()
+  @MessageResponse('Submission retrieved successfully')
+  async getExerciseSubmission(
+    @Param('lessonId', ParseUUIDPipe) lessonId: string,
+    @Param('exerciseId', ParseUUIDPipe) exerciseId: string,
+    @CurrentUser() user: IUser,
+  ) {
+    if (!user || !user.id) {
+      throw new BadRequestException('User ID is required');
+    }
+
+    const submission = await this.exerciseService.getExerciseSubmission(
+      exerciseId,
+      user.id,
+    );
+
+    if (!submission) {
+      throw new NotFoundException('No submission found for this exercise');
+    }
+
+    return {
+      success: true,
+      data: submission,
     };
   }
 

@@ -903,10 +903,339 @@ export class ExerciseService {
         correct_answer: data.correct_answer,
         alternative_answers: data.alternative_answers,
         content: data.content,
-        explanation: data.original_explanation,
+        explanation: data.explanation || data.original_explanation,
       };
     } catch {
       return { explanation };
     }
+  }
+
+  /**
+   * Submit exercise answers and grade them
+   */
+  async submitExercise(
+    exerciseId: string,
+    userId: string,
+    answers: Record<string, string | string[] | null>,
+    timeTaken?: number,
+  ) {
+    // Get exercise metadata
+    const exercise = await this.prisma.exercises.findFirst({
+      where: {
+        id: exerciseId,
+        deleted: false,
+      },
+    });
+    
+    if (!exercise) {
+      throw new NotFoundException('Exercise not found');
+    }
+
+    // Check max attempts
+    const existingSubmissions = await this.prisma.user_submissions.count({
+      where: {
+        exercise_id: exerciseId,
+        user_id: userId,
+        deleted: false,
+      },
+    });
+
+    const maxAttempts = exercise.max_attempts || 1;
+    if (existingSubmissions >= maxAttempts) {
+      throw new BadRequestException(
+        `Maximum attempts (${maxAttempts}) exceeded for this exercise`,
+      );
+    }
+
+    // Get questions directly from DB with all fields including explanation
+    const questions = await this.prisma.questions.findMany({
+      where: {
+        exercise_id: exerciseId,
+        deleted: false,
+      },
+      include: {
+        question_options: {
+          where: { deleted: false },
+          orderBy: { ordering: 'asc' },
+        },
+      },
+      orderBy: { ordering: 'asc' },
+    });
+    this.logger.log(
+      `Submitting exercise ${exerciseId} with ${questions.length} questions. Answers: ${JSON.stringify(answers)}`,
+    );
+
+    const questionResults: Record<string, boolean> = {};
+    let correctCount = 0;
+    let totalPoints = 0;
+    let earnedPoints = 0;
+
+    // Grade each question
+    for (const question of questions) {
+      const userAnswer = answers[question.id];
+      let isCorrect = false;
+      const points = Number(question.points) || 1;
+
+      this.logger.log(
+        `Grading question ${question.id} (type: ${question.question_type}), userAnswer: ${JSON.stringify(userAnswer)}`,
+      );
+      this.logger.log(
+        `Question ${question.id} has ${question.question_options?.length || 0} options: ${JSON.stringify(question.question_options?.map((opt) => ({ id: opt.id, text: opt.option_text, is_correct: opt.is_correct })))}`,
+      );
+
+      if (
+        question.question_type === 'multiple_choice' ||
+        question.question_type === 'drop_list'
+      ) {
+        // For multiple choice and drop_list, check if user selected the correct option
+        const correctOption = question.question_options?.find(
+          (opt) => opt.is_correct,
+        );
+
+        if (correctOption && userAnswer) {
+          // Normalize both values to strings and trim whitespace
+          const userAnswerStr = String(
+            Array.isArray(userAnswer) ? userAnswer[0] : userAnswer,
+          ).trim();
+          const correctOptionId = String(correctOption.id).trim();
+
+          isCorrect = userAnswerStr === correctOptionId;
+
+          this.logger.log(
+            `Question ${question.id}: Comparing userAnswerStr="${userAnswerStr}" (type: ${typeof userAnswerStr}, length: ${userAnswerStr.length}) with correctOption.id="${correctOptionId}" (type: ${typeof correctOptionId}, length: ${correctOptionId.length}) => isCorrect=${isCorrect}`,
+          );
+
+          // Additional debug: check if they're equal after normalization
+          if (!isCorrect) {
+            this.logger.warn(
+              `Question ${question.id}: Answer mismatch! User selected "${userAnswerStr}" but correct is "${correctOptionId}"`,
+            );
+          }
+        } else {
+          this.logger.warn(
+            `Question ${question.id}: Missing correctOption or userAnswer. correctOption=${!!correctOption}, userAnswer=${!!userAnswer}`,
+          );
+        }
+      } else if (question.question_type === 'fill_blank') {
+        // For fill_blank, check against correct_answer
+        const answerData = this.parseAnswerData(question.explanation || '{}');
+        const correctAnswer = answerData.correct_answer || '';
+        const alternativeAnswers = answerData.alternative_answers || [];
+
+        this.logger.log(
+          `Fill blank question ${question.id}: correctAnswer="${correctAnswer}", alternativeAnswers=${JSON.stringify(alternativeAnswers)}`,
+        );
+
+        if (userAnswer) {
+          const userAnswerStr = String(
+            Array.isArray(userAnswer) ? userAnswer.join(' ') : userAnswer,
+          ).trim();
+          const normalizedUserAnswer = userAnswerStr.toLowerCase();
+          const normalizedCorrect = correctAnswer.toLowerCase().trim();
+
+          isCorrect = normalizedUserAnswer === normalizedCorrect;
+
+          this.logger.log(
+            `Fill blank ${question.id}: Comparing "${normalizedUserAnswer}" with "${normalizedCorrect}" => ${isCorrect}`,
+          );
+
+          // Check alternative answers if main answer doesn't match
+          if (!isCorrect && alternativeAnswers.length > 0) {
+            isCorrect = alternativeAnswers.some(
+              (alt: string) =>
+                normalizedUserAnswer === alt.toLowerCase().trim(),
+            );
+            this.logger.log(
+              `Fill blank ${question.id}: After checking alternatives => ${isCorrect}`,
+            );
+          }
+        } else {
+          this.logger.warn(
+            `Fill blank question ${question.id}: No user answer provided`,
+          );
+        }
+      }
+
+      questionResults[question.id] = isCorrect;
+      totalPoints += points;
+      if (isCorrect) {
+        correctCount++;
+        earnedPoints += points;
+      }
+
+      this.logger.log(
+        `Question ${question.id} final result: isCorrect=${isCorrect}, questionResults[${question.id}]=${questionResults[question.id]}`,
+      );
+    }
+
+    this.logger.log(
+      `Final grading summary: correctCount=${correctCount}, totalQuestions=${questions.length}`,
+    );
+    this.logger.log(`questionResults object:`, questionResults);
+    
+    // Log each question result
+    Object.entries(questionResults).forEach(([qId, isCorrect]) => {
+      this.logger.log(`  - Question ${qId}: ${isCorrect ? 'CORRECT' : 'INCORRECT'}`);
+    });
+
+    // Calculate score percentage
+    const score = totalPoints > 0 ? (earnedPoints / totalPoints) * 100 : 0;
+
+    // Save submission
+    const submission = await this.prisma.$transaction(async (tx) => {
+      // Create user_submission
+      const userSubmission = await tx.user_submissions.create({
+        data: {
+          user_id: userId,
+          exercise_id: exerciseId,
+          attempt_number: existingSubmissions + 1,
+          answers: answers as any,
+          score: new Decimal(score.toFixed(2)),
+          max_score: new Decimal(100),
+          time_taken: timeTaken || null,
+          status: 'graded',
+          graded_at: new Date(),
+        },
+      });
+
+      // Create question_answers for each question
+      for (const question of questions) {
+        const userAnswer = answers[question.id];
+        const isCorrect = questionResults[question.id];
+        const points = Number(question.points) || 1;
+
+        // Determine selected_options based on question type
+        // Only multiple_choice and drop_list use option IDs (UUIDs)
+        // fill_blank uses text, so selected_options should be empty
+        let selectedOptions: string[] = [];
+        let answerText: string | null = null;
+
+        if (
+          question.question_type === 'multiple_choice' ||
+          question.question_type === 'drop_list'
+        ) {
+          // For these types, userAnswer is option ID(s) - UUIDs
+          if (Array.isArray(userAnswer)) {
+            selectedOptions = userAnswer.filter(
+              (id) => id && typeof id === 'string',
+            );
+          } else if (userAnswer && typeof userAnswer === 'string') {
+            // Check if it's a valid UUID format (basic check)
+            const uuidRegex =
+              /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+            if (uuidRegex.test(userAnswer)) {
+              selectedOptions = [userAnswer];
+            }
+          }
+        } else if (question.question_type === 'fill_blank') {
+          // For fill_blank, userAnswer is text, not UUID
+          answerText = Array.isArray(userAnswer)
+            ? userAnswer.join(' ')
+            : userAnswer || null;
+        }
+
+        await tx.question_answers.create({
+          data: {
+            submission_id: userSubmission.id,
+            question_id: question.id,
+            answer_text:
+              answerText ||
+              (Array.isArray(userAnswer)
+                ? userAnswer.join(', ')
+                : userAnswer || null),
+            selected_options: selectedOptions,
+            is_correct: isCorrect,
+            points_earned: new Decimal(isCorrect ? points : 0),
+            grading_method: 'auto',
+          },
+        });
+      }
+
+      return userSubmission;
+    });
+
+    const result = {
+      id: submission.id,
+      exerciseId: submission.exercise_id || '',
+      userId: submission.user_id || '',
+      score: Number(submission.score) || 0,
+      maxScore: Number(submission.max_score) || 100,
+      correctAnswers: correctCount,
+      totalQuestions: questions.length,
+      questionResults,
+      status: submission.status || 'graded',
+      createdAt: submission.created_at || new Date(),
+    };
+
+    this.logger.log(`Returning submission result: ${JSON.stringify(result)}`);
+
+    return result;
+  }
+
+  /**
+   * Get user's submission for an exercise
+   */
+  async getExerciseSubmission(exerciseId: string, userId: string) {
+    const submission = await this.prisma.user_submissions.findFirst({
+      where: {
+        exercise_id: exerciseId,
+        user_id: userId,
+        deleted: false,
+      },
+      include: {
+        question_answers: {
+          where: { deleted: false },
+        },
+      },
+      orderBy: {
+        created_at: 'desc',
+      },
+    });
+
+    if (!submission) {
+      return null;
+    }
+
+    // Get total questions from the exercise itself, not from question_answers
+    // (to ensure accuracy even if some question_answers are missing)
+    const totalQuestions = await this.prisma.questions.count({
+      where: {
+        exercise_id: exerciseId,
+        deleted: false,
+      },
+    });
+
+    this.logger.log(
+      `[getExerciseSubmission] exerciseId=${exerciseId}, totalQuestions=${totalQuestions}, question_answers.length=${submission.question_answers.length}`,
+    );
+
+    // Build question results from question_answers
+    const questionResults: Record<string, boolean> = {};
+    submission.question_answers.forEach((qa) => {
+      if (qa.question_id) {
+        questionResults[qa.question_id] = qa.is_correct || false;
+      }
+    });
+
+    const result = {
+      id: submission.id,
+      exerciseId: submission.exercise_id || '',
+      userId: submission.user_id || '',
+      score: Number(submission.score) || 0,
+      maxScore: Number(submission.max_score) || 100,
+      correctAnswers: submission.question_answers.filter((qa) => qa.is_correct)
+        .length,
+      totalQuestions, // Use the count from the exercise, not question_answers
+      questionResults,
+      status: submission.status || 'graded',
+      createdAt: submission.created_at || new Date(),
+      answers: submission.answers as Record<string, string | string[] | null>,
+    };
+
+    this.logger.log(
+      `[getExerciseSubmission] Returning: ${JSON.stringify(result)}`,
+    );
+
+    return result;
   }
 }
