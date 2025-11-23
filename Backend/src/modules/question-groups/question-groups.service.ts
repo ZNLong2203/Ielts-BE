@@ -115,7 +115,7 @@ export class QuestionGroupsService {
       );
 
       // Return complete question group details
-      return await this.getQuestionGroupById(questionGroup.id);
+      return await this.getQuestionGroupById(questionGroup.id, tx);
     });
   }
 
@@ -178,8 +178,12 @@ export class QuestionGroupsService {
   /**
    * Get Question Group by ID
    */
-  async getQuestionGroupById(id: string): Promise<QuestionGroupWithDetails> {
-    const questionGroup = await this.prisma.question_groups.findFirst({
+  async getQuestionGroupById(
+    id: string,
+    tx: Prisma.TransactionClient = null,
+  ): Promise<QuestionGroupWithDetails> {
+    const model = tx ?? this.prisma;
+    const questionGroup = await model.question_groups.findFirst({
       where: { id, deleted: false },
       include: {
         exercises: {
@@ -304,7 +308,7 @@ export class QuestionGroupsService {
       this.logger.log(`Updated question group: ${id}`);
 
       // Return complete question group details
-      return await this.getQuestionGroupById(id);
+      return await this.getQuestionGroupById(id, tx);
     });
   }
 
