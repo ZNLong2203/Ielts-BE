@@ -191,7 +191,7 @@ export class QuestionGroupsController {
     @UploadedFile(
       new ParseFilePipeBuilder()
         .addFileTypeValidator({
-          fileType: 'audio/mpeg|audio/wav|audio/ogg|audio/mp3',
+          fileType: 'image/jpeg|image/png|image/jpg|image/gif|image/webp',
         })
         .addMaxSizeValidator({
           maxSize: 10 * 1024 * 1024, // 10MB
