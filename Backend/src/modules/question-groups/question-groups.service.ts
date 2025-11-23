@@ -180,7 +180,7 @@ export class QuestionGroupsService {
    */
   async getQuestionGroupById(
     id: string,
-    tx: Prisma.TransactionClient = null,
+    tx: Prisma.TransactionClient | null = null,
   ): Promise<QuestionGroupWithDetails> {
     const model = tx ?? this.prisma;
     const questionGroup = await model.question_groups.findFirst({
