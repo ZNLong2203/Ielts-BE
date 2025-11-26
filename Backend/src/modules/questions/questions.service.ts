@@ -143,7 +143,7 @@ export class QuestionsService {
       );
 
       // Return complete question details
-      return await this.getQuestionById(question.id);
+      return await this.getQuestionById(question.id, tx);
     });
   }
 
@@ -233,8 +233,12 @@ export class QuestionsService {
   /**
    *  Get Question by ID
    */
-  async getQuestionById(id: string): Promise<QuestionWithDetails> {
-    const question = await this.prisma.questions.findFirst({
+  async getQuestionById(
+    id: string,
+    tx: Prisma.TransactionClient | null = null,
+  ): Promise<QuestionWithDetails> {
+    const prismaClient = tx || this.prisma;
+    const question = await prismaClient.questions.findFirst({
       where: { id, deleted: false },
       include: {
         exercises: {
@@ -428,7 +432,7 @@ export class QuestionsService {
       this.logger.log(` Updated question: ${id}`);
 
       // Return complete question details
-      return await this.getQuestionById(id);
+      return await this.getQuestionById(id, tx);
     });
   }
 
@@ -717,10 +721,16 @@ export class QuestionsService {
       await tx.question_options.create({
         data: {
           question_id: questionId,
-          option_text: option.option_text,
+          option_text:
+            questionType === QUESTION_TYPE.MATCHING && matchingOption
+              ? matchingOption.option_text
+              : option.option_text,
           is_correct: option.is_correct,
           matching_option_id: option.matching_option_id,
-          ordering: option.ordering ?? i,
+          ordering:
+            questionType === QUESTION_TYPE.MATCHING && matchingOption
+              ? matchingOption.ordering
+              : option.ordering || i,
           point: option.point ?? 1,
           explanation: option.explanation,
         },
