@@ -89,12 +89,7 @@ export class CouponsService {
 
     whereCondition.deleted = false;
 
-    return this.utilsService.paginate<
-      Prisma.couponsWhereInput,
-      Prisma.couponsInclude,
-      Prisma.couponsSelect,
-      Prisma.couponsOrderByWithRelationInput
-    >({
+    return this.utilsService.paginate({
       model: this.prisma.coupons,
       query,
       defaultOrderBy: { created_at: 'desc' },

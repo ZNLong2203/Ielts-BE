@@ -54,12 +54,7 @@ export class CoursesService {
       whereCondition.is_active = true;
     }
 
-    return this.utilsService.paginate<
-      Prisma.course_categoriesWhereInput,
-      Prisma.course_categoriesInclude,
-      Prisma.course_categoriesSelect,
-      Prisma.course_categoriesOrderByWithRelationInput
-    >({
+    return this.utilsService.paginate({
       model: this.prisma.course_categories,
       query,
       defaultOrderBy: { created_at: 'desc' },
@@ -190,12 +185,7 @@ export class CoursesService {
     const whereCondition: Prisma.coursesWhereInput =
       this.utilsService.buildWhereFromQuery(rawQuery);
 
-    return this.utilsService.paginate<
-      Prisma.coursesWhereInput,
-      Prisma.coursesInclude,
-      Prisma.coursesSelect,
-      Prisma.coursesOrderByWithRelationInput
-    >({
+    return this.utilsService.paginate({
       model: this.prisma.courses,
       query,
       defaultOrderBy: { created_at: 'desc' },
@@ -407,12 +397,7 @@ export class CoursesService {
       ...this.utilsService.buildWhereFromQuery(rawQuery),
     };
 
-    return this.utilsService.paginate<
-      Prisma.coursesWhereInput,
-      Prisma.coursesInclude,
-      Prisma.coursesSelect,
-      Prisma.coursesOrderByWithRelationInput
-    >({
+    return this.utilsService.paginate({
       model: this.prisma.courses,
       query,
       defaultOrderBy: { created_at: 'desc' },
@@ -508,12 +493,7 @@ export class CoursesService {
   ) {
     const whereCondition: Prisma.combo_coursesWhereInput =
       this.utilsService.buildWhereFromQuery(rawQuery);
-    return this.utilsService.paginate<
-      Prisma.combo_coursesWhereInput,
-      Prisma.combo_coursesInclude,
-      Prisma.combo_coursesSelect,
-      Prisma.combo_coursesOrderByWithRelationInput
-    >({
+    return this.utilsService.paginate({
       model: this.prisma.combo_courses,
       query,
       defaultOrderBy: { created_at: 'desc' },

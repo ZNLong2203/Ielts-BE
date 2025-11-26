@@ -40,12 +40,7 @@ export class TeachersService {
 
     whereCondition.role = USER_ROLE.TEACHER;
 
-    return this.utilsService.paginate<
-      Prisma.usersWhereInput,
-      Prisma.usersInclude,
-      Prisma.usersSelect,
-      Prisma.usersOrderByWithRelationInput
-    >({
+    return this.utilsService.paginate({
       model: this.prisma.users,
       query,
       defaultOrderBy: { created_at: 'desc' },
@@ -82,12 +77,7 @@ export class TeachersService {
       status: TEACHER_STATUS.PENDING,
     };
 
-    return this.utilsService.paginate<
-      Prisma.usersWhereInput,
-      Prisma.usersInclude,
-      Prisma.usersSelect,
-      Prisma.usersOrderByWithRelationInput
-    >({
+    return this.utilsService.paginate({
       model: this.prisma.users,
       query,
       defaultOrderBy: { created_at: 'desc' },

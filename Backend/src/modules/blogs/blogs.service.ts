@@ -1,17 +1,17 @@
 import { Injectable } from '@nestjs/common';
-import { CreateBlogDto } from './dto/create-blog.dto';
-import { UpdateBlogDto } from './dto/update-blog.dto';
-import { RedisService } from 'src/redis/redis.service';
-import { PrismaService } from 'src/prisma/prisma.service';
-import { blogs, blog_categories, Prisma } from '@prisma/client';
-import { CreateBlogCategoryDto } from './dto/create-blog-category.dto';
-import { UpdateBlogCategoryDto } from './dto/update-blog-category.dto';
-import { MESSAGE } from 'src/common/message';
-import { FilesService } from '../files/files.service';
-import { UploadedFileType } from 'src/interface/file-type.interface';
+import { blog_categories, blogs, Prisma } from '@prisma/client';
 import { FileType, USER_ROLE } from 'src/common/constants';
 import { PaginationQueryDto } from 'src/common/dto/pagination-query.dto';
+import { MESSAGE } from 'src/common/message';
+import { UploadedFileType } from 'src/interface/file-type.interface';
+import { PrismaService } from 'src/prisma/prisma.service';
+import { RedisService } from 'src/redis/redis.service';
 import { UtilsService } from 'src/utils/utils.service';
+import { FilesService } from '../files/files.service';
+import { CreateBlogCategoryDto } from './dto/create-blog-category.dto';
+import { CreateBlogDto } from './dto/create-blog.dto';
+import { UpdateBlogCategoryDto } from './dto/update-blog-category.dto';
+import { UpdateBlogDto } from './dto/update-blog.dto';
 
 @Injectable()
 export class BlogsService {
@@ -155,12 +155,7 @@ export class BlogsService {
         ...this.utilsService.buildWhereFromQuery(rawQuery || {}),
       };
 
-      return this.utilsService.paginate<
-        Prisma.blog_categoriesWhereInput,
-        Prisma.blog_categoriesInclude,
-        Prisma.blog_categoriesSelect,
-        Prisma.blog_categoriesOrderByWithRelationInput
-      >({
+      return this.utilsService.paginate({
         model: this.prismaService.blog_categories,
         query,
         defaultOrderBy: { ordering: 'asc' },
@@ -359,12 +354,7 @@ export class BlogsService {
         ...this.utilsService.buildWhereFromQuery(rawQuery || {}),
       };
 
-      return this.utilsService.paginate<
-        Prisma.blogsWhereInput,
-        Prisma.blogsInclude,
-        Prisma.blogsSelect,
-        Prisma.blogsOrderByWithRelationInput
-      >({
+      return this.utilsService.paginate({
         model: this.prismaService.blogs,
         query,
         defaultOrderBy: { created_at: 'desc' },
@@ -456,12 +446,7 @@ export class BlogsService {
         ...this.utilsService.buildWhereFromQuery(rawQuery || {}),
       };
 
-      return this.utilsService.paginate<
-        Prisma.blogsWhereInput,
-        Prisma.blogsInclude,
-        Prisma.blogsSelect,
-        Prisma.blogsOrderByWithRelationInput
-      >({
+      return this.utilsService.paginate({
         model: this.prismaService.blogs,
         query,
         defaultOrderBy: { created_at: 'desc' },
@@ -607,12 +592,7 @@ export class BlogsService {
         ...this.utilsService.buildWhereFromQuery(rawQuery),
       };
 
-      const teacherBlogs = await this.utilsService.paginate<
-        Prisma.blogsWhereInput,
-        Prisma.blogsInclude,
-        Prisma.blogsSelect,
-        Prisma.blogsOrderByWithRelationInput
-      >({
+      const teacherBlogs = await this.utilsService.paginate({
         model: this.prismaService.blogs,
         query,
         defaultOrderBy: { created_at: 'desc' },
@@ -808,12 +788,7 @@ export class BlogsService {
         ...this.utilsService.buildWhereFromQuery(rawQuery || {}),
       };
 
-      return this.utilsService.paginate<
-        Prisma.blogsWhereInput,
-        Prisma.blogsInclude,
-        Prisma.blogsSelect,
-        Prisma.blogsOrderByWithRelationInput
-      >({
+      return this.utilsService.paginate({
         model: this.prismaService.blogs,
         query,
         defaultOrderBy: { created_at: 'desc' },
@@ -884,12 +859,7 @@ export class BlogsService {
         ...this.utilsService.buildWhereFromQuery(rawQuery || {}),
       };
 
-      return this.utilsService.paginate<
-        Prisma.blogsWhereInput,
-        Prisma.blogsInclude,
-        Prisma.blogsSelect,
-        Prisma.blogsOrderByWithRelationInput
-      >({
+      return this.utilsService.paginate({
         model: this.prismaService.blogs,
         query,
         defaultOrderBy: { created_at: 'desc' },

@@ -5,9 +5,10 @@ import {
   Logger,
   NotFoundException,
 } from '@nestjs/common';
-import axios from 'axios';
 import { Prisma } from '@prisma/client';
+import axios from 'axios';
 import { PaginationQueryDto } from 'src/common/dto/pagination-query.dto';
+import { FilesService } from 'src/modules/files/files.service';
 import { GradingService } from 'src/modules/grading/grading.service';
 import { UserAnswer } from 'src/modules/grading/types/grading.types';
 import {
@@ -16,25 +17,24 @@ import {
   TEST_TYPE,
   TestType,
 } from 'src/modules/mock-tests/constants';
+import {
+  SpeakingPart,
+  TranscribeAndGradeDto,
+} from 'src/modules/speaking/dto/grade-speaking.dto';
+import { SpeakingService } from 'src/modules/speaking/speaking.service';
+import {
+  GradeWritingDto,
+  WritingTaskType,
+} from 'src/modules/writing/dto/grade-writing.dto';
+import { WritingService } from 'src/modules/writing/writing.service';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { UtilsService } from 'src/utils/utils.service';
-import { SpeakingService } from 'src/modules/speaking/speaking.service';
-import { FilesService } from 'src/modules/files/files.service';
-import { WritingService } from 'src/modules/writing/writing.service';
 import {
   CreateMockTestDto,
   TestSectionSubmissionDto,
   UserAnswerSubmissionDto,
 } from './dto/create-mock-test.dto';
 import { UpdateMockTestDto } from './dto/update-mock-test.dto';
-import {
-  SpeakingPart,
-  TranscribeAndGradeDto,
-} from 'src/modules/speaking/dto/grade-speaking.dto';
-import {
-  GradeWritingDto,
-  WritingTaskType,
-} from 'src/modules/writing/dto/grade-writing.dto';
 
 interface TestSection {
   section_name: string;
@@ -161,12 +161,7 @@ export class MockTestsService {
       ...this.utilsService.buildWhereFromQuery(rawQuery),
     };
 
-    return this.utilsService.paginate<
-      Prisma.mock_testsWhereInput,
-      Prisma.mock_testsInclude,
-      Prisma.mock_testsSelect,
-      Prisma.mock_testsOrderByWithRelationInput
-    >({
+    return this.utilsService.paginate({
       model: this.prisma.mock_tests,
       query,
       defaultOrderBy: { created_at: 'asc' },
@@ -617,12 +612,7 @@ export class MockTestsService {
       ...this.utilsService.buildWhereFromQuery(rawQuery),
     };
 
-    return this.utilsService.paginate<
-      Prisma.test_resultsWhereInput,
-      Prisma.test_resultsInclude,
-      Prisma.test_resultsSelect,
-      Prisma.test_resultsOrderByWithRelationInput
-    >({
+    return this.utilsService.paginate({
       model: this.prisma.test_results,
       query,
       defaultOrderBy: { created_at: 'asc' },

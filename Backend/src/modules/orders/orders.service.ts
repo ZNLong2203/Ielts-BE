@@ -253,12 +253,7 @@ export class OrdersService {
     const whereCondition: Prisma.ordersWhereInput =
       this.utilsService.buildWhereFromQuery(rawQuery);
 
-    return this.utilsService.paginate<
-      Prisma.ordersWhereInput,
-      Prisma.ordersInclude,
-      Prisma.ordersSelect,
-      Prisma.ordersOrderByWithRelationInput
-    >({
+    return this.utilsService.paginate({
       model: this.prisma.orders,
       query,
       defaultOrderBy: { created_at: 'desc' },

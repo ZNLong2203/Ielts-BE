@@ -6,8 +6,8 @@ import {
 } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { PaginationQueryDto } from 'src/common/dto/pagination-query.dto';
-import { UtilsService } from 'src/utils/utils.service';
 import { PrismaService } from 'src/prisma/prisma.service';
+import { UtilsService } from 'src/utils/utils.service';
 import { CreateSectionDto, ReorderSectionsDto } from './dto/create-section.dto';
 import { UpdateSectionDto } from './dto/update-section.dto';
 
@@ -197,12 +197,7 @@ export class SectionsService {
       ...this.utilsService.buildWhereFromQuery(rawQuery),
     };
 
-    return this.utilsService.paginate<
-      Prisma.sectionsWhereInput,
-      Prisma.sectionsInclude,
-      Prisma.sectionsSelect,
-      Prisma.sectionsOrderByWithRelationInput
-    >({
+    return this.utilsService.paginate({
       model: this.prisma.sections,
       query,
       defaultOrderBy: { ordering: 'asc' },

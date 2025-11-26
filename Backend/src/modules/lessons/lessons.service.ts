@@ -387,12 +387,7 @@ export class LessonsService {
       ...this.utilsService.buildWhereFromQuery(rawQuery),
     };
 
-    return this.utilsService.paginate<
-      Prisma.lessonsWhereInput,
-      Prisma.lessonsInclude,
-      Prisma.lessonsSelect,
-      Prisma.lessonsOrderByWithRelationInput
-    >({
+    return this.utilsService.paginate({
       model: this.prisma.lessons,
       query,
       defaultOrderBy: { ordering: 'asc' },

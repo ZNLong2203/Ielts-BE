@@ -1,6 +1,9 @@
 // src/common/services/pagination.service.ts
 import { Injectable } from '@nestjs/common';
-import { PaginationOptions } from 'src/interface/pagination-options.interface';
+import {
+  ModelPrismaWithFunctions,
+  PaginationOptions,
+} from 'src/interface/pagination-options.interface';
 
 type Primitive = string | number | boolean | Date;
 @Injectable()
@@ -25,10 +28,11 @@ export class UtilsService {
    * @param options - The pagination options including model, query, where, include, select, and defaultOrderBy.
    * @returns A promise that resolves to the paginated result.
    */
-  async paginate<TWhere = any, TInclude = any, TSelect = any, TOrderBy = any>(
-    options: PaginationOptions<TWhere, TInclude, TSelect, TOrderBy>,
+  async paginate<T extends ModelPrismaWithFunctions>(
+    options: PaginationOptions<T>,
   ) {
-    const { model, query, where, include, select, defaultOrderBy } = options;
+    const { model, query, where, include, select, defaultOrderBy, orderBy } =
+      options;
 
     const page = Number(query.page ?? 1);
     const limit = Number(query.limit ?? 10);
@@ -36,16 +40,15 @@ export class UtilsService {
 
     const [field, order] = query.sort?.split(':') ?? [];
 
-    const orderBy = field
-      ? ({ [field]: order === 'desc' ? 'desc' : 'asc' } as TOrderBy)
-      : defaultOrderBy;
+    const sortOrderBy = field
+      ? { [field]: order === 'desc' ? 'desc' : 'asc' }
+      : (orderBy ?? defaultOrderBy);
 
-    // Prepare query options
     const queryOptions = {
       where,
       include,
       select,
-      orderBy,
+      orderBy: sortOrderBy,
       ...(all ? {} : { skip: (page - 1) * limit, take: limit }),
     };
 
@@ -54,7 +57,6 @@ export class UtilsService {
       model.count({ where }),
     ]);
 
-    // Calculate meta values
     const effectivePageSize = all ? items.length : limit;
     const totalPages = Math.ceil(totalItems / effectivePageSize);
 
