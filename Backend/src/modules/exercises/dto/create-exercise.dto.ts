@@ -157,17 +157,6 @@ export class CreateQuestionDto {
   ordering?: number;
 
   @ApiProperty({
-    description: 'Difficulty level (band score: 0.0 - 9.0)',
-    example: 6.5,
-    required: false,
-  })
-  @IsNumber()
-  @IsOptional()
-  @Min(0)
-  @Max(9)
-  difficulty_level?: number;
-
-  @ApiProperty({
     description: 'Additional content (passage for reading, etc.)',
     required: false,
   })

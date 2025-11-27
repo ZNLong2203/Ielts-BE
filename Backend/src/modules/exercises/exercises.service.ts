@@ -40,7 +40,6 @@ export interface Question {
   explanation: string | null;
   points: Decimal | null;
   ordering: number | null;
-  difficulty_level: Decimal | null;
   question_group: string | null;
   deleted: boolean | null;
   created_at: Date | null;
@@ -101,7 +100,6 @@ export interface ExerciseStats {
   total_questions: number;
   total_points: number;
   question_types: Record<string, number>;
-  difficulty_distribution: Record<number, number>;
   time_limit: number | null;
   passing_score: number | null;
   is_active: boolean | null;
@@ -202,7 +200,6 @@ export class ExerciseService {
           explanation: createQuestionDto.explanation,
           points: createQuestionDto.points || 1,
           ordering: createQuestionDto.ordering || 0,
-          difficulty_level: createQuestionDto.difficulty_level || 5,
           question_group: createQuestionDto.question_group,
         },
       });
@@ -541,7 +538,6 @@ export class ExerciseService {
           explanation: updateDto.explanation,
           points: updateDto.points || 1,
           ordering: updateDto.ordering || 0,
-          difficulty_level: updateDto.difficulty_level || 5,
           question_group: updateDto.question_group,
         },
       });
@@ -771,17 +767,6 @@ export class ExerciseService {
           return acc;
         },
         {} as Record<string, number>,
-      ),
-      difficulty_distribution: exercise.questions.reduce(
-        (acc, q) => {
-          // Handle null difficulty_level
-          const level = q.difficulty_level
-            ? Math.floor(Number(q.difficulty_level))
-            : 0;
-          acc[level] = (acc[level] || 0) + 1;
-          return acc;
-        },
-        {} as Record<number, number>,
       ),
       time_limit: exercise.time_limit,
       passing_score: exercise.passing_score

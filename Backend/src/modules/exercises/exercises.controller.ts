@@ -470,10 +470,6 @@ export class ExerciseController {
                 true_false: 10,
               },
             },
-            difficulty_distribution: {
-              type: 'object',
-              example: { 5: 10, 6: 15, 7: 15 },
-            },
             time_limit: { type: 'number', example: 60, nullable: true },
             passing_score: { type: 'number', example: 70, nullable: true },
             is_active: { type: 'boolean', example: true },

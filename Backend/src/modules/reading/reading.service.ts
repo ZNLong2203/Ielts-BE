@@ -650,9 +650,6 @@ export class ReadingService {
       explanation: question.explanation || undefined,
       points: Number(question.points),
       ordering: question.ordering || 0,
-      difficulty_level: question.difficulty_level
-        ? Number(question.difficulty_level)
-        : undefined,
       question_group: question.question_group || undefined,
       question_group_id: question.question_group_id || undefined,
       question_options:

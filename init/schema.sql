@@ -105,8 +105,7 @@ CREATE TABLE enrollments (
     is_active BOOLEAN DEFAULT TRUE,
     deleted BOOLEAN DEFAULT FALSE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    UNIQUE(user_id, course_id)
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE TABLE combo_courses (
@@ -136,8 +135,7 @@ CREATE TABLE combo_enrollments (
     is_active BOOLEAN DEFAULT TRUE,
     deleted BOOLEAN DEFAULT FALSE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    UNIQUE(user_id, combo_id)
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE TABLE sections (
@@ -342,7 +340,6 @@ CREATE TABLE questions (
     explanation TEXT,
     points DECIMAL(5,2) DEFAULT 1,
     ordering INTEGER DEFAULT 0,
-    difficulty_level DECIMAL(3,1), -- band (e.g., 5.0, 6.5, 7.0)
     question_group VARCHAR(50), -- for grouping related questions (e.g., "Passage 1", "Task 1")
     deleted BOOLEAN DEFAULT FALSE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,

@@ -49,9 +49,6 @@ export class QuestionResponseDto {
   ordering: number;
 
   @ApiProperty()
-  difficulty_level: number;
-
-  @ApiProperty()
   correct_answer?: string;
 
   @ApiProperty()

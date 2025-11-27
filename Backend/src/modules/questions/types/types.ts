@@ -51,7 +51,6 @@ export interface QuestionDetails {
   explanation?: string;
   points: number;
   ordering: number;
-  difficulty_level?: number;
   question_group?: string;
   created_at: Date;
   updated_at: Date;
@@ -74,7 +73,6 @@ export interface QuestionWithDetails {
   explanation?: string;
   points: number;
   ordering: number;
-  difficulty_level?: number;
   question_group?: string;
   group?: QuestionGroupDetails;
   options: QuestionOptionDetails[];
