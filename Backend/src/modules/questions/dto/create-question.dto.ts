@@ -115,7 +115,7 @@ export class CreateQuestionDto {
 
   @ApiProperty({
     description:
-      'Question options (for MULTIPLE_CHOICE, TRUE_FALSE, SUMMARY_COMPLETION)',
+      'Question options (for MULTIPLE_CHOICE, TRUE_FALSE, SUMMARY_COMPLETION, MATCHING types)',
     type: [QuestionOptionDto],
     required: false,
   })

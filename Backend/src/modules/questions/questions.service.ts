@@ -646,7 +646,7 @@ export class QuestionsService {
       case QUESTION_TYPE.TRUE_FALSE:
         if (!dto.options || dto.options.length !== 2) {
           throw new BadRequestException(
-            'True/False questions must have exactly 2 options',
+            'True/False questions must have exactly 3 options',
           );
         }
         break;
