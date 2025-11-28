@@ -8,9 +8,9 @@ import {
   Min,
   ValidateNested,
 } from 'class-validator';
-import { CreateQuestionDto } from './create-question.dto';
+import { CreateQuestionTestDto } from 'src/modules/questions/dto/create-question.dto';
 
-export class UpdateQuestionDto extends PartialType(CreateQuestionDto) {}
+export class UpdateQuestionTestDto extends PartialType(CreateQuestionTestDto) {}
 
 class QuestionOrder {
   @ApiProperty({

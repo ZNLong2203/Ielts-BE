@@ -9,20 +9,19 @@ import {
   IsNumber,
   IsOptional,
   IsString,
-  Max,
   Min,
   ValidateNested,
 } from 'class-validator';
 import { QUESTION_TYPE, QuestionType } from 'src/modules/exercises/constants';
 
-export class QuestionOptionDto {
+export class QuestionOptionTestDto {
   @ApiProperty({
     description: 'Option text',
     example: 'Paris',
   })
   @IsString()
-  @IsNotEmpty()
-  option_text: string;
+  @IsOptional()
+  option_text?: string;
 
   @ApiProperty({
     description: 'Is this the correct answer',
@@ -30,6 +29,24 @@ export class QuestionOptionDto {
   })
   @IsBoolean()
   is_correct: boolean;
+
+  @ApiProperty({
+    description: 'Matching option ID (for MATCHING question type)',
+    example: 'match-option-uuid-1',
+    required: false,
+  })
+  @IsString()
+  @IsOptional()
+  matching_option_id?: string;
+
+  @ApiProperty({
+    description: 'Explanation for this option',
+    example: 'Paris is the capital of France.',
+    required: false,
+  })
+  @IsString()
+  @IsOptional()
+  explanation?: string;
 
   @ApiProperty({
     description: 'Ordering of option',
@@ -50,38 +67,13 @@ export class QuestionOptionDto {
   @IsOptional()
   @Min(0)
   point?: number;
-
-  @ApiProperty({
-    description: 'Explanation for this option',
-    required: false,
-  })
-  @IsString()
-  @IsOptional()
-  explanation?: string;
-
-  @ApiProperty({
-    description: 'Matching option ID (for MATCHING question type)',
-    example: 'match-option-uuid-1',
-    required: false,
-  })
-  @IsString()
-  @IsOptional()
-  matching_option_id?: string;
 }
 
-export class CreateQuestionDto {
-  // @ApiProperty({
-  //   description: 'Exercise ID',
-  //   example: 'exercise-uuid-123',
-  // })
-  // @IsString()
-  // @IsNotEmpty()
-  // exercise_id: string;
-
+export class CreateQuestionTestDto {
   @ApiProperty({
     description:
       'Question Group ID (required for MATCHING type, optional for others)',
-    example: 'group-uuid-123',
+    example: 'group-uuid-124',
     required: false,
   })
   @IsString()
@@ -116,14 +108,14 @@ export class CreateQuestionDto {
   @ApiProperty({
     description:
       'Question options (for MULTIPLE_CHOICE, TRUE_FALSE, SUMMARY_COMPLETION, MATCHING types)',
-    type: [QuestionOptionDto],
+    type: [QuestionOptionTestDto],
     required: false,
   })
   @IsArray()
   @IsOptional()
   @ValidateNested({ each: true })
-  @Type(() => QuestionOptionDto)
-  options?: QuestionOptionDto[];
+  @Type(() => QuestionOptionTestDto)
+  options?: QuestionOptionTestDto[];
 
   @ApiProperty({
     description: 'Correct answer text (for FILL_BLANK)',

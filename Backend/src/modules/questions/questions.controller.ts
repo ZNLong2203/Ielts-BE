@@ -21,10 +21,10 @@ import {
   ApiTags,
 } from '@nestjs/swagger';
 import { Public } from 'src/decorator/customize';
-import { CreateQuestionDto } from './dto/create-question.dto';
+import { CreateQuestionTestDto } from 'src/modules/questions/dto/create-question.dto';
 import {
   ReorderQuestionsDto,
-  UpdateQuestionDto,
+  UpdateQuestionTestDto,
 } from './dto/update-question.dto';
 import { QuestionsService } from './questions.service';
 
@@ -53,7 +53,7 @@ export class QuestionsController {
     description: 'Exercise not found',
   })
   @Public()
-  async createQuestion(@Body() createDto: CreateQuestionDto) {
+  async createQuestion(@Body() createDto: CreateQuestionTestDto) {
     return this.questionsService.createQuestion(createDto);
   }
 
@@ -129,7 +129,7 @@ export class QuestionsController {
   @Public()
   async updateQuestion(
     @Param('id') id: string,
-    @Body() updateDto: UpdateQuestionDto,
+    @Body() updateDto: UpdateQuestionTestDto,
   ) {
     return this.questionsService.updateQuestion(id, updateDto);
   }

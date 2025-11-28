@@ -1,11 +1,10 @@
 import {
   BadRequestException,
-  ConflictException,
   Injectable,
   Logger,
   NotFoundException,
 } from '@nestjs/common';
-import { Prisma } from '@prisma/client';
+import { matching_options, Prisma } from '@prisma/client';
 import { FileType } from 'src/common/constants';
 import { QUESTION_TYPE, QuestionType } from 'src/modules/exercises/constants';
 import {
@@ -14,8 +13,8 @@ import {
 } from 'src/modules/questions/types/types';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { FilesService } from '../files/files.service';
-import { CreateQuestionDto } from './dto/create-question.dto';
-import { UpdateQuestionDto } from './dto/update-question.dto';
+import { CreateQuestionTestDto } from './dto/create-question.dto';
+import { UpdateQuestionTestDto } from './dto/update-question.dto';
 
 @Injectable()
 export class QuestionsService {
@@ -29,7 +28,7 @@ export class QuestionsService {
   /**
    *  Create Question for Question Group
    */
-  async createQuestion(createDto: CreateQuestionDto) {
+  async createQuestion(createDto: CreateQuestionTestDto) {
     // Validate question group exists
     let questionGroup: {
       id: string;
@@ -109,7 +108,10 @@ export class QuestionsService {
       }
 
       // Create correct answer options for FILL_BLANK
-      if (createDto.question_type === QUESTION_TYPE.FILL_BLANK) {
+      if (
+        createDto.question_type === QUESTION_TYPE.FILL_BLANK ||
+        createDto.question_type === QUESTION_TYPE.TRUE_FALSE
+      ) {
         await this.createCorrectAnswerOptions(
           tx,
           question.id,
@@ -284,7 +286,7 @@ export class QuestionsService {
    */
   async updateQuestion(
     id: string,
-    updateDto: UpdateQuestionDto,
+    updateDto: UpdateQuestionTestDto,
   ): Promise<QuestionWithDetails> {
     const existingQuestion = await this.prisma.questions.findFirst({
       where: { id, deleted: false },
@@ -344,27 +346,6 @@ export class QuestionsService {
       );
     }
 
-    // Validate ordering uniqueness if being updated
-    if (
-      updateDto.ordering !== undefined &&
-      updateDto.ordering !== existingQuestion.ordering
-    ) {
-      const conflictingQuestion = await this.prisma.questions.findFirst({
-        where: {
-          exercise_id: existingQuestion.exercise_id,
-          ordering: updateDto.ordering,
-          deleted: false,
-          id: { not: id },
-        },
-      });
-
-      if (conflictingQuestion) {
-        throw new ConflictException(
-          `Question with ordering ${updateDto.ordering} already exists in this exercise`,
-        );
-      }
-    }
-
     // Validate question type requirements if type is being changed
     if (
       updateDto.question_type &&
@@ -382,7 +363,6 @@ export class QuestionsService {
           question_type: updateDto.question_type,
           question_text: updateDto.question_text,
           reading_passage: updateDto.reading_passage,
-          ordering: updateDto.ordering,
           points: updateDto.points,
           question_group: updateDto.question_group,
           explanation: updateDto.explanation,
@@ -413,7 +393,10 @@ export class QuestionsService {
       }
 
       // Update correct answer options for FILL_BLANK
-      if (updateDto.question_type === QUESTION_TYPE.FILL_BLANK) {
+      if (
+        updateDto.question_type === QUESTION_TYPE.FILL_BLANK ||
+        updateDto.question_type === QUESTION_TYPE.TRUE_FALSE
+      ) {
         await tx.question_options.updateMany({
           where: { question_id: id },
           data: { deleted: true },
@@ -630,7 +613,7 @@ export class QuestionsService {
   // ======= PRIVATE HELPER METHODS =======
 
   private validateQuestionTypeRequirements(
-    dto: CreateQuestionDto | UpdateQuestionDto,
+    dto: CreateQuestionTestDto | UpdateQuestionTestDto,
   ) {
     switch (dto.question_type) {
       case QUESTION_TYPE.MULTIPLE_CHOICE:
@@ -642,9 +625,9 @@ export class QuestionsService {
         break;
 
       case QUESTION_TYPE.TRUE_FALSE:
-        if (!dto.options || dto.options.length !== 2) {
+        if (!dto.correct_answer) {
           throw new BadRequestException(
-            'True/False questions must have exactly 3 options',
+            'True/False questions must have exactly 1 options',
           );
         }
         break;
@@ -697,7 +680,7 @@ export class QuestionsService {
     tx: Prisma.TransactionClient,
     questionId: string,
     options: Array<{
-      option_text: string;
+      option_text?: string;
       is_correct: boolean;
       ordering?: number;
       point?: number;
@@ -707,13 +690,27 @@ export class QuestionsService {
     questionType?: QuestionType,
   ): Promise<void> {
     for (let i = 0; i < options.length; i++) {
-      const matchingOption = await this.prisma.matching_options.findUnique({
-        where: { id: options[i].matching_option_id },
-      });
-      if (questionType === QUESTION_TYPE.MATCHING && !matchingOption) {
-        throw new BadRequestException(
-          `Matching option with ID ${options[i].matching_option_id} not found`,
-        );
+      let matchingOption: null | matching_options = null;
+      if (questionType === QUESTION_TYPE.MATCHING) {
+        if (options.length !== 1) {
+          throw new BadRequestException(
+            `MATCHING question options must contain exactly 1 option per question`,
+          );
+        }
+
+        if (!options[i].matching_option_id) {
+          throw new BadRequestException(
+            `Matching option ID is required for option at index ${i} in MATCHING question`,
+          );
+        }
+        matchingOption = await this.prisma.matching_options.findUnique({
+          where: { id: options[i].matching_option_id },
+        });
+        if (!matchingOption) {
+          throw new BadRequestException(
+            `Matching option with ID ${options[i].matching_option_id} not found`,
+          );
+        }
       }
       const option = options[i];
       await tx.question_options.create({
@@ -722,8 +719,9 @@ export class QuestionsService {
           option_text:
             questionType === QUESTION_TYPE.MATCHING && matchingOption
               ? matchingOption.option_text
-              : option.option_text,
-          is_correct: option.is_correct,
+              : option.option_text || '',
+          is_correct:
+            questionType === QUESTION_TYPE.MATCHING ? true : option.is_correct,
           matching_option_id: option.matching_option_id,
           ordering:
             questionType === QUESTION_TYPE.MATCHING && matchingOption
@@ -752,19 +750,19 @@ export class QuestionsService {
           point: 1,
         },
       });
-    }
 
-    if (alternativeAnswers && alternativeAnswers.length > 0) {
-      for (let i = 0; i < alternativeAnswers.length; i++) {
-        await tx.question_options.create({
-          data: {
-            question_id: questionId,
-            option_text: alternativeAnswers[i],
-            is_correct: true,
-            ordering: i + 1,
-            point: 1,
-          },
-        });
+      if (alternativeAnswers && alternativeAnswers.length > 0) {
+        for (let i = 0; i < alternativeAnswers.length; i++) {
+          await tx.question_options.create({
+            data: {
+              question_id: questionId,
+              option_text: alternativeAnswers[i],
+              is_correct: true,
+              ordering: i + 1,
+              point: 1,
+            },
+          });
+        }
       }
     }
   }
