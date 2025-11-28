@@ -34,6 +34,7 @@ import {
   CheckPolicies,
   CurrentUser,
   MessageResponse,
+  SkipCheckPermission,
 } from 'src/decorator/customize';
 import { CouponsService } from 'src/modules/coupons/coupons.service';
 import {
@@ -73,6 +74,7 @@ export class CouponsController {
     summary: 'Get available coupons for current user and selected courses',
   })
   @ApiBearerAuth()
+  @SkipCheckPermission()
   @ApiQuery({ name: 'courseIds', required: true, type: [String] })
   async getAvailableCoupons(
     @CurrentUser() user: User,
@@ -132,6 +134,7 @@ export class CouponsController {
   @Post('validate')
   @ApiOperation({ summary: 'Validate a coupon code' })
   @ApiBearerAuth()
+  @SkipCheckPermission()
   async validate(
     @Body() validateCouponDto: ValidateCouponDto,
     @CurrentUser() user: User,

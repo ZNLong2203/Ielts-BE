@@ -94,7 +94,7 @@ export class OrdersService {
     let couponDiscount = 0;
     if (couponId) {
       couponRecord = await this.prisma.coupons.findUnique({
-        where: { code: couponId, deleted: false },
+        where: { id: couponId, deleted: false },
       });
       if (!couponRecord) throw new BadRequestException('Coupon not found');
       if (!couponRecord.is_active)
