@@ -28,15 +28,24 @@ import { MinioService } from './minio.service';
           'video/mov',
           'video/webm',
           'audio/mp3',
+          'audio/mpeg',
           'audio/wav',
+          'audio/x-wav',
           'audio/ogg',
           'audio/m4a',
+          'audio/x-m4a',
           'audio/webm',
           'application/pdf',
           'text/plain',
         ];
 
-        if (allowedTypes.includes(file.mimetype)) {
+        // Normalize mimetype (remove charset, etc.) for comparison
+        const normalizedMimeType = file.mimetype
+          .split(';')[0]
+          .trim()
+          .toLowerCase();
+
+        if (allowedTypes.includes(normalizedMimeType)) {
           cb(null, true);
         } else {
           cb(new Error(`Invalid file type: ${file.mimetype}`), false);

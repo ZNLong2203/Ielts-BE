@@ -44,6 +44,14 @@ class SpeakingQuestionDto {
   @IsString()
   @IsOptional()
   instructions?: string;
+
+  @ApiPropertyOptional({
+    description: 'Audio URL for this question (optional audio prompt)',
+    example: 'https://example.com/audio/question1.mp3',
+  })
+  @IsString()
+  @IsOptional()
+  audio_url?: string;
 }
 
 export class CreateSpeakingMockTestExerciseDto {

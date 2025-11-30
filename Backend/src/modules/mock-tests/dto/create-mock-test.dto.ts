@@ -5,8 +5,6 @@ import {
   IsBoolean,
   IsEnum,
   IsInt,
-  IsNumber,
-  IsObject,
   IsOptional,
   IsString,
   Length,
@@ -124,13 +122,12 @@ export class CreateMockTestDto {
 
   @ApiPropertyOptional({
     description: 'Test difficulty level',
-    example: 6.5,
+    example: 'intermediate',
+    enum: ['beginner', 'intermediate', 'hard', 'advanced', 'master'],
   })
   @IsOptional()
-  @IsNumber({ maxDecimalPlaces: 1 })
-  @Min(1)
-  @Max(9)
-  difficulty_level?: number;
+  @IsEnum(['beginner', 'intermediate', 'hard', 'advanced', 'master'])
+  difficulty_level?: string;
 
   @ApiPropertyOptional({
     description: 'Whether test is active',
@@ -168,7 +165,7 @@ export class OnlyOneAnswerTypeConstraint
     return definedAnswers.length <= 1;
   }
 
-  defaultMessage(args: ValidationArguments) {
+  defaultMessage() {
     return 'Exactly one answer type must be provided';
   }
 }

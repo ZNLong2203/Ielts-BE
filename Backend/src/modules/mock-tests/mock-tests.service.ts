@@ -90,7 +90,7 @@ export class MockTestsService {
           instructions: createDto.instructions,
           duration:
             createDto.duration || this.getDefaultTimeLimit(createDto.test_type),
-          difficulty_level: createDto.difficulty_level?.toString() || '6.0',
+          difficulty_level: createDto.difficulty_level || 'intermediate',
         },
       });
 
@@ -265,7 +265,7 @@ export class MockTestsService {
           test_type: updateDto.test_type,
           description: updateDto.description,
           instructions: updateDto.instructions,
-          difficulty_level: updateDto.difficulty_level?.toString(),
+          difficulty_level: updateDto.difficulty_level,
           duration: updateDto.duration || existingTest.duration,
           updated_at: new Date(),
         },
