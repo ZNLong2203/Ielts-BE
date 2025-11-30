@@ -85,7 +85,7 @@ export class CoursesService {
   }
 
   async updateCategory(id: string, dto: UpdateCourseCategoryDto) {
-    await this.findById(id); // Check if exists
+    await this.findByIdCategory(id); // Check if exists
 
     const updatedData: Prisma.course_categoriesUpdateInput =
       this.utilsService.cleanDto(dto);
