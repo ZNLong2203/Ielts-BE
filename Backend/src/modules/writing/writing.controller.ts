@@ -14,6 +14,8 @@ import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { WritingService } from './writing.service';
 import { CreateWritingDto } from './dto/create-writing.dto';
 import { UpdateWritingDto } from './dto/update-writing.dto';
+import { CreateWritingMockTestExerciseDto } from './dto/create-writing-mock-test.dto';
+import { UpdateWritingMockTestExerciseDto } from './dto/update-writing-mock-test.dto';
 import {
   SubmitWritingDto,
   WritingSubmissionResponse,
@@ -201,5 +203,89 @@ export class WritingController {
     @Param('id') id: string,
   ): Promise<WritingAssessmentResponse | null> {
     return this.writingService.getWritingAssessmentById(id);
+  }
+
+  // Mock Test Exercise Endpoints
+  @Post('mock-test')
+  @ApiOperation({
+    summary: 'Create writing exercise for mock test',
+    description: 'Create a new writing exercise in a mock test section',
+  })
+  @ApiBearerAuth()
+  @Public()
+  @MessageResponse('Writing exercise created successfully')
+  async createMockTestExercise(
+    @Body() createDto: CreateWritingMockTestExerciseDto,
+  ) {
+    return this.writingService.createExerciseForMockTest(createDto);
+  }
+
+  @Get('test-section/:testSectionId')
+  @ApiOperation({
+    summary: 'Get writing exercises by test section',
+    description: 'Retrieve all writing exercises in a specific test section',
+  })
+  @ApiBearerAuth()
+  @Public()
+  @MessageResponse('Writing exercises retrieved successfully')
+  async getWritingExercisesByTestSection(
+    @Param('testSectionId') testSectionId: string,
+  ) {
+    return this.writingService.getExercisesByTestSectionForMockTest(
+      testSectionId,
+    );
+  }
+
+  @Get('mock-test/:id')
+  @ApiOperation({
+    summary: 'Get writing exercise by ID (mock test)',
+    description: 'Retrieve detailed information of a writing exercise',
+  })
+  @ApiBearerAuth()
+  @Public()
+  @MessageResponse('Writing exercise retrieved successfully')
+  async getMockTestExerciseById(@Param('id') id: string) {
+    return this.writingService.getExerciseByIdForMockTest(id);
+  }
+
+  @Put('mock-test/:id')
+  @ApiOperation({
+    summary: 'Update writing exercise (mock test)',
+    description: 'Update writing exercise information',
+  })
+  @ApiBearerAuth()
+  @Public()
+  @MessageResponse('Writing exercise updated successfully')
+  async updateMockTestExercise(
+    @Param('id') id: string,
+    @Body() updateDto: UpdateWritingMockTestExerciseDto,
+  ) {
+    return this.writingService.updateExerciseForMockTest(id, updateDto);
+  }
+
+  @Delete('mock-test/:id')
+  @ApiOperation({
+    summary: 'Delete writing exercise (mock test)',
+    description: 'Soft delete a writing exercise',
+  })
+  @ApiBearerAuth()
+  @Public()
+  @MessageResponse('Writing exercise deleted successfully')
+  async deleteMockTestExercise(@Param('id') id: string) {
+    await this.writingService.deleteExerciseForMockTest(id);
+    return { success: true };
+  }
+
+  @Get('mock-tests')
+  @ApiOperation({
+    summary: 'Get all mock tests with writing sections',
+    description:
+      'Retrieve all mock tests that contain writing sections and their exercises',
+  })
+  @ApiBearerAuth()
+  @Public()
+  @MessageResponse('Mock tests with writing sections retrieved successfully')
+  async getMockTestsWithWritingSections() {
+    return this.writingService.getMockTestsWithSections();
   }
 }

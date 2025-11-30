@@ -1,4 +1,12 @@
-import { Injectable, HttpException, HttpStatus } from '@nestjs/common';
+import {
+  Injectable,
+  HttpException,
+  HttpStatus,
+  NotFoundException,
+  ConflictException,
+  Logger,
+} from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import { GeminiService } from '../../integrations/gemini/gemini.service';
 import { WhisperService } from '../../integrations/whisper/whisper.service';
 import { PronunciationAnalysisService } from './pronunciation-analysis.service';
@@ -11,14 +19,32 @@ import {
   TranscribeAndGradeResponse,
 } from './dto/grade-speaking.dto';
 import { UploadResult } from '../files/minio.service';
+import { CreateSpeakingMockTestExerciseDto } from './dto/create-speaking-mock-test.dto';
+import { UpdateSpeakingMockTestExerciseDto } from './dto/update-speaking-mock-test.dto';
+import { SECTION_TYPE } from '../mock-tests/constants';
+import { EXERCISE_TYPE, SKILL_TYPE } from '../reading/types/reading.types';
+import { PrismaService } from '../../prisma/prisma.service';
+
+export interface SpeakingContent {
+  partType?: string;
+  questions?: Array<{
+    question_text: string;
+    expected_duration?: number;
+    instructions?: string;
+  }>;
+  additionalInstructions?: string;
+}
 
 @Injectable()
 export class SpeakingService {
+  private readonly logger = new Logger(SpeakingService.name);
+
   constructor(
     private readonly geminiService: GeminiService,
     private readonly whisperService: WhisperService,
     private readonly pronunciationAnalysisService: PronunciationAnalysisService,
     private readonly filesService: FilesService,
+    private readonly prisma: PrismaService,
   ) {}
 
   async gradeSpeakingByGemini(
@@ -236,5 +262,354 @@ export class SpeakingService {
     // For non-WAV files, return undefined and let the system estimate duration
     // We skip ffprobe to avoid JSON parsing errors when it's not available
     return undefined;
+  }
+
+  /**
+   * Create Speaking Exercise in test section (for mock tests)
+   */
+  async createExerciseForMockTest(
+    createDto: CreateSpeakingMockTestExerciseDto,
+  ) {
+    // Validate test_section exists and is speaking type
+    const testSection = await this.prisma.prisma.test_sections.findFirst({
+      where: {
+        id: createDto.test_section_id,
+        section_type: SECTION_TYPE.SPEAKING,
+        deleted: false,
+      },
+      include: {
+        mock_tests: {
+          select: {
+            id: true,
+            title: true,
+            test_type: true,
+          },
+        },
+      },
+    });
+
+    if (!testSection) {
+      throw new NotFoundException('Speaking test section not found');
+    }
+
+    // Check if exercise with same title exists in this test section
+    const existingExercise = await this.prisma.prisma.exercises.findFirst({
+      where: {
+        test_section_id: createDto.test_section_id,
+        title: createDto.title,
+        deleted: false,
+      },
+    });
+
+    if (existingExercise) {
+      throw new ConflictException(
+        'Exercise with this title already exists in this test section',
+      );
+    }
+
+    const exerciseContent: SpeakingContent = {
+      partType: createDto.part_type,
+      questions: createDto.questions,
+      additionalInstructions: createDto.additional_instructions,
+    };
+
+    const exercise = await this.prisma.prisma.exercises.create({
+      data: {
+        test_section_id: createDto.test_section_id,
+        lesson_id: null, // Mock test exercise doesn't belong to lesson
+        title: createDto.title,
+        instruction: createDto.instruction || '',
+        content: exerciseContent as unknown as Prisma.JsonObject,
+        exercise_type: EXERCISE_TYPE.MOCK_TEST,
+        skill_type: SKILL_TYPE.SPEAKING,
+        time_limit: createDto.time_limit || 5,
+        max_attempts: 1, // Mock tests typically allow 1 attempt
+        passing_score: createDto.passing_score || 70,
+        ordering: createDto.ordering || 0,
+        is_active: true,
+      },
+      include: {
+        test_sections: {
+          include: {
+            mock_tests: {
+              select: {
+                id: true,
+                title: true,
+                test_type: true,
+              },
+            },
+          },
+        },
+        _count: {
+          select: {
+            questions: {
+              where: { deleted: false },
+            },
+          },
+        },
+      },
+    });
+
+    this.logger.log(
+      `Created speaking exercise: ${exercise.title} in test section: ${testSection.section_name}`,
+    );
+    return exercise;
+  }
+
+  /**
+   * Get Speaking Exercises by test section (for mock tests)
+   */
+  async getExercisesByTestSectionForMockTest(testSectionId: string) {
+    // Validate test section exists
+    const testSection = await this.prisma.prisma.test_sections.findFirst({
+      where: {
+        id: testSectionId,
+        section_type: SECTION_TYPE.SPEAKING,
+        deleted: false,
+      },
+      include: {
+        mock_tests: {
+          select: {
+            id: true,
+            title: true,
+            test_type: true,
+          },
+        },
+      },
+    });
+
+    if (!testSection) {
+      throw new NotFoundException('Speaking test section not found');
+    }
+
+    const exercises = await this.prisma.prisma.exercises.findMany({
+      where: {
+        test_section_id: testSectionId,
+        skill_type: SKILL_TYPE.SPEAKING,
+        deleted: false,
+      },
+      include: {
+        _count: {
+          select: {
+            questions: {
+              where: { deleted: false },
+            },
+          },
+        },
+      },
+      orderBy: { ordering: 'asc' },
+    });
+
+    return {
+      test_section: {
+        id: testSection.id,
+        section_name: testSection.section_name,
+        mock_test: testSection.mock_tests,
+      },
+      exercises: exercises.map((ex) => ({
+        ...ex,
+        speaking_content: ex.content as SpeakingContent,
+        total_questions: ex._count.questions,
+      })),
+    };
+  }
+
+  /**
+   * Get Speaking Exercise by ID with complete details (for mock tests)
+   */
+  async getExerciseByIdForMockTest(id: string) {
+    const exercise = await this.prisma.prisma.exercises.findFirst({
+      where: {
+        id,
+        skill_type: SKILL_TYPE.SPEAKING,
+        deleted: false,
+      },
+      include: {
+        test_sections: {
+          include: {
+            mock_tests: {
+              select: {
+                id: true,
+                title: true,
+                test_type: true,
+              },
+            },
+          },
+        },
+      },
+    });
+
+    if (!exercise) {
+      throw new NotFoundException('Speaking exercise not found');
+    }
+
+    const content = exercise.content as SpeakingContent;
+
+    return {
+      ...exercise,
+      speaking_content: content,
+    };
+  }
+
+  /**
+   * Update Speaking Exercise (for mock tests)
+   */
+  async updateExerciseForMockTest(
+    id: string,
+    updateDto: UpdateSpeakingMockTestExerciseDto,
+  ) {
+    const existingExercise = await this.prisma.prisma.exercises.findFirst({
+      where: {
+        id,
+        skill_type: SKILL_TYPE.SPEAKING,
+        deleted: false,
+      },
+    });
+
+    if (!existingExercise) {
+      throw new NotFoundException('Speaking exercise not found');
+    }
+
+    // Check for title conflict if title is being updated
+    if (updateDto.title && updateDto.title !== existingExercise.title) {
+      const conflictingExercise = await this.prisma.prisma.exercises.findFirst({
+        where: {
+          test_section_id: existingExercise.test_section_id,
+          title: updateDto.title,
+          deleted: false,
+          id: { not: id },
+        },
+      });
+
+      if (conflictingExercise) {
+        throw new ConflictException(
+          'Exercise with this title already exists in this test section',
+        );
+      }
+    }
+
+    const existingContent = (existingExercise.content as SpeakingContent) || {};
+
+    const updatedContent: SpeakingContent = {
+      ...existingContent,
+      partType: updateDto.part_type || existingContent.partType,
+      questions: updateDto.questions || existingContent.questions,
+      additionalInstructions:
+        updateDto.additional_instructions ||
+        existingContent.additionalInstructions,
+    };
+
+    const exercise = await this.prisma.prisma.exercises.update({
+      where: { id },
+      data: {
+        title: updateDto.title,
+        instruction: updateDto.instruction,
+        content: updatedContent as unknown as Prisma.JsonObject,
+        time_limit: updateDto.time_limit,
+        passing_score: updateDto.passing_score,
+        ordering: updateDto.ordering,
+        updated_at: new Date(),
+      },
+      include: {
+        test_sections: {
+          include: {
+            mock_tests: {
+              select: {
+                id: true,
+                title: true,
+                test_type: true,
+              },
+            },
+          },
+        },
+        _count: {
+          select: {
+            questions: {
+              where: { deleted: false },
+            },
+          },
+        },
+      },
+    });
+
+    this.logger.log(`Updated speaking exercise: ${id}`);
+    return {
+      ...exercise,
+      speaking_content: exercise.content as SpeakingContent,
+    };
+  }
+
+  /**
+   * Delete Speaking Exercise (soft delete) (for mock tests)
+   */
+  async deleteExerciseForMockTest(id: string): Promise<void> {
+    const exercise = await this.prisma.prisma.exercises.findFirst({
+      where: {
+        id,
+        skill_type: SKILL_TYPE.SPEAKING,
+        deleted: false,
+      },
+    });
+
+    if (!exercise) {
+      throw new NotFoundException('Speaking exercise not found');
+    }
+
+    await this.prisma.prisma.exercises.update({
+      where: { id },
+      data: {
+        deleted: true,
+        updated_at: new Date(),
+      },
+    });
+
+    this.logger.log(`Deleted speaking exercise: ${id}`);
+  }
+
+  /**
+   * Get all mock tests with speaking sections
+   */
+  async getMockTestsWithSections() {
+    const mockTests = await this.prisma.prisma.mock_tests.findMany({
+      where: {
+        deleted: false,
+        test_sections: {
+          some: {
+            section_type: SECTION_TYPE.SPEAKING,
+            deleted: false,
+          },
+        },
+      },
+      include: {
+        test_sections: {
+          where: {
+            section_type: SECTION_TYPE.SPEAKING,
+            deleted: false,
+          },
+          include: {
+            exercises: {
+              where: {
+                skill_type: SKILL_TYPE.SPEAKING,
+                deleted: false,
+              },
+              include: {
+                _count: {
+                  select: {
+                    questions: {
+                      where: { deleted: false },
+                    },
+                  },
+                },
+              },
+              orderBy: { ordering: 'asc' },
+            },
+          },
+          orderBy: { ordering: 'asc' },
+        },
+      },
+      orderBy: { created_at: 'desc' },
+    });
+
+    return mockTests;
   }
 }

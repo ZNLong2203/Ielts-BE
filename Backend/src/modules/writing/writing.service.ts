@@ -6,7 +6,10 @@ import {
   Injectable,
   NotFoundException,
   BadRequestException,
+  ConflictException,
+  Logger,
 } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import { GeminiService } from '../../integrations/gemini/gemini.service';
 import { PrismaService } from '../../prisma/prisma.service';
 import { CreateWritingDto } from './dto/create-writing.dto';
@@ -28,8 +31,12 @@ import {
   SaveWritingAssessmentDto,
   WritingAssessmentResponse,
 } from './dto/save-writing-assessment.dto';
+import { CreateWritingMockTestExerciseDto } from './dto/create-writing-mock-test.dto';
+import { UpdateWritingMockTestExerciseDto } from './dto/update-writing-mock-test.dto';
+import { SECTION_TYPE } from '../mock-tests/constants';
+import { EXERCISE_TYPE, SKILL_TYPE } from '../reading/types/reading.types';
 
-interface WritingContent {
+export interface WritingContent {
   taskType?: string;
   questionType?: string;
   questionText?: string;
@@ -42,6 +49,8 @@ interface WritingContent {
 
 @Injectable()
 export class WritingService {
+  private readonly logger = new Logger(WritingService.name);
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly geminiService: GeminiService,
@@ -524,5 +533,360 @@ export class WritingService {
       createdAt: assessment.created_at,
       updatedAt: assessment.updated_at,
     };
+  }
+
+  /**
+   * Create Writing Exercise in test section (for mock tests)
+   */
+  async createExerciseForMockTest(createDto: CreateWritingMockTestExerciseDto) {
+    // Validate test_section exists and is writing type
+    const testSection = await this.prisma.prisma.test_sections.findFirst({
+      where: {
+        id: createDto.test_section_id,
+        section_type: SECTION_TYPE.WRITING,
+        deleted: false,
+      },
+      include: {
+        mock_tests: {
+          select: {
+            id: true,
+            title: true,
+            test_type: true,
+          },
+        },
+      },
+    });
+
+    if (!testSection) {
+      throw new NotFoundException('Writing test section not found');
+    }
+
+    // Check if exercise with same title exists in this test section
+    const existingExercise = await this.prisma.prisma.exercises.findFirst({
+      where: {
+        test_section_id: createDto.test_section_id,
+        title: createDto.title,
+        deleted: false,
+      },
+    });
+
+    if (existingExercise) {
+      throw new ConflictException(
+        'Exercise with this title already exists in this test section',
+      );
+    }
+
+    const exerciseContent: WritingContent = {
+      taskType: createDto.task_type,
+      questionType: createDto.question_type,
+      questionText: createDto.question_text,
+      questionImage: createDto.question_image,
+      questionChart: createDto.question_chart,
+      wordLimit: createDto.word_limit,
+      keywords: createDto.keywords,
+      sampleAnswers: createDto.sample_answers,
+    };
+
+    const exercise = await this.prisma.prisma.exercises.create({
+      data: {
+        test_section_id: createDto.test_section_id,
+        lesson_id: null, // Mock test exercise doesn't belong to lesson
+        title: createDto.title,
+        instruction: createDto.instruction || '',
+        content: exerciseContent as unknown as Prisma.JsonObject,
+        exercise_type: EXERCISE_TYPE.MOCK_TEST,
+        skill_type: SKILL_TYPE.WRITING,
+        time_limit: createDto.time_limit || 20,
+        max_attempts: 1, // Mock tests typically allow 1 attempt
+        passing_score: createDto.passing_score || 70,
+        ordering: createDto.ordering || 0,
+        is_active: true,
+      },
+      include: {
+        test_sections: {
+          include: {
+            mock_tests: {
+              select: {
+                id: true,
+                title: true,
+                test_type: true,
+              },
+            },
+          },
+        },
+        _count: {
+          select: {
+            questions: {
+              where: { deleted: false },
+            },
+          },
+        },
+      },
+    });
+
+    this.logger.log(
+      `Created writing exercise: ${exercise.title} in test section: ${testSection.section_name}`,
+    );
+    return exercise;
+  }
+
+  /**
+   * Get Writing Exercises by test section (for mock tests)
+   */
+  async getExercisesByTestSectionForMockTest(testSectionId: string) {
+    // Validate test section exists
+    const testSection = await this.prisma.prisma.test_sections.findFirst({
+      where: {
+        id: testSectionId,
+        section_type: SECTION_TYPE.WRITING,
+        deleted: false,
+      },
+      include: {
+        mock_tests: {
+          select: {
+            id: true,
+            title: true,
+            test_type: true,
+          },
+        },
+      },
+    });
+
+    if (!testSection) {
+      throw new NotFoundException('Writing test section not found');
+    }
+
+    const exercises = await this.prisma.prisma.exercises.findMany({
+      where: {
+        test_section_id: testSectionId,
+        skill_type: SKILL_TYPE.WRITING,
+        deleted: false,
+      },
+      include: {
+        _count: {
+          select: {
+            questions: {
+              where: { deleted: false },
+            },
+          },
+        },
+      },
+      orderBy: { ordering: 'asc' },
+    });
+
+    return {
+      test_section: {
+        id: testSection.id,
+        section_name: testSection.section_name,
+        mock_test: testSection.mock_tests,
+      },
+      exercises: exercises.map((ex) => ({
+        ...ex,
+        writing_content: ex.content as WritingContent,
+        total_questions: ex._count.questions,
+      })),
+    };
+  }
+
+  /**
+   * Get Writing Exercise by ID with complete details (for mock tests)
+   */
+  async getExerciseByIdForMockTest(id: string) {
+    const exercise = await this.prisma.prisma.exercises.findFirst({
+      where: {
+        id,
+        skill_type: SKILL_TYPE.WRITING,
+        deleted: false,
+      },
+      include: {
+        test_sections: {
+          include: {
+            mock_tests: {
+              select: {
+                id: true,
+                title: true,
+                test_type: true,
+              },
+            },
+          },
+        },
+      },
+    });
+
+    if (!exercise) {
+      throw new NotFoundException('Writing exercise not found');
+    }
+
+    const content = exercise.content as WritingContent;
+
+    return {
+      ...exercise,
+      writing_content: content,
+    };
+  }
+
+  /**
+   * Update Writing Exercise (for mock tests)
+   */
+  async updateExerciseForMockTest(
+    id: string,
+    updateDto: UpdateWritingMockTestExerciseDto,
+  ) {
+    const existingExercise = await this.prisma.prisma.exercises.findFirst({
+      where: {
+        id,
+        skill_type: SKILL_TYPE.WRITING,
+        deleted: false,
+      },
+    });
+
+    if (!existingExercise) {
+      throw new NotFoundException('Writing exercise not found');
+    }
+
+    // Check for title conflict if title is being updated
+    if (updateDto.title && updateDto.title !== existingExercise.title) {
+      const conflictingExercise = await this.prisma.prisma.exercises.findFirst({
+        where: {
+          test_section_id: existingExercise.test_section_id,
+          title: updateDto.title,
+          deleted: false,
+          id: { not: id },
+        },
+      });
+
+      if (conflictingExercise) {
+        throw new ConflictException(
+          'Exercise with this title already exists in this test section',
+        );
+      }
+    }
+
+    const existingContent = (existingExercise.content as WritingContent) || {};
+
+    const updatedContent: WritingContent = {
+      ...existingContent,
+      taskType: updateDto.task_type || existingContent.taskType,
+      questionType: updateDto.question_type || existingContent.questionType,
+      questionText: updateDto.question_text || existingContent.questionText,
+      questionImage: updateDto.question_image || existingContent.questionImage,
+      questionChart: updateDto.question_chart || existingContent.questionChart,
+      wordLimit: updateDto.word_limit || existingContent.wordLimit,
+      keywords: updateDto.keywords || existingContent.keywords,
+      sampleAnswers: updateDto.sample_answers || existingContent.sampleAnswers,
+    };
+
+    const exercise = await this.prisma.prisma.exercises.update({
+      where: { id },
+      data: {
+        title: updateDto.title,
+        instruction: updateDto.instruction,
+        content: updatedContent as unknown as Prisma.JsonObject,
+        time_limit: updateDto.time_limit,
+        passing_score: updateDto.passing_score,
+        ordering: updateDto.ordering,
+        updated_at: new Date(),
+      },
+      include: {
+        test_sections: {
+          include: {
+            mock_tests: {
+              select: {
+                id: true,
+                title: true,
+                test_type: true,
+              },
+            },
+          },
+        },
+        _count: {
+          select: {
+            questions: {
+              where: { deleted: false },
+            },
+          },
+        },
+      },
+    });
+
+    this.logger.log(`Updated writing exercise: ${id}`);
+    return {
+      ...exercise,
+      writing_content: exercise.content as WritingContent,
+    };
+  }
+
+  /**
+   * Delete Writing Exercise (soft delete) (for mock tests)
+   */
+  async deleteExerciseForMockTest(id: string): Promise<void> {
+    const exercise = await this.prisma.prisma.exercises.findFirst({
+      where: {
+        id,
+        skill_type: SKILL_TYPE.WRITING,
+        deleted: false,
+      },
+    });
+
+    if (!exercise) {
+      throw new NotFoundException('Writing exercise not found');
+    }
+
+    await this.prisma.prisma.exercises.update({
+      where: { id },
+      data: {
+        deleted: true,
+        updated_at: new Date(),
+      },
+    });
+
+    this.logger.log(`Deleted writing exercise: ${id}`);
+  }
+
+  /**
+   * Get all mock tests with writing sections
+   */
+  async getMockTestsWithSections() {
+    const mockTests = await this.prisma.prisma.mock_tests.findMany({
+      where: {
+        deleted: false,
+        test_sections: {
+          some: {
+            section_type: SECTION_TYPE.WRITING,
+            deleted: false,
+          },
+        },
+      },
+      include: {
+        test_sections: {
+          where: {
+            section_type: SECTION_TYPE.WRITING,
+            deleted: false,
+          },
+          include: {
+            exercises: {
+              where: {
+                skill_type: SKILL_TYPE.WRITING,
+                deleted: false,
+              },
+              include: {
+                _count: {
+                  select: {
+                    questions: {
+                      where: { deleted: false },
+                    },
+                  },
+                },
+              },
+              orderBy: { ordering: 'asc' },
+            },
+          },
+          orderBy: { ordering: 'asc' },
+        },
+      },
+      orderBy: { created_at: 'desc' },
+    });
+
+    return mockTests;
   }
 }

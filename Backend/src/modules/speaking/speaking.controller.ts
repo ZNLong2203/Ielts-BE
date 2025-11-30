@@ -7,9 +7,21 @@ import {
   UploadedFile,
   HttpStatus,
   HttpException,
+  Delete,
+  Get,
+  HttpCode,
+  Param,
+  Put,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
-import { ApiTags, ApiOperation, ApiConsumes, ApiBody } from '@nestjs/swagger';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiConsumes,
+  ApiBody,
+  ApiParam,
+  ApiResponse,
+} from '@nestjs/swagger';
 import { SpeakingService } from './speaking.service';
 import {
   GradeSpeakingDto,
@@ -19,7 +31,9 @@ import {
   SpeakingQuestion,
   SpeakingPart,
 } from './dto/grade-speaking.dto';
-import { Public } from 'src/decorator/customize';
+import { CreateSpeakingMockTestExerciseDto } from './dto/create-speaking-mock-test.dto';
+import { UpdateSpeakingMockTestExerciseDto } from './dto/update-speaking-mock-test.dto';
+import { Public, MessageResponse } from 'src/decorator/customize';
 import { UploadedFileType } from 'src/interface/file-type.interface';
 
 @ApiTags('speaking')
@@ -143,5 +157,82 @@ export class SpeakingController {
     };
 
     return await this.speakingService.transcribeAndGrade(dto);
+  }
+
+  // Mock Test Exercise Endpoints
+  @Post('mock-test')
+  @ApiOperation({
+    summary: 'Create speaking exercise for mock test',
+    description: 'Create a new speaking exercise in a mock test section',
+  })
+  @Public()
+  @MessageResponse('Speaking exercise created successfully')
+  async createMockTestExercise(
+    @Body() createDto: CreateSpeakingMockTestExerciseDto,
+  ) {
+    return this.speakingService.createExerciseForMockTest(createDto);
+  }
+
+  @Get('test-section/:testSectionId')
+  @ApiOperation({
+    summary: 'Get speaking exercises by test section',
+    description: 'Retrieve all speaking exercises in a specific test section',
+  })
+  @Public()
+  @MessageResponse('Speaking exercises retrieved successfully')
+  async getSpeakingExercisesByTestSection(
+    @Param('testSectionId') testSectionId: string,
+  ) {
+    return this.speakingService.getExercisesByTestSectionForMockTest(testSectionId);
+  }
+
+  @Get('mock-test/:id')
+  @ApiOperation({
+    summary: 'Get speaking exercise by ID (mock test)',
+    description: 'Retrieve detailed information of a speaking exercise',
+  })
+  @Public()
+  @MessageResponse('Speaking exercise retrieved successfully')
+  async getMockTestExerciseById(@Param('id') id: string) {
+    return this.speakingService.getExerciseByIdForMockTest(id);
+  }
+
+  @Put('mock-test/:id')
+  @ApiOperation({
+    summary: 'Update speaking exercise (mock test)',
+    description: 'Update speaking exercise information',
+  })
+  @Public()
+  @MessageResponse('Speaking exercise updated successfully')
+  async updateMockTestExercise(
+    @Param('id') id: string,
+    @Body() updateDto: UpdateSpeakingMockTestExerciseDto,
+  ) {
+    return this.speakingService.updateExerciseForMockTest(id, updateDto);
+  }
+
+  @Delete('mock-test/:id')
+  @ApiOperation({
+    summary: 'Delete speaking exercise (mock test)',
+    description: 'Soft delete a speaking exercise',
+  })
+  @Public()
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @MessageResponse('Speaking exercise deleted successfully')
+  async deleteMockTestExercise(@Param('id') id: string) {
+    await this.speakingService.deleteExerciseForMockTest(id);
+    return { success: true };
+  }
+
+  @Get('mock-tests')
+  @ApiOperation({
+    summary: 'Get all mock tests with speaking sections',
+    description:
+      'Retrieve all mock tests that contain speaking sections and their exercises',
+  })
+  @Public()
+  @MessageResponse('Mock tests with speaking sections retrieved successfully')
+  async getMockTestsWithSpeakingSections() {
+    return this.speakingService.getMockTestsWithSections();
   }
 }
