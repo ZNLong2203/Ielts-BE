@@ -31,6 +31,7 @@ export interface SpeakingContent {
     question_text: string;
     expected_duration?: number;
     instructions?: string;
+    audio_url?: string;
   }>;
   additionalInstructions?: string;
 }
@@ -307,47 +308,96 @@ export class SpeakingService {
       );
     }
 
+    // Create exercise with minimal content (for backward compatibility)
     const exerciseContent: SpeakingContent = {
       partType: createDto.part_type,
       questions: createDto.questions,
       additionalInstructions: createDto.additional_instructions,
     };
 
-    const exercise = await this.prisma.prisma.exercises.create({
-      data: {
-        test_section_id: createDto.test_section_id,
-        lesson_id: null, // Mock test exercise doesn't belong to lesson
-        title: createDto.title,
-        instruction: createDto.instruction || '',
-        content: exerciseContent as unknown as Prisma.JsonObject,
-        exercise_type: EXERCISE_TYPE.MOCK_TEST,
-        skill_type: SKILL_TYPE.SPEAKING,
-        time_limit: createDto.time_limit || 5,
-        max_attempts: 1, // Mock tests typically allow 1 attempt
-        passing_score: createDto.passing_score || 70,
-        ordering: createDto.ordering || 0,
-        is_active: true,
-      },
-      include: {
-        test_sections: {
-          include: {
-            mock_tests: {
-              select: {
-                id: true,
-                title: true,
-                test_type: true,
+    const exercise = await this.prisma.prisma.$transaction(async (tx) => {
+      // Create exercise
+      const createdExercise = await tx.exercises.create({
+        data: {
+          test_section_id: createDto.test_section_id,
+          lesson_id: null, // Mock test exercise doesn't belong to lesson
+          title: createDto.title,
+          instruction: createDto.instruction || '',
+          content: exerciseContent as unknown as Prisma.JsonObject,
+          exercise_type: EXERCISE_TYPE.MOCK_TEST,
+          skill_type: SKILL_TYPE.SPEAKING,
+          time_limit: createDto.time_limit || 5,
+          max_attempts: 1, // Mock tests typically allow 1 attempt
+          passing_score: createDto.passing_score || 70,
+          ordering: createDto.ordering || 0,
+          is_active: true,
+        },
+      });
+
+      // Create question groups and questions for each question in the DTO
+      if (createDto.questions && createDto.questions.length > 0) {
+        for (let i = 0; i < createDto.questions.length; i++) {
+          const questionDto = createDto.questions[i];
+          const partLabel =
+            createDto.part_type === 'part_1'
+              ? 'Part 1'
+              : createDto.part_type === 'part_2'
+                ? 'Part 2'
+                : createDto.part_type === 'part_3'
+                  ? 'Part 3'
+                  : `Part ${i + 1}`;
+
+          const questionGroup = await tx.question_groups.create({
+            data: {
+              exercise_id: createdExercise.id,
+              group_title: partLabel,
+              group_instruction:
+                questionDto.instructions || questionDto.question_text || '',
+              question_type: 'speaking',
+              ordering: i + 1,
+              question_range: String(i + 1),
+              correct_answer_count: 1,
+            },
+          });
+
+          await tx.questions.create({
+            data: {
+              exercise_id: createdExercise.id,
+              question_group_id: questionGroup.id,
+              question_text: questionDto.question_text || '',
+              question_type: 'speaking',
+              audio_url: questionDto.audio_url || null,
+              points: 0, // Speaking questions don't have points
+              ordering: i + 1,
+            },
+          });
+        }
+      }
+
+      // Return exercise with includes
+      return await tx.exercises.findUniqueOrThrow({
+        where: { id: createdExercise.id },
+        include: {
+          test_sections: {
+            include: {
+              mock_tests: {
+                select: {
+                  id: true,
+                  title: true,
+                  test_type: true,
+                },
+              },
+            },
+          },
+          _count: {
+            select: {
+              questions: {
+                where: { deleted: false },
               },
             },
           },
         },
-        _count: {
-          select: {
-            questions: {
-              where: { deleted: false },
-            },
-          },
-        },
-      },
+      });
     });
 
     this.logger.log(
@@ -443,11 +493,27 @@ export class SpeakingService {
       throw new NotFoundException('Speaking exercise not found');
     }
 
+    // Get question groups with questions
+    const questionGroups = await this.prisma.prisma.question_groups.findMany({
+      where: {
+        exercise_id: id,
+        deleted: false,
+      },
+      include: {
+        questions: {
+          where: { deleted: false },
+          orderBy: { ordering: 'asc' },
+        },
+      },
+      orderBy: { ordering: 'asc' },
+    });
+
     const content = exercise.content as SpeakingContent;
 
     return {
       ...exercise,
       speaking_content: content,
+      question_groups: questionGroups,
     };
   }
 
@@ -499,37 +565,148 @@ export class SpeakingService {
         existingContent.additionalInstructions,
     };
 
-    const exercise = await this.prisma.prisma.exercises.update({
-      where: { id },
-      data: {
-        title: updateDto.title,
-        instruction: updateDto.instruction,
-        content: updatedContent as unknown as Prisma.JsonObject,
-        time_limit: updateDto.time_limit,
-        passing_score: updateDto.passing_score,
-        ordering: updateDto.ordering,
-        updated_at: new Date(),
-      },
-      include: {
-        test_sections: {
-          include: {
-            mock_tests: {
-              select: {
-                id: true,
-                title: true,
-                test_type: true,
+    const exercise = await this.prisma.prisma.$transaction(async (tx) => {
+      // Update exercise
+      const updatedExercise = await tx.exercises.update({
+        where: { id },
+        data: {
+          title: updateDto.title,
+          instruction: updateDto.instruction,
+          content: updatedContent as unknown as Prisma.JsonObject,
+          time_limit: updateDto.time_limit,
+          passing_score: updateDto.passing_score,
+          ordering: updateDto.ordering,
+          updated_at: new Date(),
+        },
+      });
+
+      // Get existing question groups
+      const existingQuestionGroups = await tx.question_groups.findMany({
+        where: {
+          exercise_id: id,
+          deleted: false,
+        },
+        include: {
+          questions: {
+            where: { deleted: false },
+          },
+        },
+        orderBy: { ordering: 'asc' },
+      });
+
+      const questionsToUpdate =
+        updateDto.questions || existingContent.questions || [];
+      const partType =
+        updateDto.part_type || existingContent.partType || 'part_1';
+
+      // Update or create question groups and questions
+      for (let i = 0; i < questionsToUpdate.length; i++) {
+        const questionDto = questionsToUpdate[i];
+        const partLabel =
+          partType === 'part_1'
+            ? 'Part 1'
+            : partType === 'part_2'
+              ? 'Part 2'
+              : partType === 'part_3'
+                ? 'Part 3'
+                : `Part ${i + 1}`;
+
+        if (i < existingQuestionGroups.length) {
+          // Update existing question group
+          const existingGroup = existingQuestionGroups[i];
+          await tx.question_groups.update({
+            where: { id: existingGroup.id },
+            data: {
+              group_title: partLabel,
+              group_instruction:
+                questionDto.instructions || questionDto.question_text || '',
+              updated_at: new Date(),
+            },
+          });
+
+          // Update existing question
+          if (existingGroup.questions.length > 0) {
+            await tx.questions.update({
+              where: { id: existingGroup.questions[0].id },
+              data: {
+                question_text: questionDto.question_text || '',
+                audio_url: questionDto.audio_url || null,
+                updated_at: new Date(),
+              },
+            });
+          }
+        } else {
+          // Create new question group and question
+          const newQuestionGroup = await tx.question_groups.create({
+            data: {
+              exercise_id: id,
+              group_title: partLabel,
+              group_instruction:
+                questionDto.instructions || questionDto.question_text || '',
+              question_type: 'speaking',
+              ordering: i + 1,
+              question_range: String(i + 1),
+              correct_answer_count: 1,
+            },
+          });
+
+          await tx.questions.create({
+            data: {
+              exercise_id: id,
+              question_group_id: newQuestionGroup.id,
+              question_text: questionDto.question_text || '',
+              question_type: 'speaking',
+              audio_url: questionDto.audio_url || null,
+              points: 0,
+              ordering: i + 1,
+            },
+          });
+        }
+      }
+
+      // Soft delete extra question groups if questions array is shorter
+      if (existingQuestionGroups.length > questionsToUpdate.length) {
+        const groupsToDelete = existingQuestionGroups.slice(
+          questionsToUpdate.length,
+        );
+        for (const group of groupsToDelete) {
+          await tx.question_groups.update({
+            where: { id: group.id },
+            data: { deleted: true, updated_at: new Date() },
+          });
+          for (const question of group.questions) {
+            await tx.questions.update({
+              where: { id: question.id },
+              data: { deleted: true, updated_at: new Date() },
+            });
+          }
+        }
+      }
+
+      // Return exercise with includes
+      return await tx.exercises.findUniqueOrThrow({
+        where: { id },
+        include: {
+          test_sections: {
+            include: {
+              mock_tests: {
+                select: {
+                  id: true,
+                  title: true,
+                  test_type: true,
+                },
+              },
+            },
+          },
+          _count: {
+            select: {
+              questions: {
+                where: { deleted: false },
               },
             },
           },
         },
-        _count: {
-          select: {
-            questions: {
-              where: { deleted: false },
-            },
-          },
-        },
-      },
+      });
     });
 
     this.logger.log(`Updated speaking exercise: ${id}`);

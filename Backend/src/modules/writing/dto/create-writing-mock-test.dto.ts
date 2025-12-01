@@ -57,7 +57,8 @@ export class CreateWritingMockTestExerciseDto {
 
   @ApiProperty({
     description: 'Question text/prompt',
-    example: 'The chart below shows the percentage of households in owned and rented accommodation in England and Wales between 1918 and 2011.',
+    example:
+      'The chart below shows the percentage of households in owned and rented accommodation in England and Wales between 1918 and 2011.',
   })
   @IsString()
   @IsNotEmpty()
@@ -136,4 +137,3 @@ export class CreateWritingMockTestExerciseDto {
   @IsString({ each: true })
   sample_answers?: string[];
 }
-

@@ -161,7 +161,7 @@ export class GeminiService {
       .join('\n');
 
     return `
-    You are an IELTS Speaking examiner. Please grade this ${partInstructions} response according to IELTS Speaking band descriptors.
+    You are an IELTS Speaking examiner. Please grade this ${partInstructions} response according to IELTS Speaking band descriptors (Band 0-9).
 
     PART TYPE: ${partType.toUpperCase()}
     
@@ -169,6 +169,26 @@ export class GeminiService {
     ${questionsText}
 
     STUDENT ANSWER: ${studentAnswer}
+
+    IMPORTANT PART-SPECIFIC EVALUATION:
+    ${
+      partType === SpeakingPart.PART_1
+        ? `- Part 1 focuses on familiar topics and personal information
+    - Evaluate ability to answer questions directly and naturally
+    - Look for appropriate use of simple and complex structures
+    - Assess naturalness of speech and ability to extend answers slightly`
+        : partType === SpeakingPart.PART_2
+          ? `- Part 2 requires speaking for 1-2 minutes on a given topic
+    - Evaluate ability to organize ideas coherently
+    - Assess use of discourse markers and linking devices
+    - Look for ability to develop ideas with examples and details
+    - Check if student addresses all points on the cue card`
+          : `- Part 3 involves abstract discussion and expressing opinions
+    - Evaluate ability to discuss abstract ideas and justify opinions
+    - Assess use of complex grammar and sophisticated vocabulary
+    - Look for ability to analyze, compare, and speculate
+    - Check for natural interaction and ability to handle follow-up questions`
+    }
 
    ${targetDuration ? `TARGET DURATION: ${targetDuration}` : ''}
    ${additionalInstructions ? `ADDITIONAL INSTRUCTIONS: ${additionalInstructions}` : ''}
@@ -254,11 +274,24 @@ export class GeminiService {
         : 'Task 2: Academic Writing - Write an essay responding to a point of view, argument or problem';
 
     return `
-    You are an IELTS Writing examiner. Please grade this ${taskInstructions} response according to IELTS Writing band descriptors.
+    You are an IELTS Writing examiner. Please grade this ${taskInstructions} response according to IELTS Writing band descriptors (Band 0-9).
 
     QUESTION: ${question}
 
-    ${imageUrl ? `VISUAL INFORMATION (Chart/Graph/Diagram): Please analyze the image at this URL: ${imageUrl}\n\n` : ''}
+    ${
+      imageUrl
+        ? `VISUAL INFORMATION (Chart/Graph/Diagram): Please analyze the image at this URL: ${imageUrl}
+    
+    IMPORTANT FOR TASK 1: The student's answer should describe the visual information accurately, make comparisons where relevant, and highlight key features. Evaluate how well they:
+    - Identify and describe main trends, patterns, or features
+    - Make appropriate comparisons between data points
+    - Use accurate data from the visual
+    - Organize information logically
+    - Use appropriate vocabulary for describing visuals (e.g., "increased", "decreased", "fluctuated", "remained stable")
+    
+    `
+        : ''
+    }
 
     STUDENT ANSWER: ${studentAnswer}
 

@@ -795,6 +795,32 @@ export class MockTestsService {
       `Grading ${audioData.length} speaking questions for test result: ${testResult.id}`,
     );
 
+    // Get questions from DB to retrieve audio_url, group_instruction, and exercise part_type
+    const questionIds = audioData.map((item) => item.question_id);
+    const questionsFromDb = await this.prisma.questions.findMany({
+      where: {
+        id: { in: questionIds },
+        deleted: false,
+      },
+      include: {
+        question_groups: {
+          select: {
+            id: true,
+            group_instruction: true,
+            group_title: true,
+          },
+        },
+        exercises: {
+          select: {
+            id: true,
+            content: true,
+          },
+        },
+      },
+    });
+
+    const questionMap = new Map(questionsFromDb.map((q) => [q.id, q]));
+
     // Grade all questions in parallel
     const gradingPromises = audioData.map(async (audioItem) => {
       try {
@@ -804,17 +830,101 @@ export class MockTestsService {
         });
         const audioBuffer = Buffer.from(audioResponse.data);
 
-        // Determine part type from question ordering
-        const questionIndex = audioData.findIndex(
-          (item) => item.question_id === audioItem.question_id,
-        );
+        // Get question from DB to retrieve audio_url, group_instruction, and exercise part_type
+        const questionFromDb = questionMap.get(audioItem.question_id);
+        const questionText =
+          audioItem.question_text ||
+          questionFromDb?.question_text ||
+          questionFromDb?.question_groups?.[0]?.group_instruction ||
+          'Speaking question';
+        const questionAudioUrl = questionFromDb?.audio_url || undefined;
+        const groupInstruction =
+          questionFromDb?.question_groups?.[0]?.group_instruction || undefined;
+
+        // Determine part type from exercise content or question_group title
         let partType: SpeakingPart = SpeakingPart.PART_1;
-        if (questionIndex >= 0 && questionIndex < 3) {
-          partType = SpeakingPart.PART_1;
-        } else if (questionIndex >= 3 && questionIndex < 6) {
-          partType = SpeakingPart.PART_2;
-        } else {
-          partType = SpeakingPart.PART_3;
+
+        // Try to get from exercise content first
+        if (questionFromDb?.exercises?.content) {
+          try {
+            const exerciseContent =
+              typeof questionFromDb.exercises.content === 'string'
+                ? JSON.parse(questionFromDb.exercises.content)
+                : questionFromDb.exercises.content;
+            const contentPartType =
+              exerciseContent.partType || exerciseContent.part_type;
+            if (contentPartType) {
+              if (
+                contentPartType === 'part_1' ||
+                contentPartType === 'Part 1'
+              ) {
+                partType = SpeakingPart.PART_1;
+              } else if (
+                contentPartType === 'part_2' ||
+                contentPartType === 'Part 2'
+              ) {
+                partType = SpeakingPart.PART_2;
+              } else if (
+                contentPartType === 'part_3' ||
+                contentPartType === 'Part 3'
+              ) {
+                partType = SpeakingPart.PART_3;
+              }
+            }
+          } catch (e) {
+            this.logger.warn(
+              `Failed to parse exercise content for part type: ${e}`,
+            );
+          }
+        }
+
+        // Fallback: Try to determine from question_group title
+        if (
+          partType === SpeakingPart.PART_1 &&
+          questionFromDb?.question_groups?.[0]?.group_title
+        ) {
+          const groupTitle =
+            questionFromDb.question_groups[0].group_title.toLowerCase();
+          if (
+            groupTitle.includes('part 2') ||
+            groupTitle.includes('part2') ||
+            groupTitle.includes('long turn')
+          ) {
+            partType = SpeakingPart.PART_2;
+          } else if (
+            groupTitle.includes('part 3') ||
+            groupTitle.includes('part3') ||
+            groupTitle.includes('discussion')
+          ) {
+            partType = SpeakingPart.PART_3;
+          } else if (
+            groupTitle.includes('part 1') ||
+            groupTitle.includes('part1') ||
+            groupTitle.includes('introduction')
+          ) {
+            partType = SpeakingPart.PART_1;
+          }
+        }
+
+        // Final fallback: Use question ordering (less accurate but better than nothing)
+        if (partType === SpeakingPart.PART_1) {
+          const questionIndex = audioData.findIndex(
+            (item) => item.question_id === audioItem.question_id,
+          );
+          if (questionIndex >= 3 && questionIndex < 6) {
+            partType = SpeakingPart.PART_2;
+          } else if (questionIndex >= 6) {
+            partType = SpeakingPart.PART_3;
+          }
+        }
+
+        // Build context string if audio_url or group_instruction exists
+        let contextString = '';
+        if (questionAudioUrl) {
+          contextString += `Audio prompt available at: ${questionAudioUrl}. `;
+        }
+        if (groupInstruction && groupInstruction !== questionText) {
+          contextString += `Additional context: ${groupInstruction}`;
         }
 
         // Grade the question
@@ -825,7 +935,8 @@ export class MockTestsService {
           partType,
           questions: [
             {
-              question: audioItem.question_text,
+              question: questionText,
+              context: contextString || undefined,
             },
           ],
           targetDuration:
@@ -912,17 +1023,82 @@ export class MockTestsService {
           continue;
         }
 
-        // Determine part type from question ordering
-        const questionIndex = audioData.findIndex(
-          (item) => item.question_id === result.question_id,
-        );
+        // Determine part type from question in DB (same logic as above)
+        const questionFromDb = questionMap.get(result.question_id);
         let partType: SpeakingPart = SpeakingPart.PART_1;
-        if (questionIndex >= 0 && questionIndex < 3) {
-          partType = SpeakingPart.PART_1;
-        } else if (questionIndex >= 3 && questionIndex < 6) {
-          partType = SpeakingPart.PART_2;
-        } else {
-          partType = SpeakingPart.PART_3;
+
+        // Try to get from exercise content first
+        if (questionFromDb?.exercises?.content) {
+          try {
+            const exerciseContent =
+              typeof questionFromDb.exercises.content === 'string'
+                ? JSON.parse(questionFromDb.exercises.content)
+                : questionFromDb.exercises.content;
+            const contentPartType =
+              exerciseContent.partType || exerciseContent.part_type;
+            if (contentPartType) {
+              if (
+                contentPartType === 'part_1' ||
+                contentPartType === 'Part 1'
+              ) {
+                partType = SpeakingPart.PART_1;
+              } else if (
+                contentPartType === 'part_2' ||
+                contentPartType === 'Part 2'
+              ) {
+                partType = SpeakingPart.PART_2;
+              } else if (
+                contentPartType === 'part_3' ||
+                contentPartType === 'Part 3'
+              ) {
+                partType = SpeakingPart.PART_3;
+              }
+            }
+          } catch (e) {
+            this.logger.warn(
+              `Failed to parse exercise content for part type: ${e}`,
+            );
+          }
+        }
+
+        // Fallback: Try to determine from question_group title
+        if (
+          partType === SpeakingPart.PART_1 &&
+          questionFromDb?.question_groups?.[0]?.group_title
+        ) {
+          const groupTitle =
+            questionFromDb.question_groups[0].group_title.toLowerCase();
+          if (
+            groupTitle.includes('part 2') ||
+            groupTitle.includes('part2') ||
+            groupTitle.includes('long turn')
+          ) {
+            partType = SpeakingPart.PART_2;
+          } else if (
+            groupTitle.includes('part 3') ||
+            groupTitle.includes('part3') ||
+            groupTitle.includes('discussion')
+          ) {
+            partType = SpeakingPart.PART_3;
+          } else if (
+            groupTitle.includes('part 1') ||
+            groupTitle.includes('part1') ||
+            groupTitle.includes('introduction')
+          ) {
+            partType = SpeakingPart.PART_1;
+          }
+        }
+
+        // Final fallback: Use question ordering
+        if (partType === SpeakingPart.PART_1) {
+          const questionIndex = audioData.findIndex(
+            (item) => item.question_id === result.question_id,
+          );
+          if (questionIndex >= 3 && questionIndex < 6) {
+            partType = SpeakingPart.PART_2;
+          } else if (questionIndex >= 6) {
+            partType = SpeakingPart.PART_3;
+          }
         }
 
         partResults[partType].results.push(result);
@@ -1267,6 +1443,7 @@ export class MockTestsService {
           select: {
             id: true,
             image_url: true,
+            group_instruction: true,
           },
         },
         exercises: {
@@ -1511,9 +1688,15 @@ export class MockTestsService {
           undefined;
       }
 
+      // Get question text from question.question_text or question_groups.group_instruction
+      const questionText =
+        task1Question.question_text ||
+        task1Question.question_groups?.[0]?.group_instruction ||
+        'Writing Task 1';
+
       const gradeDto: GradeWritingDto = {
         studentAnswer: task1Answer,
-        question: task1Question.question_text,
+        question: questionText,
         taskType: WritingTaskType.TASK_1,
         wordLimit: '150-200 words',
         imageUrl: imageUrl || undefined, // Optional - only for Task 1
@@ -1530,9 +1713,15 @@ export class MockTestsService {
     }
 
     if (task2Question && task2Answer.trim().length > 0) {
+      // Get question text from question.question_text or question_groups.group_instruction
+      const questionText =
+        task2Question.question_text ||
+        task2Question.question_groups?.[0]?.group_instruction ||
+        'Writing Task 2';
+
       const gradeDto: GradeWritingDto = {
         studentAnswer: task2Answer,
-        question: task2Question.question_text,
+        question: questionText,
         taskType: WritingTaskType.TASK_2,
         wordLimit: '250+ words',
       };

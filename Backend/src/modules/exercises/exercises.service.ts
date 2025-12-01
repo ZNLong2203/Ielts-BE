@@ -911,7 +911,7 @@ export class ExerciseService {
         deleted: false,
       },
     });
-    
+
     if (!exercise) {
       throw new NotFoundException('Exercise not found');
     }
@@ -1057,10 +1057,12 @@ export class ExerciseService {
       `Final grading summary: correctCount=${correctCount}, totalQuestions=${questions.length}`,
     );
     this.logger.log(`questionResults object:`, questionResults);
-    
+
     // Log each question result
     Object.entries(questionResults).forEach(([qId, isCorrect]) => {
-      this.logger.log(`  - Question ${qId}: ${isCorrect ? 'CORRECT' : 'INCORRECT'}`);
+      this.logger.log(
+        `  - Question ${qId}: ${isCorrect ? 'CORRECT' : 'INCORRECT'}`,
+      );
     });
 
     // Calculate score percentage

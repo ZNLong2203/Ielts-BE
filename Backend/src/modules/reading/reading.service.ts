@@ -634,8 +634,111 @@ export class ReadingService {
   private extractPassageInfo(
     content: any,
   ): ReadingExerciseContent['reading_passage'] {
-    const parsedContent = content as ReadingExerciseContent;
-    return parsedContent?.reading_passage || null;
+    // Default empty passage
+    const defaultPassage: ReadingExerciseContent['reading_passage'] = {
+      title: '',
+      content: '',
+      paragraphs: [],
+      word_count: 0,
+      difficulty_level: 5.0,
+      estimated_reading_time: 0,
+    };
+
+    if (!content) {
+      return defaultPassage;
+    }
+
+    // Parse JSON string if needed
+    let parsedContent: any;
+    if (typeof content === 'string') {
+      try {
+        parsedContent = JSON.parse(content);
+      } catch (e) {
+        this.logger.warn('Failed to parse exercise content as JSON string:', e);
+        return defaultPassage;
+      }
+    } else {
+      parsedContent = content;
+    }
+
+    // Extract reading_passage from parsed content
+    // Support both new format (reading_passage) and old format (passage)
+    let readingPassage = parsedContent?.reading_passage;
+    
+    // Backward compatibility: handle old format with "passage" field
+    if (!readingPassage && parsedContent?.passage) {
+      // Old format: {"passage": "text with \n\nA\n\n...B\n\n..."}
+      const passageText = typeof parsedContent.passage === 'string' 
+        ? parsedContent.passage 
+        : '';
+      
+      // Split by paragraph markers (A, B, C, etc. on new lines)
+      const paragraphRegex = /\n\n([A-Z])\n\n/g;
+      const matches = [...passageText.matchAll(paragraphRegex)];
+      
+      if (matches.length > 0) {
+        // Extract title (first line before first paragraph)
+        const firstMatchIndex = passageText.indexOf(matches[0][0]);
+        const title = passageText.substring(0, firstMatchIndex).trim();
+        
+        // Extract paragraphs
+        const paragraphs: any[] = [];
+        for (let i = 0; i < matches.length; i++) {
+          const label = matches[i][1];
+          const startIndex = matches[i].index! + matches[i][0].length;
+          const endIndex = i < matches.length - 1 
+            ? matches[i + 1].index! 
+            : passageText.length;
+          const content = passageText.substring(startIndex, endIndex).trim();
+          
+          paragraphs.push({
+            id: `para-${i + 1}`,
+            label: label,
+            content: content,
+          });
+        }
+        
+        // Combine all content
+        const fullContent = passageText.replace(/\n\n[A-Z]\n\n/g, '\n\n').trim();
+        
+        readingPassage = {
+          title: title || 'Reading Passage',
+          content: fullContent,
+          paragraphs: paragraphs,
+        };
+      } else {
+        // No paragraph markers, treat as single paragraph
+        const lines = passageText.split('\n\n');
+        const title = lines[0] || 'Reading Passage';
+        const content = passageText;
+        
+        readingPassage = {
+          title: title,
+          content: content,
+          paragraphs: [{
+            id: 'para-1',
+            label: 'A',
+            content: content,
+          }],
+        };
+      }
+    }
+    
+    if (!readingPassage) {
+      return defaultPassage;
+    }
+
+    // Ensure all required fields exist with defaults
+    return {
+      title: readingPassage.title || '',
+      content: readingPassage.content || '',
+      paragraphs: readingPassage.paragraphs || [],
+      word_count: readingPassage.word_count || this.calculateWordCount(readingPassage.content || ''),
+      difficulty_level: readingPassage.difficulty_level || 5.0,
+      estimated_reading_time: readingPassage.estimated_reading_time || this.calculateReadingTime(
+        readingPassage.word_count || this.calculateWordCount(readingPassage.content || '')
+      ),
+    };
   }
 
   private mapQuestionToDetails(question: QuestionDetails): QuestionWithDetails {

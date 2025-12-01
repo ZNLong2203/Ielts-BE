@@ -183,7 +183,9 @@ export class SpeakingController {
   async getSpeakingExercisesByTestSection(
     @Param('testSectionId') testSectionId: string,
   ) {
-    return this.speakingService.getExercisesByTestSectionForMockTest(testSectionId);
+    return this.speakingService.getExercisesByTestSectionForMockTest(
+      testSectionId,
+    );
   }
 
   @Get('mock-test/:id')

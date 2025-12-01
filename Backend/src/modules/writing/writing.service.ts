@@ -576,6 +576,7 @@ export class WritingService {
       );
     }
 
+    // Create exercise with minimal content (for backward compatibility)
     const exerciseContent: WritingContent = {
       taskType: createDto.task_type,
       questionType: createDto.question_type,
@@ -583,45 +584,78 @@ export class WritingService {
       questionImage: createDto.question_image,
       questionChart: createDto.question_chart,
       wordLimit: createDto.word_limit,
-      keywords: createDto.keywords,
-      sampleAnswers: createDto.sample_answers,
     };
 
-    const exercise = await this.prisma.prisma.exercises.create({
-      data: {
-        test_section_id: createDto.test_section_id,
-        lesson_id: null, // Mock test exercise doesn't belong to lesson
-        title: createDto.title,
-        instruction: createDto.instruction || '',
-        content: exerciseContent as unknown as Prisma.JsonObject,
-        exercise_type: EXERCISE_TYPE.MOCK_TEST,
-        skill_type: SKILL_TYPE.WRITING,
-        time_limit: createDto.time_limit || 20,
-        max_attempts: 1, // Mock tests typically allow 1 attempt
-        passing_score: createDto.passing_score || 70,
-        ordering: createDto.ordering || 0,
-        is_active: true,
-      },
-      include: {
-        test_sections: {
-          include: {
-            mock_tests: {
-              select: {
-                id: true,
-                title: true,
-                test_type: true,
+    const exercise = await this.prisma.prisma.$transaction(async (tx) => {
+      // Create exercise
+      const createdExercise = await tx.exercises.create({
+        data: {
+          test_section_id: createDto.test_section_id,
+          lesson_id: null, // Mock test exercise doesn't belong to lesson
+          title: createDto.title,
+          instruction: createDto.instruction || '',
+          content: exerciseContent as unknown as Prisma.JsonObject,
+          exercise_type: EXERCISE_TYPE.MOCK_TEST,
+          skill_type: SKILL_TYPE.WRITING,
+          time_limit: createDto.time_limit || 20,
+          max_attempts: 1, // Mock tests typically allow 1 attempt
+          passing_score: createDto.passing_score || 70,
+          ordering: createDto.ordering || 0,
+          is_active: true,
+        },
+      });
+
+      // Create question group with question_text as group_instruction
+      const questionGroup = await tx.question_groups.create({
+        data: {
+          exercise_id: createdExercise.id,
+          group_title: createDto.task_type === 'task_1' ? 'Task 1' : 'Task 2',
+          group_instruction: createDto.question_text || '',
+          question_type: createDto.question_type || 'essay',
+          image_url: createDto.question_image || null,
+          ordering: 1,
+          question_range: '1',
+          correct_answer_count: 1,
+        },
+      });
+
+      // Create a question for the writing task
+      await tx.questions.create({
+        data: {
+          exercise_id: createdExercise.id,
+          question_group_id: questionGroup.id,
+          question_text: createDto.question_text || '',
+          question_type: createDto.question_type || 'essay',
+          image_url: createDto.question_image || null,
+          points: 0, // Writing questions don't have points
+          ordering: 1,
+        },
+      });
+
+      // Return exercise with includes
+      return await tx.exercises.findUniqueOrThrow({
+        where: { id: createdExercise.id },
+        include: {
+          test_sections: {
+            include: {
+              mock_tests: {
+                select: {
+                  id: true,
+                  title: true,
+                  test_type: true,
+                },
+              },
+            },
+          },
+          _count: {
+            select: {
+              questions: {
+                where: { deleted: false },
               },
             },
           },
         },
-        _count: {
-          select: {
-            questions: {
-              where: { deleted: false },
-            },
-          },
-        },
-      },
+      });
     });
 
     this.logger.log(
@@ -717,11 +751,27 @@ export class WritingService {
       throw new NotFoundException('Writing exercise not found');
     }
 
+    // Get question groups with questions
+    const questionGroups = await this.prisma.prisma.question_groups.findMany({
+      where: {
+        exercise_id: id,
+        deleted: false,
+      },
+      include: {
+        questions: {
+          where: { deleted: false },
+          orderBy: { ordering: 'asc' },
+        },
+      },
+      orderBy: { ordering: 'asc' },
+    });
+
     const content = exercise.content as WritingContent;
 
     return {
       ...exercise,
       writing_content: content,
+      question_groups: questionGroups,
     };
   }
 
@@ -772,41 +822,124 @@ export class WritingService {
       questionImage: updateDto.question_image || existingContent.questionImage,
       questionChart: updateDto.question_chart || existingContent.questionChart,
       wordLimit: updateDto.word_limit || existingContent.wordLimit,
-      keywords: updateDto.keywords || existingContent.keywords,
-      sampleAnswers: updateDto.sample_answers || existingContent.sampleAnswers,
     };
 
-    const exercise = await this.prisma.prisma.exercises.update({
-      where: { id },
-      data: {
-        title: updateDto.title,
-        instruction: updateDto.instruction,
-        content: updatedContent as unknown as Prisma.JsonObject,
-        time_limit: updateDto.time_limit,
-        passing_score: updateDto.passing_score,
-        ordering: updateDto.ordering,
-        updated_at: new Date(),
-      },
-      include: {
-        test_sections: {
-          include: {
-            mock_tests: {
-              select: {
-                id: true,
-                title: true,
-                test_type: true,
+    const exercise = await this.prisma.prisma.$transaction(async (tx) => {
+      // Update exercise
+      const updatedExercise = await tx.exercises.update({
+        where: { id },
+        data: {
+          title: updateDto.title,
+          instruction: updateDto.instruction,
+          content: updatedContent as unknown as Prisma.JsonObject,
+          time_limit: updateDto.time_limit,
+          passing_score: updateDto.passing_score,
+          ordering: updateDto.ordering,
+          updated_at: new Date(),
+        },
+      });
+
+      // Update or create question group and question
+      const questionGroup = await tx.question_groups.findFirst({
+        where: {
+          exercise_id: id,
+          deleted: false,
+        },
+      });
+
+      const questionText =
+        updateDto.question_text || existingContent.questionText || '';
+      const taskType =
+        updateDto.task_type || existingContent.taskType || 'task_1';
+      const questionType =
+        updateDto.question_type || existingContent.questionType || 'essay';
+      const questionImage =
+        updateDto.question_image || existingContent.questionImage;
+
+      if (questionGroup) {
+        // Update existing question group
+        await tx.question_groups.update({
+          where: { id: questionGroup.id },
+          data: {
+            group_title: taskType === 'task_1' ? 'Task 1' : 'Task 2',
+            group_instruction: questionText,
+            question_type: questionType,
+            image_url: questionImage || null,
+            updated_at: new Date(),
+          },
+        });
+
+        // Update existing question
+        const existingQuestion = await tx.questions.findFirst({
+          where: {
+            question_group_id: questionGroup.id,
+            deleted: false,
+          },
+        });
+
+        if (existingQuestion) {
+          await tx.questions.update({
+            where: { id: existingQuestion.id },
+            data: {
+              question_text: questionText,
+              question_type: questionType,
+              image_url: questionImage || null,
+              updated_at: new Date(),
+            },
+          });
+        }
+      } else {
+        // Create new question group and question if they don't exist
+        const newQuestionGroup = await tx.question_groups.create({
+          data: {
+            exercise_id: id,
+            group_title: taskType === 'task_1' ? 'Task 1' : 'Task 2',
+            group_instruction: questionText,
+            question_type: questionType,
+            image_url: questionImage || null,
+            ordering: 1,
+            question_range: '1',
+            correct_answer_count: 1,
+          },
+        });
+
+        await tx.questions.create({
+          data: {
+            exercise_id: id,
+            question_group_id: newQuestionGroup.id,
+            question_text: questionText,
+            question_type: questionType,
+            image_url: questionImage || null,
+            points: 0,
+            ordering: 1,
+          },
+        });
+      }
+
+      // Return exercise with includes
+      return await tx.exercises.findUniqueOrThrow({
+        where: { id },
+        include: {
+          test_sections: {
+            include: {
+              mock_tests: {
+                select: {
+                  id: true,
+                  title: true,
+                  test_type: true,
+                },
+              },
+            },
+          },
+          _count: {
+            select: {
+              questions: {
+                where: { deleted: false },
               },
             },
           },
         },
-        _count: {
-          select: {
-            questions: {
-              where: { deleted: false },
-            },
-          },
-        },
-      },
+      });
     });
 
     this.logger.log(`Updated writing exercise: ${id}`);
