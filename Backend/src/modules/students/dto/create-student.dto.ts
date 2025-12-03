@@ -55,14 +55,6 @@ export class CreateStudentDto {
   learning_goals?: string[];
 
   @ApiPropertyOptional({
-    description: 'Timezone',
-    example: 'Asia/Ho_Chi_Minh',
-  })
-  @IsString()
-  @IsOptional()
-  timezone?: string;
-
-  @ApiPropertyOptional({
     enum: STUDENT_LANGUAGE,
     description: 'Preferred language for communication',
     default: STUDENT_LANGUAGE.VIETNAMESE,

@@ -8,15 +8,15 @@ INSERT INTO users (id, email, password, role, full_name, avatar, phone, date_of_
 ('550e8400-e29b-41d4-a716-446655440006', 'student3@ielts.com', '$2b$10$VYYuSuvbfSmy6q31szEedOBdiMNdfj1SScLikL3jE4kGTnWt3Z8CO', 'student', 'Le Van C', '/images/default_image.jpg', '+84934567890', '1996-11-30', 'male', 'Vietnam', 'Da Nang', 'active', TRUE);
 
 -- Insert sample students
-INSERT INTO students (id, user_id, bio, target_ielts_score, current_level, learning_goals, timezone, language_preference) VALUES
-('450e8400-e29b-41d4-a716-446655440001', '550e8400-e29b-41d4-a716-446655440004', 'Aspiring to study abroad in Australia', 7.5, 5.5, ARRAY['Academic IELTS', 'University Application', 'Writing Improvement'], 'Asia/Ho_Chi_Minh', 'vi'),
-('450e8400-e29b-41d4-a716-446655440002', '550e8400-e29b-41d4-a716-446655440005', 'Working professional seeking IELTS certification', 7.0, 6.0, ARRAY['General Training', 'Immigration', 'Speaking Confidence'], 'Asia/Ho_Chi_Minh', 'vi'),
-('450e8400-e29b-41d4-a716-446655440003', '550e8400-e29b-41d4-a716-446655440006', 'Fresh graduate planning to work overseas', 8.0, 6.5, ARRAY['Academic IELTS', 'Band 8 Achievement', 'All Skills'], 'Asia/Ho_Chi_Minh', 'vi');
+INSERT INTO students (id, user_id, bio, target_ielts_score, current_level, learning_goals, language_preference) VALUES
+('450e8400-e29b-41d4-a716-446655440001', '550e8400-e29b-41d4-a716-446655440004', 'Aspiring to study abroad in Australia', 7.5, 5.5, ARRAY['Academic IELTS', 'University Application', 'Writing Improvement'], 'vi'),
+('450e8400-e29b-41d4-a716-446655440002', '550e8400-e29b-41d4-a716-446655440005', 'Working professional seeking IELTS certification', 7.0, 6.0, ARRAY['General Training', 'Immigration', 'Speaking Confidence'], 'vi'),
+('450e8400-e29b-41d4-a716-446655440003', '550e8400-e29b-41d4-a716-446655440006', 'Fresh graduate planning to work overseas', 8.0, 6.5, ARRAY['Academic IELTS', 'Band 8 Achievement', 'All Skills'], 'vi');
 
 -- Insert sample teachersx
-INSERT INTO teachers (id, user_id, qualification, experience_years, specializations, ielts_band_score, certificate_urls, teaching_style, hourly_rate, rating, total_students, total_courses, status) VALUES
-('350e8400-e29b-41d4-a716-446655440001', '550e8400-e29b-41d4-a716-446655440002', 'TESOL Certified, Masters in Applied Linguistics', 8, ARRAY['reading', 'writing', 'general'], 8.5, ARRAY['/images/default_image.jpg', '/images/default_image.jpg'], 'Interactive and practical approach with real-world examples', 500000, 4.8, 120, 6, 'approved'),
-('350e8400-e29b-41d4-a716-446655440002', '550e8400-e29b-41d4-a716-446655440003', 'CELTA Certified, 10+ years teaching experience', 12, ARRAY['speaking', 'listening', 'general'], 9.0, ARRAY['/images/default_image.jpg'], 'Conversation-focused methodology with confidence building', 600000, 4.9, 95, 4, 'approved');
+INSERT INTO teachers (id, user_id, qualification, experience_years, specializations, ielts_band_score, certificate_urls, teaching_style, hourly_rate, rating, status) VALUES
+('350e8400-e29b-41d4-a716-446655440001', '550e8400-e29b-41d4-a716-446655440002', 'TESOL Certified, Masters in Applied Linguistics', 8, ARRAY['reading', 'writing', 'general'], 8.5, ARRAY['/images/default_image.jpg', '/images/default_image.jpg'], 'Interactive and practical approach with real-world examples', 500000, 4.8, 'approved'),
+('350e8400-e29b-41d4-a716-446655440002', '550e8400-e29b-41d4-a716-446655440003', 'CELTA Certified, 10+ years teaching experience', 12, ARRAY['speaking', 'listening', 'general'], 9.0, ARRAY['/images/default_image.jpg'], 'Conversation-focused methodology with confidence building', 600000, 4.9, 'approved');
 
 -- Insert sample course categories
 INSERT INTO course_categories (id, name, description, icon, ordering, is_active) VALUES

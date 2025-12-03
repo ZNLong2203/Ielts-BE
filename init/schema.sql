@@ -15,8 +15,6 @@ CREATE TABLE users (
     email_verification_token VARCHAR(255),
     password_reset_token VARCHAR(255),
     password_reset_expires TIMESTAMP,
-    last_login TIMESTAMP,
-    login_count INTEGER DEFAULT 0,
     deleted BOOLEAN DEFAULT FALSE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
@@ -29,7 +27,6 @@ CREATE TABLE students (
     target_ielts_score DECIMAL(2,1), -- target IELTS band score
     current_level DECIMAL(2,1), -- current IELTS band score
     learning_goals TEXT[],
-    timezone VARCHAR(50),
     language_preference VARCHAR(10) DEFAULT 'vi',
     deleted BOOLEAN DEFAULT FALSE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -48,8 +45,6 @@ CREATE TABLE teachers (
     hourly_rate DECIMAL(10,2),
     availability JSONB, -- schedule availability
     rating DECIMAL(2,1) DEFAULT 0,
-    total_students INTEGER DEFAULT 0,
-    total_courses INTEGER DEFAULT 0,
     status TEXT DEFAULT 'pending', -- pending, approved, rejected, inactive
     deleted BOOLEAN DEFAULT FALSE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,

@@ -24,8 +24,6 @@ model users {
   email_verification_token String?               @db.VarChar(255)
   password_reset_token     String?               @db.VarChar(255)
   password_reset_expires   DateTime?             @db.Timestamp(6)
-  last_login               DateTime?             @db.Timestamp(6)
-  login_count              Int?                  @default(0)
   deleted                  Boolean?              @default(false)
   created_at               DateTime?             @default(now()) @db.Timestamp(6)
   updated_at               DateTime?             @default(now()) @db.Timestamp(6)
@@ -432,8 +430,6 @@ model teachers {
   hourly_rate      Decimal?           @db.Decimal(10, 2)
   availability     Json?
   rating           Decimal?           @default(0) @db.Decimal(2, 1)
-  total_students   Int?               @default(0)
-  total_courses    Int?               @default(0)
   status           String?            @default("pending")
   deleted          Boolean?           @default(false)
   created_at       DateTime?          @default(now()) @db.Timestamp(6)
@@ -524,7 +520,6 @@ model students {
   target_ielts_score  Decimal?  @db.Decimal(2, 1)
   current_level       Decimal?  @db.Decimal(2, 1)
   learning_goals      String[]
-  timezone            String?   @db.VarChar(50)
   language_preference String?   @default("vi") @db.VarChar(10)
   deleted             Boolean?  @default(false)
   created_at          DateTime? @default(now()) @db.Timestamp(6)
