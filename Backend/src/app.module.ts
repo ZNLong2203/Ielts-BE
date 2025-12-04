@@ -3,6 +3,7 @@ import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { APP_GUARD } from '@nestjs/core';
 import { PermissionGuard } from 'src/casl/guards/permission.guard';
+import { AdminDashboardModule } from 'src/modules/admin-dashboard/admin-dashboard.module';
 import { JwtAuthGuard } from 'src/modules/auth/guards/jwt-auth.guard';
 import { CouponsModule } from 'src/modules/coupons/coupons.module';
 import { MockTestsModule } from 'src/modules/mock-tests/mock-tests.module';
@@ -96,6 +97,7 @@ import { UtilsModule } from './utils/utils.module';
     StudyScheduleModule,
     NotificationModule,
     GradingModule,
+    AdminDashboardModule,
   ],
   controllers: [AppController, DatabaseController],
   providers: [
