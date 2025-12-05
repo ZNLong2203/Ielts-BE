@@ -93,4 +93,35 @@ export class MailService {
       throw error;
     }
   }
+
+  async sendWritingGradingComplete(data: {
+    to: string;
+    userName: string;
+    testTitle: string;
+    bandScore: number;
+    testResultId: string;
+  }) {
+    try {
+      const resultUrl = `${this.dashboardUrl}/my-quizzes/${data.testResultId}`;
+      
+      await this.mailerService.sendMail({
+        to: data.to,
+        subject: `Your Writing Test Has Been Graded - Band Score: ${data.bandScore}`,
+        template: 'writing-grading-complete',
+        context: {
+          userName: data.userName,
+          testTitle: data.testTitle,
+          bandScore: data.bandScore,
+          resultUrl,
+          dashboardUrl: this.dashboardUrl,
+        },
+      });
+
+      this.logger.log(`Writing grading complete email sent to ${data.to}`);
+    } catch (error) {
+      const e = error as Error;
+      this.logger.error(`Failed to send writing grading email to ${data.to}: ${e.message}`);
+      throw error;
+    }
+  }
 }

@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Your Writing Test Has Been Graded</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+      line-height: 1.6;
+      color: #333;
+      max-width: 600px;
+      margin: 0 auto;
+      padding: 20px;
+      background-color: #f5f5f5;
+    }
+    .container {
+      background-color: #ffffff;
+      border-radius: 8px;
+      padding: 30px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    .header {
+      text-align: center;
+      margin-bottom: 30px;
+      padding-bottom: 20px;
+      border-bottom: 2px solid #4CAF50;
+    }
+    .header h1 {
+      color: #4CAF50;
+      margin: 0;
+      font-size: 24px;
+    }
+    .content {
+      margin-bottom: 30px;
+    }
+    .greeting {
+      font-size: 16px;
+      margin-bottom: 20px;
+    }
+    .score-box {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 25px;
+      border-radius: 8px;
+      text-align: center;
+      margin: 25px 0;
+    }
+    .score-box .score-label {
+      font-size: 14px;
+      opacity: 0.9;
+      margin-bottom: 10px;
+    }
+    .score-box .score-value {
+      font-size: 48px;
+      font-weight: bold;
+      margin: 10px 0;
+    }
+    .info-section {
+      background-color: #f8f9fa;
+      padding: 20px;
+      border-radius: 8px;
+      margin: 20px 0;
+    }
+    .info-section h3 {
+      margin-top: 0;
+      color: #333;
+      font-size: 18px;
+    }
+    .info-item {
+      margin: 10px 0;
+      padding: 8px 0;
+      border-bottom: 1px solid #e0e0e0;
+    }
+    .info-item:last-child {
+      border-bottom: none;
+    }
+    .info-label {
+      font-weight: 600;
+      color: #666;
+      display: inline-block;
+      width: 150px;
+    }
+    .info-value {
+      color: #333;
+    }
+    .button {
+      display: inline-block;
+      padding: 12px 30px;
+      background-color: #4CAF50;
+      color: white;
+      text-decoration: none;
+      border-radius: 5px;
+      font-weight: 600;
+      margin: 20px 0;
+      text-align: center;
+    }
+    .button:hover {
+      background-color: #45a049;
+    }
+    .footer {
+      text-align: center;
+      margin-top: 30px;
+      padding-top: 20px;
+      border-top: 1px solid #e0e0e0;
+      color: #666;
+      font-size: 14px;
+    }
+    .footer a {
+      color: #4CAF50;
+      text-decoration: none;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>🎉 Your Writing Test Has Been Graded!</h1>
+    </div>
+    
+    <div class="content">
+      <div class="greeting">
+        <p>Hello {{userName}},</p>
+        <p>Great news! Your writing test has been reviewed and graded by one of our experienced IELTS teachers.</p>
+      </div>
+
+      <div class="score-box">
+        <div class="score-label">Your Writing Band Score</div>
+        <div class="score-value">{{bandScore}}</div>
+      </div>
+
+      <div class="info-section">
+        <h3>Test Information</h3>
+        <div class="info-item">
+          <span class="info-label">Test:</span>
+          <span class="info-value">{{testTitle}}</span>
+        </div>
+        <div class="info-item">
+          <span class="info-label">Band Score:</span>
+          <span class="info-value">{{bandScore}}</span>
+        </div>
+      </div>
+
+      <div style="text-align: center; margin: 30px 0;">
+        <a href="{{resultUrl}}" class="button">View Detailed Results</a>
+      </div>
+
+      <p style="color: #666; font-size: 14px; margin-top: 25px;">
+        You can now view your detailed results, including feedback from your teacher, task-by-task scores, and suggestions for improvement.
+      </p>
+    </div>
+
+    <div class="footer">
+      <p>Thank you for using our IELTS platform!</p>
+      <p>
+        <a href="{{dashboardUrl}}">Visit Dashboard</a> | 
+        <a href="{{dashboardUrl}}/my-quizzes">My Tests</a>
+      </p>
+      <p style="margin-top: 15px; font-size: 12px; color: #999;">
+        This is an automated email. Please do not reply to this message.
+      </p>
+    </div>
+  </div>
+</body>
+</html>
+

@@ -40,13 +40,15 @@ model users {
   notifications            notifications[]
   orders                   orders[]
   section_progress         section_progress[]
+  section_results_graded   section_results[]     @relation("SectionResultGradedBy")
   students                 students?
   study_reminders          study_reminders[]
   study_schedules          study_schedules[]
   teachers                 teachers?
   test_results             test_results[]
   user_progress            user_progress[]
-  user_submissions         user_submissions[]
+  user_submissions_graded  user_submissions[]    @relation("UserSubmissionsGradedBy")
+  user_submissions         user_submissions[]    @relation("UserSubmissionsUser")
   writing_assessments      writing_assessments[]
 
   @@index([email], map: "idx_users_email")
@@ -419,25 +421,23 @@ model questions {
 }
 
 model teachers {
-  id               String             @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  user_id          String?            @unique @db.Uuid
+  id               String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id          String?   @unique @db.Uuid
   qualification    String?
   experience_years Int?
   specializations  String[]
-  ielts_band_score Decimal?           @db.Decimal(2, 1)
+  ielts_band_score Decimal?  @db.Decimal(2, 1)
   certificate_urls String[]
   teaching_style   String?
-  hourly_rate      Decimal?           @db.Decimal(10, 2)
+  hourly_rate      Decimal?  @db.Decimal(10, 2)
   availability     Json?
-  rating           Decimal?           @default(0) @db.Decimal(2, 1)
-  status           String?            @default("pending")
-  deleted          Boolean?           @default(false)
-  created_at       DateTime?          @default(now()) @db.Timestamp(6)
-  updated_at       DateTime?          @default(now()) @db.Timestamp(6)
+  rating           Decimal?  @default(0) @db.Decimal(2, 1)
+  status           String?   @default("pending")
+  deleted          Boolean?  @default(false)
+  created_at       DateTime? @default(now()) @db.Timestamp(6)
+  updated_at       DateTime? @default(now()) @db.Timestamp(6)
   courses          courses[]
-  section_results  section_results[]
-  users            users?             @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
-  user_submissions user_submissions[]
+  users            users?    @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
 }
 
 model test_results {
@@ -509,8 +509,8 @@ model user_submissions {
   updated_at       DateTime?          @default(now()) @db.Timestamp(6)
   question_answers question_answers[]
   exercises        exercises?         @relation(fields: [exercise_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
-  teachers         teachers?          @relation(fields: [graded_by], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  users            users?             @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  graded_by_user   users?             @relation("UserSubmissionsGradedBy", fields: [graded_by], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  users            users?             @relation("UserSubmissionsUser", fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
 }
 
 model students {
@@ -624,7 +624,7 @@ model section_results {
   deleted          Boolean?       @default(false)
   created_at       DateTime?      @default(now()) @db.Timestamp(6)
   updated_at       DateTime?      @default(now()) @db.Timestamp(6)
-  teachers         teachers?      @relation(fields: [graded_by], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  users            users?         @relation("SectionResultGradedBy", fields: [graded_by], references: [id], onDelete: NoAction, onUpdate: NoAction)
   test_results     test_results?  @relation(fields: [test_result_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
   test_sections    test_sections? @relation(fields: [test_section_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
 }

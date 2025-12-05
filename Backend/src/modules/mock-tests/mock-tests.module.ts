@@ -7,6 +7,7 @@ import { GradingModule } from 'src/modules/grading/grading.module';
 import { SpeakingModule } from 'src/modules/speaking/speaking.module';
 import { FilesModule } from 'src/modules/files/files.module';
 import { WritingModule } from 'src/modules/writing/writing.module';
+import { MailModule } from 'src/modules/mail/mail.module';
 
 @Module({
   imports: [
@@ -16,6 +17,7 @@ import { WritingModule } from 'src/modules/writing/writing.module';
     SpeakingModule,
     FilesModule,
     WritingModule,
+    MailModule,
   ],
   controllers: [MockTestsController],
   providers: [MockTestsService],

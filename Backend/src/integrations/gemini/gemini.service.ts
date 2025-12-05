@@ -274,7 +274,7 @@ export class GeminiService {
         : 'Task 2: Academic Writing - Write an essay responding to a point of view, argument or problem';
 
     return `
-    You are an IELTS Writing examiner. Please grade this ${taskInstructions} response according to IELTS Writing band descriptors (Band 0-9).
+    You are an IELTS Writing examiner. Please grade this ${taskInstructions} response according to the official IELTS Writing band descriptors (Band 0-9).
 
     QUESTION: ${question}
 
@@ -397,39 +397,72 @@ export class GeminiService {
      "sampleAnswer": "[A sample high-quality answer to this question]"
    }
 
-   CRITICAL SCORING INSTRUCTIONS:
-   You MUST evaluate each of the 4 criteria INDEPENDENTLY. Each criterion can have a DIFFERENT score. Do NOT assign the same score to all criteria unless the performance is truly identical across all areas.
+   SCORING INSTRUCTIONS - FOLLOW IELTS BAND DESCRIPTORS:
+   
+   You must evaluate each of the 4 criteria independently using official IELTS band descriptors. Each criterion can have a different score. Do not assign the same score to all criteria unless the performance is truly identical across all areas.
+   
+   STRICT SCORING GUIDELINES (Based on Official IELTS Band Descriptors):
    
    1. Task Achievement (Task 1) / Task Response (Task 2): 
-      - Task 1: How well the student describes the visual information, makes comparisons, and highlights key features
-      - Task 2: How well the student addresses all parts of the question, presents a clear position, and develops ideas
-      - Score independently based on task-specific performance
+      - Task 1: 
+        * Band 9: Fully satisfies all requirements; presents a clear overview; key features are clearly highlighted
+        * Band 7: Covers requirements; presents a clear overview; key features are clearly presented
+        * Band 6: Addresses requirements; presents an overview with information appropriately selected
+        * Band 5: Generally addresses the task; format may be inappropriate; may lack clear overview
+        * Band 4: Attempts to address the task; may not present a clear overview; key features may be inadequately covered
+        * Band 3 and below: Does not adequately address any part of the task; fails to communicate any message
+      - Task 2:
+        * Band 9: Fully addresses all parts; presents a fully developed position; extends and supports main ideas
+        * Band 7: Addresses all parts; presents a clear position; presents, extends and supports main ideas
+        * Band 6: Addresses all parts; presents a relevant position; presents relevant main ideas
+        * Band 5: Addresses the task only partially; presents a position but development is not always clear
+        * Band 4: Responds to the task only in a minimal way; position is unclear
+        * Band 3 and below: Does not adequately address any part of the task; does not express a clear position
+      - PENALIZE SEVERELY if: answer is too short, off-topic, does not address the question, or lacks required content
    
    2. Coherence and Cohesion:
-      - Organization of ideas, paragraph structure, logical flow
-      - Use of linking devices, cohesive devices, referencing
-      - Score based on structure and organization quality
+      - Band 9: Uses cohesion in such a way that it attracts no attention; skilfully manages paragraphing
+      - Band 7: Logically organises information; uses a range of cohesive devices; clear paragraphing
+      - Band 6: Arranges information coherently; uses cohesive devices effectively; adequate paragraphing
+      - Band 5: Presents information with some organisation; uses cohesive devices inaccurately; may lack paragraphing
+      - Band 4: Presents information and ideas but lacks clear organisation; uses basic cohesive devices inaccurately
+      - Band 3 and below: Fails to organise ideas logically; uses very limited cohesive devices
+      - PENALIZE if: ideas are not logically organized, paragraphing is poor, or cohesive devices are misused
    
    3. Lexical Resource:
-      - Range and variety of vocabulary
-      - Accuracy of word choice and collocations
-      - Topic-specific vocabulary usage
-      - Score based on vocabulary quality and range
+      - Band 9: Uses a wide range of vocabulary with very natural control; rare minor errors
+      - Band 7: Uses a sufficient range of vocabulary; some less common items; occasional errors
+      - Band 6: Uses an adequate range of vocabulary; attempts to use less common vocabulary; some errors
+      - Band 5: Uses a limited range of vocabulary; frequent errors; may cause difficulty for the reader
+      - Band 4: Uses only basic vocabulary; limited control of word formation; errors cause difficulty
+      - Band 3 and below: Uses only a very limited range of words; errors predominate
+      - PENALIZE if: vocabulary is repetitive, basic, or inaccurate; word formation errors are frequent
    
    4. Grammatical Range and Accuracy:
-      - Variety of sentence structures and grammar forms
-      - Accuracy of grammar usage
-      - Control of grammar errors
-      - Score based on grammar complexity and correctness
+      - Band 9: Uses a wide range of structures with full flexibility and accuracy; rare minor errors
+      - Band 7: Uses a variety of complex structures; frequent error-free sentences; good control
+      - Band 6: Uses a mix of simple and complex sentence forms; some errors but meaning is clear
+      - Band 5: Uses only a limited range of structures; frequent errors; meaning may be unclear
+      - Band 4: Uses only a very limited range of structures; errors predominate; meaning is often unclear
+      - Band 3 and below: Attempts sentence forms but errors predominate; meaning is unclear
+      - PENALIZE if: grammar is basic, errors are frequent, or meaning is unclear
+   
+   PENALTY RULES:
+   - If the answer is extremely short (e.g., less than 50 words for Task 1, less than 100 words for Task 2), automatically penalize all criteria severely (Band 3-4 maximum)
+   - If the answer is completely off-topic or does not address the question, Task Achievement/Response should be Band 3 or lower
+   - If the answer contains mostly irrelevant content or random text, score should not exceed Band 4 overall
+   - If there are frequent errors that impede communication, penalize Lexical Resource and Grammatical Range and Accuracy accordingly
+   - Do not give Band 6.0 or higher to answers that are clearly inadequate, too short, or off-topic
    
    IMPORTANT: 
-   - Each criterion should be scored separately (0-9 scale)
+   - Each criterion should be scored separately (0-9 scale, in 0.5 increments)
    - Scores can and should differ if performance varies across criteria
    - For example: A student might have good vocabulary (7.0) but poor grammar (5.0)
+   - If an answer does not meet the requirements for a band, score it appropriately based on the band descriptors
    - Provide detailed description in Vietnamese explaining what each score means
    - Extract all collocations (word partnerships), topic-specific vocabulary, identify all errors with corrections, and provide specific improvements.
    
-   CRITICAL JSON REQUIREMENTS:
+   JSON REQUIREMENTS:
    1. You MUST return ONLY valid JSON - no markdown code blocks, no explanation text before or after
    2. Escape ALL quotes inside string values: use escape backslash-quote instead of plain quote
    3. Escape all special characters in string values: double backslash for backslash, backslash-n for newline

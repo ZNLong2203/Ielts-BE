@@ -305,6 +305,15 @@ export class TestSectionSubmissionDto {
   @ValidateNested({ each: true })
   @Type(() => SpeakingAudioDataDto)
   speaking_audio_data?: SpeakingAudioDataDto[];
+
+  @ApiPropertyOptional({
+    description: 'Grading method for writing section (ai or teacher)',
+    example: 'ai',
+    enum: ['ai', 'teacher'],
+  })
+  @IsOptional()
+  @IsEnum(['ai', 'teacher'])
+  grading_method?: 'ai' | 'teacher';
 }
 
 export class SpeakingAudioDataDto {

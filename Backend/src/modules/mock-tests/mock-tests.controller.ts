@@ -34,6 +34,7 @@ import {
   TestSectionSubmissionDto,
 } from './dto/create-mock-test.dto';
 import { UpdateMockTestDto } from './dto/update-mock-test.dto';
+import { SubmitWritingGradingDto } from './dto/submit-writing-grading.dto';
 import { MockTestsService } from './mock-tests.service';
 
 @ApiTags('Mock Tests')
@@ -299,6 +300,35 @@ export class MockTestsController {
   }
 
   /**
+   * Get Mock Test Result Review (with correct/incorrect answers mapped to questions)
+   * NOTE: This route must be defined BEFORE 'results/:resultId' to avoid route conflict
+   */
+  @Get('results/:resultId/review')
+  @ApiOperation({
+    summary: 'Get detailed test result review',
+    description:
+      'Retrieves detailed test result with correct/incorrect answers mapped to questions for review',
+  })
+  @ApiParam({ name: 'resultId', description: 'Test result UUID' })
+  @ApiResponse({
+    status: HttpStatus.OK,
+    description: 'Test result review retrieved successfully',
+  })
+  @ApiResponse({
+    status: HttpStatus.NOT_FOUND,
+    description: 'Test result not found',
+  })
+  @SkipCheckPermission()
+  @HttpCode(HttpStatus.OK)
+  @MessageResponse('Test result review retrieved successfully')
+  async getTestResultReview(
+    @Param('resultId', ParseUUIDPipe) resultId: string,
+    @CurrentUser() user: IUser,
+  ) {
+    return await this.mockTestsService.getTestResultReview(resultId, user.id);
+  }
+
+  /**
    * Get Mock Test Result by ID
    */
   @Get('results/:resultId')
@@ -323,5 +353,121 @@ export class MockTestsController {
     @CurrentUser() user: IUser,
   ) {
     return await this.mockTestsService.getTestResultById(resultId, user.id);
+  }
+
+  /**
+   * Get pending writing submissions for teacher grading
+   */
+  @Get('writing/pending')
+  @ApiOperation({
+    summary: 'Get pending writing submissions for teacher grading',
+    description: 'Retrieves all writing section results that are pending teacher grading',
+  })
+  @ApiQuery({ name: 'page', required: false, type: Number })
+  @ApiQuery({ name: 'limit', required: false, type: Number })
+  @ApiResponse({
+    status: HttpStatus.OK,
+    description: 'Pending writing submissions retrieved successfully',
+  })
+  @SkipCheckPermission()
+  @HttpCode(HttpStatus.OK)
+  @MessageResponse('Pending writing submissions retrieved successfully')
+  async getPendingWritingSubmissions(
+    @Query() query: PaginationQueryDto,
+    @CurrentUser() user: IUser,
+  ) {
+    return await this.mockTestsService.getPendingWritingSubmissions(
+      user.id,
+      query,
+    );
+  }
+
+  /**
+   * Get graded writing submissions for teacher review
+   */
+  @Get('writing/graded')
+  @ApiOperation({
+    summary: 'Get graded writing submissions',
+    description: 'Retrieves all writing section results that have been graded by teachers',
+  })
+  @ApiQuery({ name: 'page', required: false, type: Number })
+  @ApiQuery({ name: 'limit', required: false, type: Number })
+  @ApiResponse({
+    status: HttpStatus.OK,
+    description: 'Graded writing submissions retrieved successfully',
+  })
+  @SkipCheckPermission()
+  @HttpCode(HttpStatus.OK)
+  @MessageResponse('Graded writing submissions retrieved successfully')
+  async getGradedWritingSubmissions(
+    @Query() query: PaginationQueryDto,
+    @CurrentUser() user: IUser,
+  ) {
+    return await this.mockTestsService.getGradedWritingSubmissions(
+      user.id,
+      query,
+    );
+  }
+
+  /**
+   * Get a specific writing submission for grading
+   */
+  @Get('writing/:sectionResultId')
+  @ApiOperation({
+    summary: 'Get writing submission details for grading',
+    description: 'Retrieves detailed information about a specific writing submission for teacher grading',
+  })
+  @ApiParam({ name: 'sectionResultId', description: 'Section result UUID' })
+  @ApiResponse({
+    status: HttpStatus.OK,
+    description: 'Writing submission retrieved successfully',
+  })
+  @ApiResponse({
+    status: HttpStatus.NOT_FOUND,
+    description: 'Writing submission not found',
+  })
+  @SkipCheckPermission()
+  @HttpCode(HttpStatus.OK)
+  @MessageResponse('Writing submission retrieved successfully')
+  async getWritingSubmissionForGrading(
+    @Param('sectionResultId', ParseUUIDPipe) sectionResultId: string,
+    @CurrentUser() user: IUser,
+  ) {
+    return await this.mockTestsService.getWritingSubmissionForGrading(
+      sectionResultId,
+      user.id,
+    );
+  }
+
+  /**
+   * Submit teacher grading for writing submission
+   */
+  @Post('writing/:sectionResultId/grade')
+  @ApiOperation({
+    summary: 'Submit teacher grading for writing submission',
+    description: 'Allows teacher to submit scores and feedback for a writing submission',
+  })
+  @ApiParam({ name: 'sectionResultId', description: 'Section result UUID' })
+  @ApiResponse({
+    status: HttpStatus.OK,
+    description: 'Grading submitted successfully',
+  })
+  @ApiResponse({
+    status: HttpStatus.NOT_FOUND,
+    description: 'Writing submission not found',
+  })
+  @SkipCheckPermission()
+  @HttpCode(HttpStatus.OK)
+  @MessageResponse('Grading submitted successfully')
+  async submitWritingGrading(
+    @Param('sectionResultId', ParseUUIDPipe) sectionResultId: string,
+    @Body() gradingDto: SubmitWritingGradingDto,
+    @CurrentUser() user: IUser,
+  ) {
+    return await this.mockTestsService.submitWritingGrading(
+      sectionResultId,
+      gradingDto,
+      user.id,
+    );
   }
 }

@@ -29,6 +29,7 @@ import {
 import { WritingService } from 'src/modules/writing/writing.service';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { UtilsService } from 'src/utils/utils.service';
+import { MailService } from 'src/modules/mail/mail.service';
 import {
   CreateMockTestDto,
   TestSectionSubmissionDto,
@@ -56,6 +57,7 @@ export class MockTestsService {
     private readonly speakingService: SpeakingService,
     private readonly filesService: FilesService,
     private readonly writingService: WritingService,
+    private readonly mailService: MailService,
   ) {}
 
   /**
@@ -482,7 +484,6 @@ export class MockTestsService {
     };
   }
 
-  // Services methods (for learner) include: start test, fetching test details without is correct answers, submitting test results, getting test result, get test history, etc.
 
   /**
    * Start Mock Test
@@ -597,6 +598,831 @@ export class MockTestsService {
       success: true,
       data: testResult,
     };
+  }
+
+  /**
+   * Get detailed test result with review (correct/incorrect answers mapped to questions)
+   */
+  async getTestResultReview(testResultId: string, userId: string) {
+    const testResult = await this.prisma.test_results.findUnique({
+      where: { id: testResultId, user_id: userId },
+      include: {
+        mock_tests: {
+          select: {
+            id: true,
+            title: true,
+            description: true,
+            test_type: true,
+            duration: true,
+          },
+        },
+        section_results: {
+          where: { deleted: false },
+          include: {
+            test_sections: {
+              include: {
+                exercises: {
+                  where: { deleted: false },
+                  include: {
+                    question_groups: {
+                      where: { deleted: false },
+                      include: {
+                        questions: {
+                          where: { deleted: false },
+                          include: {
+                            question_options: {
+                              where: { deleted: false },
+                              orderBy: { ordering: 'asc' },
+                            },
+                          },
+                          orderBy: { ordering: 'asc' },
+                        },
+                        matching_options: {
+                          where: { deleted: false },
+                          orderBy: { ordering: 'asc' },
+                        },
+                      },
+                      orderBy: { ordering: 'asc' },
+                    },
+                  },
+                  orderBy: { ordering: 'asc' },
+                },
+              },
+            },
+          },
+          orderBy: { created_at: 'asc' },
+        },
+      },
+    });
+
+    if (!testResult) {
+      throw new NotFoundException('Test result not found');
+    }
+
+    // Map detailed_answers to questions for each section
+    const sectionResultsWithReview = testResult.section_results.map(
+      (sectionResult) => {
+        const detailedAnswers = sectionResult.detailed_answers as any;
+        const questionsMap = new Map<string, any>();
+
+        // Build questions map from exercises
+        if (sectionResult.test_sections?.exercises) {
+          sectionResult.test_sections.exercises.forEach((exercise) => {
+            exercise.question_groups?.forEach((group) => {
+              group.questions?.forEach((question) => {
+                questionsMap.set(question.id, {
+                  ...question,
+                  question_group: group,
+                  exercise: exercise,
+                });
+              });
+            });
+          });
+        }
+
+        // Map detailed answers to questions
+        let questionReviews: any[] = [];
+        
+        if (detailedAnswers) {
+          // Handle different structures of detailed_answers
+          if (Array.isArray(detailedAnswers)) {
+            // Standard format: array of GradingResult
+            questionReviews = detailedAnswers.map((result: any) => {
+              const question = questionsMap.get(result.question_id);
+              return {
+                question_id: result.question_id,
+                question: question || null,
+                is_correct: result.is_correct || false,
+                user_answer: result.user_answer || null,
+                correct_answer: result.correct_answer || null,
+                points_earned: result.points_earned || 0,
+                max_points: result.max_points || 1,
+                explanation: question?.explanation || null,
+              };
+            });
+          } else if (detailedAnswers.all_questions) {
+            // Speaking format: { all_questions: [...], part_scores: {...} }
+            questionReviews = detailedAnswers.all_questions.map((result: any) => {
+              const question = questionsMap.get(result.question_id);
+              return {
+                question_id: result.question_id,
+                question: question || null,
+                is_correct: result.is_correct || false,
+                user_answer: result.user_answer || null,
+                correct_answer: result.correct_answer || null,
+                points_earned: result.points_earned || 0,
+                max_points: result.max_points || 1,
+                explanation: question?.explanation || null,
+                part: result.part || null,
+                ai_feedback: result.ai_feedback || null,
+              };
+            });
+          } else if (detailedAnswers.tasks) {
+            // Writing format: { tasks: [{ task_type, question_id, ... }] }
+            questionReviews = detailedAnswers.tasks.map((task: any) => {
+              const question = questionsMap.get(task.question_id);
+              return {
+                question_id: task.question_id,
+                question: question || null,
+                task_type: task.task_type,
+                user_answer: task.student_answer || null,
+                overall_score: task.overall_score || null,
+                task_achievement_score: task.task_achievement_score || null,
+                coherence_cohesion_score: task.coherence_cohesion_score || null,
+                lexical_resource_score: task.lexical_resource_score || null,
+                grammatical_range_accuracy_score:
+                  task.grammatical_range_accuracy_score || null,
+                detailed_feedback: task.detailed_feedback || null,
+                suggestions: task.suggestions || null,
+                strengths: task.strengths || null,
+                weaknesses: task.weaknesses || null,
+              };
+            });
+          }
+        }
+
+        // If no detailed answers but questions exist, create empty reviews
+        if (questionReviews.length === 0 && questionsMap.size > 0) {
+          questionReviews = Array.from(questionsMap.values()).map((question) => ({
+            question_id: question.id,
+            question: question,
+            is_correct: null,
+            user_answer: null,
+            correct_answer: null,
+            points_earned: 0,
+            max_points: Number(question.points) || 1,
+            explanation: question.explanation || null,
+          }));
+        }
+
+        return {
+          ...sectionResult,
+          question_reviews: questionReviews,
+        };
+      },
+    );
+
+    return {
+      success: true,
+      data: {
+        ...testResult,
+        section_results: sectionResultsWithReview,
+      },
+    };
+  }
+
+  /**
+   * Save writing submission for teacher grading (without AI grading)
+   */
+  private async saveWritingForTeacherGrading(
+    answers: TestSectionSubmissionDto,
+    testResult: any,
+    testSection: any,
+    questions: any[],
+    essayAnswers: Record<string, string>,
+  ) {
+    // Prepare detailed answers structure with student answers only
+    const detailedAnswers: any = {
+      tasks: [],
+    };
+
+    // Identify Task 1 and Task 2 (similar logic to AI grading)
+    let task1Question: any = null;
+    let task2Question: any = null;
+    let task1Answer = '';
+    let task2Answer = '';
+
+    const questionMap = new Map<string, any>();
+    for (const question of questions) {
+      questionMap.set(question.id, question);
+    }
+
+    // Identify tasks based on keywords and ordering
+    for (const question of questions) {
+      const answer = essayAnswers[question.id] || '';
+      if (!answer || answer.trim().length === 0) {
+        continue;
+      }
+
+      const isTask1 =
+        question.question_groups?.[0]?.group_title?.toLowerCase().includes('task 1') ||
+        question.question_groups?.[0]?.group_title?.toLowerCase().includes('task1') ||
+        question.question_text?.toLowerCase().includes('task 1') ||
+        question.question_text?.toLowerCase().includes('150') ||
+        question.question_text?.toLowerCase().includes('chart') ||
+        question.question_text?.toLowerCase().includes('graph') ||
+        question.question_text?.toLowerCase().includes('table') ||
+        question.question_text?.toLowerCase().includes('diagram');
+
+      if (isTask1 && !task1Question) {
+        task1Question = question;
+        task1Answer = answer;
+      } else if (!isTask1 && !task2Question) {
+        task2Question = question;
+        task2Answer = answer;
+      }
+    }
+
+    // Fallback to ordering if not identified
+    for (let i = 0; i < questions.length; i++) {
+      const question = questions[i];
+      const answer = essayAnswers[question.id] || '';
+      if (!answer || answer.trim().length === 0) {
+        continue;
+      }
+
+      if (!task1Question && i === 0) {
+        task1Question = question;
+        task1Answer = answer;
+      } else if (!task2Question && i === 1) {
+        task2Question = question;
+        task2Answer = answer;
+      }
+    }
+
+    // Build tasks array
+    if (task1Question && task1Answer.trim().length > 0) {
+      const questionText =
+        task1Question.question_text ||
+        task1Question.question_groups?.[0]?.group_instruction ||
+        'Writing Task 1';
+
+      let imageUrl: string | undefined = undefined;
+      if (task1Question.exercises?.content) {
+        try {
+          const exerciseContent =
+            typeof task1Question.exercises.content === 'string'
+              ? JSON.parse(task1Question.exercises.content)
+              : task1Question.exercises.content;
+          imageUrl =
+            exerciseContent.chart_url || exerciseContent.image_url || undefined;
+        } catch (e) {
+          this.logger.warn(`Failed to parse exercise content: ${e}`);
+        }
+      }
+
+      detailedAnswers.tasks.push({
+        task_type: 'task_1',
+        question_id: task1Question.id,
+        question_text: questionText,
+        student_answer: task1Answer,
+        image_url: imageUrl,
+        word_count: task1Answer.trim().split(/\s+/).length,
+      });
+    }
+
+    if (task2Question && task2Answer.trim().length > 0) {
+      const questionText =
+        task2Question.question_text ||
+        task2Question.question_groups?.[0]?.group_instruction ||
+        'Writing Task 2';
+
+      detailedAnswers.tasks.push({
+        task_type: 'task_2',
+        question_id: task2Question.id,
+        question_text: questionText,
+        student_answer: task2Answer,
+        word_count: task2Answer.trim().split(/\s+/).length,
+      });
+    }
+
+    // Save section result without grading (graded_at = null, grading_method = 'teacher')
+    this.logger.log(
+      `Saving writing for teacher grading - testSection: ${JSON.stringify({
+        id: testSection.id,
+        section_type: testSection.section_type,
+        section_name: testSection.section_name || testSection.name,
+        deleted: testSection.deleted,
+      })}`,
+    );
+
+    return await this.prisma.$transaction(async (tx) => {
+      const created = await tx.section_results.create({
+        data: {
+          test_result_id: testResult.id,
+          test_section_id: testSection.id,
+          band_score: null, // Will be set by teacher
+          time_taken: answers.time_taken,
+          correct_answers: null,
+          total_questions: questions.length,
+          detailed_answers: this.serializeToJson(detailedAnswers),
+          grading_method: 'teacher',
+          graded_at: null, // Not graded yet
+          graded_by: null, // Will be set when teacher grades
+        },
+      });
+
+      this.logger.log(
+        `Saved writing section for teacher grading: section_result_id=${created.id}, test_result_id=${testResult.id}, test_section_id=${testSection.id}, grading_method=${created.grading_method}, graded_at=${created.graded_at}`,
+      );
+
+      return {
+        success: true,
+        data: {
+          message: 'Your writing has been submitted for teacher grading. You will receive an email notification when grading is complete.',
+          band_score: null,
+          correct_answers: null,
+          total_questions: questions.length,
+          grading_method: 'teacher',
+          graded_at: null,
+        },
+      };
+    });
+  }
+
+  /**
+   * Get pending writing submissions for teacher grading
+   */
+  async getPendingWritingSubmissions(
+    teacherId: string,
+    query: PaginationQueryDto,
+  ) {
+    const page = query.page || 1;
+    const limit = query.limit || 10;
+    const skip = (page - 1) * limit;
+
+    // First, let's check all pending submissions without section_type filter
+    const allPending = await this.prisma.section_results.findMany({
+      where: {
+        grading_method: 'teacher',
+        graded_at: null,
+        deleted: false,
+      },
+      include: {
+        test_sections: {
+          select: {
+            id: true,
+            section_name: true,
+            section_type: true,
+            deleted: true,
+          },
+        },
+
+      },
+      take: 10,
+    });
+
+    this.logger.log(
+      `Found ${allPending.length} pending submissions (all types). Details: ${JSON.stringify(
+        allPending.map((s) => ({
+          id: s.id,
+          section_type: s.test_sections?.section_type,
+          section_deleted: s.test_sections?.deleted,
+        })),
+      )}`,
+    );
+
+    // Try querying without the deleted filter on test_sections first to see if that's the issue
+    const pendingSubmissions = await this.prisma.section_results.findMany({
+      where: {
+        grading_method: 'teacher',
+        graded_at: null,
+        deleted: false,
+        test_sections: {
+          section_type: 'writing',
+          // Removed deleted: false filter temporarily to debug
+        },
+      },
+      include: {
+        test_results: {
+          include: {
+            users: {
+              select: {
+                id: true,
+                full_name: true,
+                email: true,
+              },
+            },
+            mock_tests: {
+              select: {
+                id: true,
+                title: true,
+                test_type: true,
+              },
+            },
+          },
+        },
+        test_sections: {
+          select: {
+            id: true,
+            section_name: true,
+            section_type: true,
+            duration: true,
+          },
+        },
+      },
+      orderBy: {
+        created_at: 'desc',
+      },
+      skip,
+      take: limit,
+    });
+
+    const total = await this.prisma.section_results.count({
+      where: {
+        grading_method: 'teacher',
+        graded_at: null,
+        deleted: false,
+        test_sections: {
+          section_type: 'writing',
+          // Removed deleted: false filter temporarily to debug
+        },
+      },
+    });
+
+    this.logger.log(
+      `Found ${pendingSubmissions.length} writing submissions pending grading (total: ${total})`,
+    );
+
+    return {
+      success: true,
+      data: {
+        items: pendingSubmissions,
+        pagination: {
+          page,
+          limit,
+          total,
+          totalPages: Math.ceil(total / limit),
+        },
+      },
+    };
+  }
+
+  /**
+   * Get graded writing submissions for teacher review
+   */
+  async getGradedWritingSubmissions(
+    teacherId: string,
+    query: PaginationQueryDto,
+  ) {
+    const page = query.page || 1;
+    const limit = query.limit || 10;
+    const skip = (page - 1) * limit;
+
+    const gradedSubmissions = await this.prisma.section_results.findMany({
+      where: {
+        grading_method: 'teacher',
+        graded_at: { not: null }, // Only graded submissions
+        deleted: false,
+        test_sections: {
+          section_type: 'writing',
+        },
+      },
+      include: {
+        test_results: {
+          include: {
+            users: {
+              select: {
+                id: true,
+                full_name: true,
+                email: true,
+              },
+            },
+            mock_tests: {
+              select: {
+                id: true,
+                title: true,
+                test_type: true,
+              },
+            },
+          },
+        },
+        test_sections: {
+          select: {
+            id: true,
+            section_name: true,
+            section_type: true,
+            duration: true,
+          },
+        },
+        users: {
+          // The teacher who graded
+          select: {
+            id: true,
+            full_name: true,
+            email: true,
+          },
+        },
+      },
+      orderBy: {
+        graded_at: 'desc', // Most recently graded first
+      },
+      skip,
+      take: limit,
+    });
+
+    const total = await this.prisma.section_results.count({
+      where: {
+        grading_method: 'teacher',
+        graded_at: { not: null },
+        deleted: false,
+        test_sections: {
+          section_type: 'writing',
+        },
+      },
+    });
+
+    this.logger.log(
+      `Found ${gradedSubmissions.length} graded writing submissions (total: ${total})`,
+    );
+
+    return {
+      success: true,
+      data: {
+        items: gradedSubmissions,
+        pagination: {
+          page,
+          limit,
+          total,
+          totalPages: Math.ceil(total / limit),
+        },
+      },
+    };
+  }
+
+  /**
+   * Get writing submission details for grading
+   */
+  async getWritingSubmissionForGrading(
+    sectionResultId: string,
+    _teacherId: string, // Reserved for future use (e.g., permission checks)
+  ) {
+    // Allow viewing both pending and graded submissions
+    // Use findFirst because we have multiple conditions
+    const sectionResult = await this.prisma.section_results.findFirst({
+      where: {
+        id: sectionResultId,
+        grading_method: 'teacher',
+        // Removed graded_at: null filter to allow viewing graded submissions
+        deleted: false,
+      },
+      include: {
+        test_results: {
+          include: {
+            users: {
+              select: {
+                id: true,
+                full_name: true,
+                email: true,
+              },
+            },
+            mock_tests: {
+              select: {
+                id: true,
+                title: true,
+                test_type: true,
+                duration: true,
+              },
+            },
+          },
+        },
+        test_sections: {
+          include: {
+            exercises: {
+              where: { deleted: false },
+              include: {
+                question_groups: {
+                  where: { deleted: false },
+                  include: {
+                    questions: {
+                      where: { deleted: false },
+                      orderBy: { ordering: 'asc' },
+                    },
+                  },
+                  orderBy: { ordering: 'asc' },
+                },
+              },
+              orderBy: { ordering: 'asc' },
+            },
+          },
+        },
+      },
+    });
+
+    if (!sectionResult) {
+      throw new NotFoundException('Writing submission not found or already graded');
+    }
+
+    return {
+      success: true,
+      data: sectionResult,
+    };
+  }
+
+  /**
+   * Submit teacher grading for writing submission
+   */
+  async submitWritingGrading(
+    sectionResultId: string,
+    gradingDto: any,
+    userId: string, // This is user.id, which is now directly used for graded_by
+  ) {
+    // Verify user is a teacher
+    const user = await this.prisma.users.findUnique({
+      where: {
+        id: userId,
+        deleted: false,
+      },
+      select: {
+        id: true,
+        role: true,
+      },
+    });
+
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    if (user.role !== 'teacher') {
+      throw new BadRequestException('Only teachers can grade writing submissions');
+    }
+
+    this.logger.log(
+      `Teacher ${userId} submitting grading for ${sectionResultId}`,
+    );
+
+    // First, check if section_result exists at all
+    const existingSectionResult = await this.prisma.section_results.findUnique({
+      where: { id: sectionResultId },
+      select: {
+        id: true,
+        grading_method: true,
+        graded_at: true,
+        deleted: true,
+        test_sections: {
+          select: {
+            section_type: true,
+          },
+        },
+      },
+    });
+
+    this.logger.log(
+      `Existing section_result: ${JSON.stringify({
+        id: existingSectionResult?.id,
+        grading_method: existingSectionResult?.grading_method,
+        graded_at: existingSectionResult?.graded_at,
+        deleted: existingSectionResult?.deleted,
+        section_type: existingSectionResult?.test_sections?.section_type,
+      })}`,
+    );
+
+    const sectionResult = await this.prisma.section_results.findFirst({
+      where: {
+        id: sectionResultId,
+        grading_method: 'teacher',
+        graded_at: null,
+        deleted: false,
+      },
+      include: {
+        test_results: {
+          include: {
+            users: {
+              select: {
+                id: true,
+                full_name: true,
+                email: true,
+              },
+            },
+            mock_tests: {
+              select: {
+                id: true,
+                title: true,
+              },
+            },
+          },
+        },
+      },
+    });
+
+    if (!sectionResult) {
+      throw new NotFoundException('Writing submission not found or already graded');
+    }
+
+    const detailedAnswers = sectionResult.detailed_answers as any;
+    const tasks = detailedAnswers?.tasks || [];
+
+    // Calculate overall band score from task scores
+    let overallBandScore = 0;
+    if (gradingDto.task1_score && gradingDto.task2_score) {
+      // Task 2 = 2/3 weight, Task 1 = 1/3 weight
+      overallBandScore = (gradingDto.task1_score * 1 + gradingDto.task2_score * 2) / 3;
+    } else if (gradingDto.task2_score) {
+      overallBandScore = gradingDto.task2_score;
+    } else if (gradingDto.task1_score) {
+      overallBandScore = gradingDto.task1_score;
+    }
+
+    // Round to nearest 0.5
+    overallBandScore = Math.round(overallBandScore * 2) / 2;
+
+    // Update detailed_answers with teacher scores and feedback
+    const updatedDetailedAnswers = {
+      ...detailedAnswers,
+      overallScore: overallBandScore,
+      tasks: tasks.map((task: any) => {
+        if (task.task_type === 'task_1') {
+          return {
+            ...task,
+            overall_score: gradingDto.task1_score || null,
+            task_achievement_score: gradingDto.task1_task_achievement || null,
+            coherence_cohesion_score: gradingDto.task1_coherence_cohesion || null,
+            lexical_resource_score: gradingDto.task1_lexical_resource || null,
+            grammatical_range_accuracy_score: gradingDto.task1_grammatical_range_accuracy || null,
+            detailed_feedback: gradingDto.task1_feedback || null,
+          };
+        } else if (task.task_type === 'task_2') {
+          return {
+            ...task,
+            overall_score: gradingDto.task2_score || null,
+            task_achievement_score: gradingDto.task2_task_achievement || null,
+            coherence_cohesion_score: gradingDto.task2_coherence_cohesion || null,
+            lexical_resource_score: gradingDto.task2_lexical_resource || null,
+            grammatical_range_accuracy_score: gradingDto.task2_grammatical_range_accuracy || null,
+            detailed_feedback: gradingDto.task2_feedback || null,
+          };
+        }
+        return task;
+      }),
+      teacher_feedback: gradingDto.general_feedback || null,
+    };
+
+    // Update section result and test result
+    this.logger.log(
+      `Submitting teacher grading for ${sectionResultId}: task1_score=${gradingDto.task1_score}, task2_score=${gradingDto.task2_score}, overallBandScore=${overallBandScore}`,
+    );
+    this.logger.log(
+      `Updated detailed_answers structure: ${JSON.stringify(updatedDetailedAnswers, null, 2)}`,
+    );
+
+    return await this.prisma.$transaction(async (tx) => {
+      // Update section result
+      const updatedSectionResult = await tx.section_results.update({
+        where: { id: sectionResultId },
+        data: {
+          band_score: overallBandScore,
+          teacher_score: overallBandScore,
+          teacher_feedback: gradingDto.general_feedback || null,
+          detailed_answers: this.serializeToJson(updatedDetailedAnswers),
+          grading_method: 'teacher',
+          graded_by: userId, // Now using user.id directly
+          graded_at: new Date(),
+          updated_at: new Date(),
+        },
+      });
+
+      this.logger.log(
+        `Successfully updated section_result ${sectionResultId}: band_score=${updatedSectionResult.band_score}, graded_by=${updatedSectionResult.graded_by}, graded_at=${updatedSectionResult.graded_at}`,
+      );
+
+      // Update test result writing score and overall band score
+      const testResult = sectionResult.test_results;
+      if (!testResult) {
+        throw new NotFoundException('Test result not found');
+      }
+
+      const overallTestScore = this.gradingService.calculateOverallTestScore(
+        Number(testResult.reading_score) || null,
+        Number(testResult.listening_score) || null,
+        overallBandScore,
+        Number(testResult.speaking_score) || null,
+      );
+
+      await tx.test_results.update({
+        where: { id: testResult.id },
+        data: {
+          writing_score: overallBandScore,
+          band_score: overallTestScore,
+          updated_at: new Date(),
+        },
+      });
+
+      // Send email notification to student
+      try {
+        await this.mailService.sendWritingGradingComplete({
+          to: testResult.users?.email || '',
+          userName: testResult.users?.full_name || 'Student',
+          testTitle: testResult.mock_tests?.title || 'Mock Test',
+          bandScore: overallBandScore,
+          testResultId: testResult.id,
+        });
+      } catch (error) {
+        this.logger.error(`Failed to send email notification: ${error}`);
+        // Don't fail the grading if email fails
+      }
+
+      this.logger.log(
+        `Teacher ${userId} graded writing submission ${sectionResultId} with score ${overallBandScore}`,
+      );
+
+      return {
+        success: true,
+        data: {
+          ...updatedSectionResult,
+          message: 'Grading submitted successfully. Student has been notified via email.',
+        },
+      };
+    });
   }
 
   /**
@@ -1428,6 +2254,7 @@ export class MockTestsService {
     testResult: any,
     testSection: any,
   ) {
+    const gradingMethod = answers.grading_method || 'ai'; // Default to 'ai' if not specified
     // Get all questions in the writing section with exercises (for image_url from exercise.content)
     const questions = await this.prisma.questions.findMany({
       where: {
@@ -1656,7 +2483,18 @@ export class MockTestsService {
       task2Answer = '';
     }
 
-    // Grade Task 1 and Task 2
+    // If grading_method is 'teacher', save submission without grading and return
+    if (gradingMethod === 'teacher') {
+      return await this.saveWritingForTeacherGrading(
+        answers,
+        testResult,
+        testSection,
+        questions,
+        essayAnswers,
+      );
+    }
+
+    // Grade Task 1 and Task 2 using AI
     // Add delay between requests to avoid API overload
     const gradingPromises: Promise<any>[] = [];
 
@@ -2108,3 +2946,4 @@ export class MockTestsService {
     return sectionTemplates[testType] || [];
   }
 }
+

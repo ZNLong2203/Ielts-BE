@@ -264,7 +264,7 @@ CREATE TABLE section_results (
     teacher_feedback TEXT,
     teacher_score DECIMAL(5,2),
     grading_method VARCHAR(20) DEFAULT 'ai', -- ai, teacher, hybrid
-    graded_by UUID REFERENCES teachers(id),
+    graded_by UUID REFERENCES users(id), -- User ID of the teacher who graded
     graded_at TIMESTAMP,
     deleted BOOLEAN DEFAULT FALSE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -371,7 +371,7 @@ CREATE TABLE user_submissions (
     ai_feedback TEXT,
     ai_score DECIMAL(5,2),
     grading_method VARCHAR(20) DEFAULT 'ai', -- ai, teacher, hybrid
-    graded_by UUID REFERENCES teachers(id),
+    graded_by UUID REFERENCES users(id), -- User ID of the teacher who graded
     graded_at TIMESTAMP,
     ai_graded_at TIMESTAMP,
     status VARCHAR(20) DEFAULT 'submitted', -- submitted, graded, needs_review, ai_graded
