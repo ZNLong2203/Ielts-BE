@@ -2,6 +2,7 @@ import {
   BadRequestException,
   Injectable,
   NotFoundException,
+  Logger,
 } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { PaginationQueryDto } from 'src/common/dto/pagination-query.dto';
@@ -13,13 +14,17 @@ import { UpdateLessonDto } from 'src/modules/lessons/dto/update-lesson.dto';
 import { VideoService } from 'src/modules/video/video.service';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { UtilsService } from 'src/utils/utils.service';
+import { CertificatesService } from 'src/modules/certificates/certificates.service';
 
 @Injectable()
 export class LessonsService {
+  private readonly logger = new Logger(LessonsService.name);
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly videoService: VideoService,
     private readonly utilsService: UtilsService,
+    private readonly certificatesService: CertificatesService,
   ) {}
 
   async create(createLessonDto: CreateLessonDto, sectionId: string) {
@@ -665,13 +670,30 @@ export class LessonsService {
             ? totalProgress / comboCourseEnrollments.length
             : 0;
 
-        await tx.combo_enrollments.update({
+        const updatedEnrollment = await tx.combo_enrollments.update({
           where: { id: comboEnrollment.id },
           data: {
             overall_progress_percentage: overallProgress,
             updated_at: now,
           },
         });
+
+        // Auto-generate certificate if combo reaches 100% and certificate doesn't exist
+        if (
+          overallProgress >= 100 &&
+          !updatedEnrollment.certificate_url
+        ) {
+          // Generate certificate asynchronously to avoid blocking
+          this.generateCertificateAsync(
+            userId,
+            comboEnrollment.id,
+          ).catch((error) => {
+            this.logger.error(
+              `Failed to auto-generate certificate for combo enrollment ${comboEnrollment.id}:`,
+              error,
+            );
+          });
+        }
       }
     });
 
@@ -679,6 +701,26 @@ export class LessonsService {
       success: true,
       message: 'Lesson marked as completed and progress updated successfully',
     };
+  }
+
+  private async generateCertificateAsync(
+    userId: string,
+    comboEnrollmentId: string,
+  ): Promise<void> {
+    try {
+      await this.certificatesService.generateCertificate(userId, {
+        combo_enrollment_id: comboEnrollmentId,
+      });
+      this.logger.log(
+        `Certificate auto-generated for combo enrollment ${comboEnrollmentId}`,
+      );
+    } catch (error) {
+      this.logger.error(
+        `Error auto-generating certificate: ${error.message}`,
+        error.stack,
+      );
+      // Don't throw - certificate generation failure shouldn't block lesson completion
+    }
   }
 
   async getUserLessonProgress(userId: string, lessonId: string) {

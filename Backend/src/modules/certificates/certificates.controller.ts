@@ -3,8 +3,11 @@ import {
   Get,
   Post,
   Body,
+  Param,
+  Res,
   UnauthorizedException,
 } from '@nestjs/common';
+import { Response } from 'express';
 import {
   ApiTags,
   ApiBearerAuth,
@@ -27,6 +30,40 @@ import { GenerateCertificateDto } from './dto/generate-certificate.dto';
 @ApiBearerAuth()
 export class CertificatesController {
   constructor(private readonly certificatesService: CertificatesService) {}
+
+  // Route dynamic phải đặt TRƯỚC route root để tránh conflict
+  @Get(':comboEnrollmentId/view')
+  @SkipCheckPermission()
+  @ApiOperation({
+    summary: 'Get certificate SVG content',
+    description: 'Retrieve the SVG content of a certificate for viewing',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Certificate SVG retrieved successfully',
+    content: {
+      'image/svg+xml': {
+        schema: {
+          type: 'string',
+        },
+      },
+    },
+  })
+  async getCertificateView(
+    @CurrentUser() user: IUser,
+    @Param('comboEnrollmentId') comboEnrollmentId: string,
+    @Res() res: Response,
+  ) {
+    if (!user || !user.id) {
+      throw new UnauthorizedException('User authentication required');
+    }
+    const svg = await this.certificatesService.getCertificateSVG(
+      user.id,
+      comboEnrollmentId,
+    );
+    res.setHeader('Content-Type', 'image/svg+xml');
+    res.send(svg);
+  }
 
   @Get()
   @SkipCheckPermission()

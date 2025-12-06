@@ -19,7 +19,10 @@ import {
   TranscribeAndGradeResponse,
 } from './dto/grade-speaking.dto';
 import { UploadResult } from '../files/minio.service';
-import { CreateSpeakingMockTestExerciseDto } from './dto/create-speaking-mock-test.dto';
+import {
+  CreateSpeakingMockTestExerciseDto,
+  SpeakingPartType,
+} from './dto/create-speaking-mock-test.dto';
 import { UpdateSpeakingMockTestExerciseDto } from './dto/update-speaking-mock-test.dto';
 import { SECTION_TYPE } from '../mock-tests/constants';
 import { EXERCISE_TYPE, SKILL_TYPE } from '../reading/types/reading.types';
@@ -260,8 +263,6 @@ export class SpeakingService {
       }
     }
 
-    // For non-WAV files, return undefined and let the system estimate duration
-    // We skip ffprobe to avoid JSON parsing errors when it's not available
     return undefined;
   }
 
@@ -339,11 +340,11 @@ export class SpeakingService {
         for (let i = 0; i < createDto.questions.length; i++) {
           const questionDto = createDto.questions[i];
           const partLabel =
-            createDto.part_type === 'part_1'
+            createDto.part_type === SpeakingPartType.PART_1
               ? 'Part 1'
-              : createDto.part_type === 'part_2'
+              : createDto.part_type === SpeakingPartType.PART_2
                 ? 'Part 2'
-                : createDto.part_type === 'part_3'
+                : createDto.part_type === SpeakingPartType.PART_3
                   ? 'Part 3'
                   : `Part ${i + 1}`;
 
@@ -375,7 +376,7 @@ export class SpeakingService {
       }
 
       // Return exercise with includes
-      return await tx.exercises.findUniqueOrThrow({
+      const exerciseWithIncludes = await tx.exercises.findFirst({
         where: { id: createdExercise.id },
         include: {
           test_sections: {
@@ -398,6 +399,12 @@ export class SpeakingService {
           },
         },
       });
+
+      if (!exerciseWithIncludes) {
+        throw new NotFoundException('Failed to retrieve created exercise');
+      }
+
+      return exerciseWithIncludes;
     });
 
     this.logger.log(
@@ -567,7 +574,7 @@ export class SpeakingService {
 
     const exercise = await this.prisma.prisma.$transaction(async (tx) => {
       // Update exercise
-      const updatedExercise = await tx.exercises.update({
+      await tx.exercises.update({
         where: { id },
         data: {
           title: updateDto.title,
@@ -684,7 +691,7 @@ export class SpeakingService {
       }
 
       // Return exercise with includes
-      return await tx.exercises.findUniqueOrThrow({
+      const exerciseWithIncludes = await tx.exercises.findFirst({
         where: { id },
         include: {
           test_sections: {
@@ -707,6 +714,12 @@ export class SpeakingService {
           },
         },
       });
+
+      if (!exerciseWithIncludes) {
+        throw new NotFoundException('Failed to retrieve updated exercise');
+      }
+
+      return exerciseWithIncludes;
     });
 
     this.logger.log(`Updated speaking exercise: ${id}`);

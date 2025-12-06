@@ -179,7 +179,7 @@ export class AuthService {
   }
 
   async getProfile(user: IUser) {
-    const userProfile = await this.usersService.findByEmail(user.id);
+    const userProfile = await this.usersService.findById(user.id);
     if (!userProfile) {
       throw new BadRequestException('User not found');
     }

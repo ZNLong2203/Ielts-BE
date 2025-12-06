@@ -290,21 +290,39 @@ export class StudentsService {
           }),
         );
 
-        // Calculate overall progress percentage from courses (source of truth)
-        // Don't use enrollment.overall_progress_percentage as it may be outdated
-        const totalCourseProgress = coursesWithProgress.reduce(
-          (acc, course) => acc + course.progress,
-          0,
-        );
-        const overallProgressPercentage =
-          coursesWithProgress.length > 0
-            ? totalCourseProgress / coursesWithProgress.length
-            : 0;
+        // Calculate overall progress percentage from courses
+        // If certificate exists, use database value as it's the source of truth for completion
+        // Otherwise, calculate from actual lesson progress
+        let overallProgressPercentage: number;
+        let finalCoursesWithProgress = coursesWithProgress;
+        
+        if (enrollment.certificate_url && Number(enrollment.overall_progress_percentage) >= 100) {
+          // If certificate exists, use the database value (100%)
+          // and mark all courses as completed
+          overallProgressPercentage = Number(enrollment.overall_progress_percentage);
+          finalCoursesWithProgress = coursesWithProgress.map((course) => ({
+            ...course,
+            progress: 100,
+            is_completed: true,
+            completed_lessons: course.total_lessons,
+          }));
+        } else {
+          // Calculate from actual course progress
+          const totalCourseProgress = coursesWithProgress.reduce(
+            (acc, course) => acc + course.progress,
+            0,
+          );
+          overallProgressPercentage =
+            coursesWithProgress.length > 0
+              ? totalCourseProgress / coursesWithProgress.length
+              : 0;
+        }
 
         return {
           id: enrollment.id,
           enrollment_date: enrollment.enrollment_date,
           overall_progress_percentage: overallProgressPercentage,
+          certificate_url: enrollment.certificate_url,
           is_active: enrollment.is_active,
           combo: {
             id: combo.id,
@@ -317,10 +335,10 @@ export class StudentsService {
             enrollment_count: combo.enrollment_count,
             tags: combo.tags,
             total_courses: courses.length,
-            completed_courses: coursesWithProgress.filter((c) => c.is_completed)
+            completed_courses: finalCoursesWithProgress.filter((c) => c.is_completed)
               .length,
           },
-          courses: coursesWithProgress,
+          courses: finalCoursesWithProgress,
         };
       }),
     );
