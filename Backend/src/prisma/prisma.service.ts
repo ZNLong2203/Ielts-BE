@@ -32,7 +32,6 @@ function createExtendedPrisma(base: PrismaClient) {
         user_submissions: true,
         study_schedules: true,
         study_reminders: true,
-        notifications: true,
       },
     }),
   );

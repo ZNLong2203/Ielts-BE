@@ -34,7 +34,6 @@ import { LearningModule } from './modules/learning/learning.module';
 import { LessonsModule } from './modules/lessons/lessons.module';
 import { ListeningModule } from './modules/listening/listening.module';
 import { MailModule } from './modules/mail/mail.module';
-import { NotificationModule } from './modules/notification/notification.module';
 import { ReadingModule } from './modules/reading/reading.module';
 import { SpeakingModule } from './modules/speaking/speaking.module';
 import { StudentsModule } from './modules/students/students.module';
@@ -95,7 +94,6 @@ import { UtilsModule } from './utils/utils.module';
     QuestionsModule,
     QuestionGroupsModule,
     StudyScheduleModule,
-    NotificationModule,
     GradingModule,
     AdminDashboardModule,
   ],

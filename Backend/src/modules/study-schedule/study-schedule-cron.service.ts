@@ -1,10 +1,8 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { addMinutes, format, isBefore } from 'date-fns';
-import { NotificationGateway } from 'src/modules/notification/notification-gateway.service';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { MailService } from '../mail/mail.service';
-import { NotificationService } from '../notification/notification.service';
 import { REMINDER_STATUS, SCHEDULE_STATUS } from './types/types';
 
 @Injectable()
@@ -13,15 +11,11 @@ export class StudyScheduleCronService {
 
   constructor(
     private readonly prisma: PrismaService,
-    private readonly notificationService: NotificationService,
-    private readonly notificationGateway: NotificationGateway,
     private readonly mailService: MailService,
   ) {}
 
   /**
-   * Gửi reminders mỗi 5 phút
-   * - Nếu user online: gửi real-time + save DB
-   * - Nếu user offline: save DB + gửi email
+   * Gửi reminders mỗi 5 phút qua email
    */
   @Cron(CronExpression.EVERY_5_MINUTES)
   async sendPendingReminders() {
@@ -48,6 +42,7 @@ export class StudyScheduleCronService {
             },
           },
           study_schedules: {
+            where: { deleted: false, reminder_enabled: true },
             include: {
               courses: {
                 select: {
@@ -78,46 +73,17 @@ export class StudyScheduleCronService {
             return;
           }
 
-          // 1. Tạo notification trong DB
-          const notification =
-            await this.notificationService.createNotification({
-              userId: user.id,
-              type: 'study_reminder',
-              title: reminder.title,
-              message: reminder.message,
-              data: {
-                scheduleId: schedule.id,
-                course: course?.title,
-                thumbnail: course?.thumbnail,
-                scheduledTime: reminder.scheduled_time,
-              },
-            });
+          // 1. Gửi email reminder
+          await this.mailService.sendStudyReminder({
+            to: user.email,
+            userName: user.full_name || 'Learner',
+            course: course?.title || 'Study Session',
+            scheduledTime: reminder.scheduled_time,
+            studyGoal: schedule.study_goal || undefined,
+            thumbnail: course?.thumbnail || undefined,
+          });
 
-          // 2. Check user online và gửi real-time
-          const isOnline = this.notificationGateway.sendNotificationToUser(
-            user.id,
-            {
-              id: notification.id,
-              title: notification.title,
-              message: notification.message,
-              data: notification.data,
-              created_at: notification.created_at,
-            },
-          );
-
-          // 3. Nếu user offline, gửi email
-          if (!isOnline) {
-            await this.mailService.sendStudyReminder({
-              to: user.email,
-              userName: user.full_name || 'Learner',
-              course: course?.title || 'Study Session',
-              scheduledTime: reminder.scheduled_time,
-              studyGoal: schedule.study_goal || undefined,
-              thumbnail: course?.thumbnail || undefined,
-            });
-          }
-
-          // 4. Đánh dấu reminder đã gửi
+          // 2. Đánh dấu reminder đã gửi
           await this.prisma.study_reminders.update({
             where: { id: reminder.id },
             data: {
@@ -126,7 +92,7 @@ export class StudyScheduleCronService {
             },
           });
 
-          // 5. Update schedule
+          // 3. Update schedule
           await this.prisma.study_schedules.update({
             where: { id: schedule.id },
             data: {
@@ -134,9 +100,7 @@ export class StudyScheduleCronService {
             },
           });
 
-          this.logger.log(
-            `Reminder sent to ${user.email} - ${isOnline ? 'Real-time' : 'Email'}`,
-          );
+          this.logger.log(`Reminder sent to ${user.email}`);
         } catch (error) {
           const e = error as Error;
           this.logger.error(
