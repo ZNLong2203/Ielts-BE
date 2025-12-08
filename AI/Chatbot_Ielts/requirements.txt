@@ -6,3 +6,10 @@ sentencepiece
 torch
 httpx
 python-dotenv
+sentence-transformers
+pymilvus
+PyPDF2
+pypdf
+python-multipart
+aiofiles
+numpy

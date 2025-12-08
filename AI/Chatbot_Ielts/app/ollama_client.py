@@ -31,6 +31,12 @@ async def query_ollama(prompt: str) -> str:
     }
     try:
         resp = await _http_client.post(API_URL, json=payload)
+        
+        if resp.status_code == 404:
+            error_msg = f"Model '{MODEL_NAME}' not found. Please pull the model first: docker exec ollama-ielts ollama pull {MODEL_NAME}"
+            logger.error(error_msg)
+            raise HTTPException(status_code=404, detail=error_msg)
+        
         resp.raise_for_status()
         data = resp.json()
         
@@ -48,6 +54,8 @@ async def query_ollama(prompt: str) -> str:
         return cleaned_response
     except httpx.TimeoutException:
         raise HTTPException(status_code=504, detail="Request timeout - please try again with a shorter question")
+    except HTTPException:
+        raise
     except httpx.HTTPError as e:
         raise HTTPException(status_code=500, detail=f"Ollama HTTP error: {e}")
 
