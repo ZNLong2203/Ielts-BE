@@ -13,6 +13,7 @@ import { QuestionGroupsModule } from 'src/modules/question-groups/question-group
 import { QuestionsModule } from 'src/modules/questions/questions.module';
 import { SectionsModule } from 'src/modules/sections/sections.module';
 import { StudyScheduleModule } from 'src/modules/study-schedule/study-schedule.module';
+import { TeacherDashboardModule } from 'src/modules/teacher-dashboard/teacher-dashboard.module';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { CaslModule } from './casl/casl.module';
@@ -96,6 +97,7 @@ import { UtilsModule } from './utils/utils.module';
     StudyScheduleModule,
     GradingModule,
     AdminDashboardModule,
+    TeacherDashboardModule,
   ],
   controllers: [AppController, DatabaseController],
   providers: [
