@@ -3,6 +3,7 @@ from typing import List, Dict, Optional
 from .embedding_service import get_embedding_service
 from .milvus_client import get_milvus_client
 from .ollama_client import query_ollama
+from .conversation_service import get_conversation_service
 
 logger = logging.getLogger(__name__)
 
@@ -23,6 +24,7 @@ class RAGService:
         self.milvus_client = get_milvus_client(
             embedding_dimension=self.embedding_service.get_embedding_dimension()
         )
+        self.conversation_service = get_conversation_service()
     
     def retrieve_context(self, query: str) -> List[Dict]:
         """
@@ -76,44 +78,106 @@ class RAGService:
         
         return "\n---\n".join(context_parts)
     
-    async def generate_answer(self, query: str, use_rag: bool = True) -> str:
+    async def format_and_summarize_context(self, retrieved_docs: List[Dict]) -> str:
         """
-        Generate answer using RAG
+        Format and optionally summarize context if too long
+        
+        Args:
+            retrieved_docs: List of retrieved document dictionaries
+            
+        Returns:
+            Formatted and potentially summarized context string
+        """
+        context = self.format_context(retrieved_docs)
+        
+        # Summarize if context is too long
+        if self.conversation_service.should_summarize_context(context):
+            context = await self.conversation_service.summarize_rag_context(context)
+        
+        return context
+    
+    async def generate_answer(
+        self,
+        query: str,
+        use_rag: bool = True,
+        conversation_history: Optional[List[Dict[str, str]]] = None
+    ) -> str:
+        """
+        Generate answer using RAG with optional conversation history
         
         Args:
             query: User query
             use_rag: Whether to use RAG (True) or direct generation (False)
+            conversation_history: Previous conversation messages
             
         Returns:
             Generated answer
         """
+        # Summarize conversation history if provided
+        summarized_history = None
+        if conversation_history:
+            summarized_history = await self.conversation_service.summarize_conversation(
+                conversation_history
+            )
+        
         if not use_rag:
-            # Direct generation without RAG
-            return await query_ollama(query)
+            if summarized_history:
+                prompt = self.conversation_service.format_conversation_for_prompt(
+                    conversation_history=summarized_history,
+                    current_query=query
+                )
+                enhanced_prompt = f"""You are an IELTS preparation assistant. Continue the conversation naturally.
+
+{prompt}
+
+Instructions:
+- Pay attention to the conversation history. If the user refers to "that topic", "the topic above", "đề đó", or similar references, they are referring to topics/questions mentioned in the previous conversation.
+- Provide a helpful and accurate response based on the context."""
+            else:
+                enhanced_prompt = query
+            return await query_ollama(enhanced_prompt)
         
         try:
             # Retrieve relevant context
             retrieved_docs = self.retrieve_context(query)
             
-            if not retrieved_docs:
-                # No relevant context found, use direct generation
-                logger.info("No relevant context found, using direct generation")
-                return await query_ollama(query)
+            # Format and optionally summarize context
+            context = ""
+            if retrieved_docs:
+                context = await self.format_and_summarize_context(retrieved_docs)
             
-            # Format context
-            context = self.format_context(retrieved_docs)
+            # Build prompt with conversation history and RAG context
+            prompt_text = self.conversation_service.format_conversation_for_prompt(
+                conversation_history=summarized_history,
+                current_query=query,
+                rag_context=context if context else None
+            )
             
-            # Create enhanced prompt with context
-            enhanced_prompt = f"""You are an IELTS preparation assistant. Use the following context from IELTS study materials to answer the question accurately and helpfully.
-
-Context from study materials:
-{context}
-
-Question: {query}
-
-Please provide a comprehensive answer based on the context provided. If the context doesn't contain enough information, you can supplement with your general IELTS knowledge. Always cite the source when referencing specific information from the context."""
+            # Build instructions based on what's available
+            instructions = []
             
-            # Generate answer with context
+            if summarized_history:
+                instructions.append(
+                    "- Pay attention to the conversation history above. If the user refers to \"that topic\", \"the topic above\", \"đề đó\", \"cái đó\", or similar references, they are referring to topics/questions mentioned in the previous conversation."
+                )
+                instructions.append("- Continue the conversation naturally and maintain context from previous messages.")
+            
+            if context:
+                instructions.append("- Use the relevant study materials provided above to answer accurately.")
+                instructions.append("- If using information from study materials, cite the source (e.g., Document X).")
+            
+            instructions.append("- Provide a comprehensive and helpful answer.")
+            
+            instructions_text = "\n".join(instructions) if instructions else ""
+            
+            enhanced_prompt = f"""You are an IELTS preparation assistant. Use the following information to answer the question accurately and helpfully.
+
+{prompt_text}
+
+Instructions:
+{instructions_text}"""
+            
+            # Generate answer
             answer = await query_ollama(enhanced_prompt)
             
             return answer

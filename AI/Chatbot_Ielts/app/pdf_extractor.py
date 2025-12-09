@@ -163,10 +163,14 @@ class PDFExtractor:
 # Global instance
 _pdf_extractor: Optional[PDFExtractor] = None
 
-def get_pdf_extractor(chunk_size: int = 500, chunk_overlap: int = 50) -> PDFExtractor:
+def get_pdf_extractor(chunk_size: int = None, chunk_overlap: int = None) -> PDFExtractor:
     """Get or create the global PDF extractor instance"""
     global _pdf_extractor
     if _pdf_extractor is None:
-        _pdf_extractor = PDFExtractor(chunk_size=chunk_size, chunk_overlap=chunk_overlap)
+        env_chunk_size = os.getenv("CHUNK_SIZE")
+        env_chunk_overlap = os.getenv("CHUNK_OVERLAP")
+        final_chunk_size = int(env_chunk_size) if env_chunk_size else (chunk_size or 400)
+        final_chunk_overlap = int(env_chunk_overlap) if env_chunk_overlap else (chunk_overlap or 60)
+        _pdf_extractor = PDFExtractor(chunk_size=final_chunk_size, chunk_overlap=final_chunk_overlap)
     return _pdf_extractor
 

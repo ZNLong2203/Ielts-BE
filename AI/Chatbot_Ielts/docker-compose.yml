@@ -83,6 +83,7 @@ services:
   attu:
     image: zilliz/attu:v2.3.3
     container_name: milvus-attu
+    platform: linux/amd64  
     environment:
       - MILVUS_URL=milvus:19530
     ports:
@@ -112,6 +113,7 @@ services:
     networks:
       - ai-test
     restart: unless-stopped
+    stop_grace_period: 300s
 
 networks:
   ai-test:

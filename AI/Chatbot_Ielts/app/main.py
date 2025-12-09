@@ -30,10 +30,16 @@ app = FastAPI(
 # CORS configuration
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Allow all origins for development
-    allow_credentials=False,  # Must be False when allow_origins=["*"]
-    allow_methods=["*"],  # Allow all methods
-    allow_headers=["*"],  # Allow all headers
+    allow_origins=[
+        "http://localhost:3000",
+        "http://localhost:8000",
+        "http://127.0.0.1:3000",
+        "http://127.0.0.1:8000",
+        "*"  
+    ],
+    allow_credentials=True,
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allow_headers=["*"],
     expose_headers=["*"],
     max_age=3600,
 )
@@ -86,14 +92,39 @@ async def chat_endpoint(req: ChatRequest):
                 retrieved_docs = rag_service.retrieve_context(translated_text)
                 sources = retrieved_docs if retrieved_docs else None
                 
-                # Generate answer with RAG (now async)
-                response = await rag_service.generate_answer(translated_text, use_rag=True)
+                # Generate answer with RAG and conversation history
+                response = await rag_service.generate_answer(
+                    translated_text,
+                    use_rag=True,
+                    conversation_history=req.conversation_history
+                )
             except Exception as e:
                 logger.warning(f"RAG failed, falling back to direct generation: {e}")
-                response = await query_ollama(translated_text)
+                # Fallback with conversation history
+                if req.conversation_history:
+                    from .conversation_service import get_conversation_service
+                    conv_service = get_conversation_service()
+                    summarized_history = await conv_service.summarize_conversation(req.conversation_history)
+                    prompt = conv_service.format_conversation_for_prompt(
+                        conversation_history=summarized_history,
+                        current_query=translated_text
+                    )
+                    response = await query_ollama(f"You are an IELTS assistant. Continue the conversation:\n\n{prompt}")
+                else:
+                    response = await query_ollama(translated_text)
         else:
-            # Direct generation without RAG
-            response = await query_ollama(translated_text)
+            # Direct generation with optional conversation history
+            if req.conversation_history:
+                from .conversation_service import get_conversation_service
+                conv_service = get_conversation_service()
+                summarized_history = await conv_service.summarize_conversation(req.conversation_history)
+                prompt = conv_service.format_conversation_for_prompt(
+                    conversation_history=summarized_history,
+                    current_query=translated_text
+                )
+                response = await query_ollama(f"You are an IELTS assistant. Continue the conversation:\n\n{prompt}")
+            else:
+                response = await query_ollama(translated_text)
         
         return ChatResponse(response=response, sources=sources)
         
@@ -142,26 +173,71 @@ async def upload_pdf(file: UploadFile = File(...)):
         
         logger.info(f"Processing PDF: {file.filename}")
         
-        # Extract and chunk PDF
-        pdf_extractor = get_pdf_extractor(chunk_size=500, chunk_overlap=50)
+        # Delete existing documents from this file to avoid duplicates
+        try:
+            milvus_client_temp = get_milvus_client(
+                embedding_dimension=get_embedding_service().get_embedding_dimension()
+            )
+            milvus_client_temp.create_collection_if_not_exists()
+            deleted_count = milvus_client_temp.delete_by_source_file(file.filename)
+            if deleted_count > 0:
+                logger.info(f"Deleted {deleted_count} existing documents for {file.filename}")
+        except Exception as e:
+            logger.warning(f"Could not delete existing documents (may not exist): {e}")
+        
+        # Extract and chunk PDF (uses env vars or defaults)
+        pdf_extractor = get_pdf_extractor()
         chunks = pdf_extractor.extract_and_chunk_pdf(str(file_path), file.filename)
         
         if not chunks:
             raise HTTPException(status_code=400, detail="No text could be extracted from PDF")
         
-        # Generate embeddings
+        logger.info(f"Generated {len(chunks)} chunks, starting embedding generation...")
+        
+        # Generate embeddings in batches (with progress logging)
         embedding_service = get_embedding_service()
         texts = [chunk["text"] for chunk in chunks]
-        embeddings = embedding_service.encode(texts)
         
-        # Prepare metadata
+        # Filter out empty texts
+        valid_texts = []
+        valid_chunks = []
+        for i, text in enumerate(texts):
+            if text and text.strip():
+                valid_texts.append(text)
+                valid_chunks.append(chunks[i])
+        
+        if not valid_texts:
+            raise HTTPException(status_code=400, detail="No valid text chunks found after filtering")
+        
+        logger.info(f"Processing {len(valid_texts)} valid chunks (filtered {len(texts) - len(valid_texts)} empty chunks)")
+        
+        # Use batch_size from env or default
+        batch_size = embedding_service.batch_size
+        logger.info(f"Generating embeddings with batch_size={batch_size}...")
+        
+        embeddings = embedding_service.encode(
+            valid_texts, 
+            batch_size=batch_size,
+            show_progress_bar=False  # Don't show progress bar in API
+        )
+        
+        # Validate embeddings shape matches texts
+        if len(embeddings) != len(valid_texts):
+            raise HTTPException(
+                status_code=500,
+                detail=f"Embedding count mismatch: {len(embeddings)} embeddings for {len(valid_texts)} texts"
+            )
+        
+        logger.info(f"Generated {len(embeddings)} embeddings, inserting into Milvus...")
+        
+        # Prepare metadata for valid chunks only
         metadata_list = [
             {
                 "chunk_index": chunk["chunk_index"],
                 "start_char": chunk.get("start_char", 0),
                 "end_char": chunk.get("end_char", 0)
             }
-            for chunk in chunks
+            for chunk in valid_chunks
         ]
         
         # Store in Milvus
@@ -171,7 +247,7 @@ async def upload_pdf(file: UploadFile = File(...)):
         milvus_client.create_collection_if_not_exists()
         
         inserted_ids = milvus_client.insert_documents(
-            texts=texts,
+            texts=valid_texts,
             embeddings=embeddings,
             source_file=file.filename,
             metadata_list=metadata_list

@@ -1,9 +1,10 @@
 from pydantic import BaseModel
-from typing import Optional, List
+from typing import Optional, List, Dict
 
 class ChatRequest(BaseModel):
     message: str
     use_rag: bool = True  # Whether to use RAG or direct generation
+    conversation_history: Optional[List[Dict[str, str]]] = None  # Previous messages: [{"role": "user|assistant", "content": "..."}]
 
 class ChatResponse(BaseModel):
     response: str

@@ -2,10 +2,13 @@ import httpx
 import re
 import os
 import asyncio
+import logging
 from fastapi import HTTPException
 
+logger = logging.getLogger(__name__)
+
 API_URL = os.getenv("OLLAMA_API_URL", "http://ollama:11434/api/generate")
-MODEL_NAME = "hf.co/Zkare/Chatbot_Ielts_Assistant:Q4_K_M"
+MODEL_NAME = "hf.co/Zkare/Chatbot_Ielts_Assistant_v2:Q4_K_M"
 
 _http_client = httpx.AsyncClient(
     timeout=httpx.Timeout(180.0), 
@@ -38,9 +41,50 @@ async def query_ollama(prompt: str) -> str:
             raise HTTPException(status_code=404, detail=error_msg)
         
         resp.raise_for_status()
-        data = resp.json()
         
-        response_text = data.get("response", "")
+        # Ollama may return streaming format even with stream=False
+        # Parse the response text line by line to handle both formats
+        response_text = ""
+        text_content = resp.text.strip()
+        
+        # Try to parse as single JSON first
+        try:
+            data = resp.json()
+            response_text = data.get("response", "")
+        except (ValueError, httpx.DecodeError):
+            # If single JSON fails, parse streaming format
+            # Accumulate all response chunks until done=True
+            import json
+            for line in text_content.split('\n'):
+                if not line.strip():
+                    continue
+                try:
+                    chunk = json.loads(line)
+                    chunk_response = chunk.get("response", "")
+                    if chunk_response:
+                        response_text += chunk_response
+                    if chunk.get("done", False):
+                        break
+                except json.JSONDecodeError:
+                    # Skip invalid JSON lines
+                    continue
+        
+        # If still no response, try to extract from last JSON object
+        if not response_text:
+            import json
+            try:
+                lines = text_content.split('\n')
+                for line in reversed(lines):
+                    if line.strip():
+                        try:
+                            data = json.loads(line)
+                            response_text = data.get("response", "")
+                            if response_text:
+                                break
+                        except json.JSONDecodeError:
+                            continue
+            except Exception:
+                pass
         
         cleaned_response = re.sub(r'<think>.*?</think>', '', response_text, flags=re.DOTALL | re.IGNORECASE)
         cleaned_response = re.sub(r'<thinking>.*?</thinking>', '', cleaned_response, flags=re.DOTALL | re.IGNORECASE)
@@ -56,8 +100,9 @@ async def query_ollama(prompt: str) -> str:
         raise HTTPException(status_code=504, detail="Request timeout - please try again with a shorter question")
     except HTTPException:
         raise
-    except httpx.HTTPError as e:
-        raise HTTPException(status_code=500, detail=f"Ollama HTTP error: {e}")
+    except Exception as e:
+        logger.error(f"Error querying Ollama: {e}")
+        raise HTTPException(status_code=500, detail=f"Ollama error: {str(e)}")
 
 async def warmup_model():
     """

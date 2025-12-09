@@ -22,7 +22,7 @@ class MilvusClient:
         host: str = None,
         port: int = None,
         collection_name: str = "ielts_knowledge_base",
-        embedding_dimension: int = 768
+        embedding_dimension: int = 1024
     ):
         self.host = host or os.getenv("MILVUS_HOST", "localhost")
         self.port = port or int(os.getenv("MILVUS_PORT", "19530"))
@@ -117,17 +117,48 @@ class MilvusClient:
         if self.collection is None:
             self.create_collection_if_not_exists()
         
-        # Prepare data
+        # Validate inputs
+        if len(texts) != len(embeddings):
+            raise ValueError(
+                f"Texts and embeddings count mismatch: {len(texts)} texts vs {len(embeddings)} embeddings"
+            )
+        
+        if metadata_list and len(metadata_list) != len(texts):
+            logger.warning(
+                f"Metadata count mismatch: {len(metadata_list)} metadata vs {len(texts)} texts. "
+                "Using available metadata only."
+            )
+        
+        # Prepare data - ensure all arrays have same length
         data = []
-        for i, (text, embedding) in enumerate(zip(texts, embeddings)):
+        for i in range(len(texts)):
+            text = texts[i]
+            embedding = embeddings[i]
+            
+            # Validate embedding dimension
+            if isinstance(embedding, np.ndarray):
+                if len(embedding) != self.embedding_dimension:
+                    raise ValueError(
+                        f"Embedding dimension mismatch at index {i}: "
+                        f"expected {self.embedding_dimension}, got {len(embedding)}"
+                    )
+                embedding_list = embedding.tolist()
+            else:
+                embedding_list = list(embedding)
+                if len(embedding_list) != self.embedding_dimension:
+                    raise ValueError(
+                        f"Embedding dimension mismatch at index {i}: "
+                        f"expected {self.embedding_dimension}, got {len(embedding_list)}"
+                    )
+            
             metadata_str = ""
             if metadata_list and i < len(metadata_list):
                 import json
                 metadata_str = json.dumps(metadata_list[i])
             
             data.append({
-                "text": text[:65535],  # Ensure within max length
-                "embedding": embedding.tolist(),
+                "text": text[:65535] if text else "",  # Ensure within max length
+                "embedding": embedding_list,
                 "source_file": source_file[:255],
                 "chunk_index": i,
                 "metadata": metadata_str[:1000]
@@ -135,12 +166,14 @@ class MilvusClient:
         
         # Insert data
         try:
+            logger.info(f"Inserting {len(data)} documents into Milvus (embedding dim: {self.embedding_dimension})")
             result = self.collection.insert(data)
             self.collection.flush()  # Ensure data is written
-            logger.info(f"Inserted {len(texts)} documents into collection")
+            logger.info(f"Successfully inserted {len(texts)} documents into collection")
             return result.primary_keys
         except Exception as e:
             logger.error(f"Error inserting documents: {e}")
+            logger.error(f"Data stats: {len(texts)} texts, {len(embeddings)} embeddings, {len(data)} data rows")
             raise
     
     def search(
@@ -200,19 +233,37 @@ class MilvusClient:
             logger.error(f"Error searching: {e}")
             raise
     
-    def delete_by_source_file(self, source_file: str):
-        """Delete all documents from a specific source file"""
+    def delete_by_source_file(self, source_file: str) -> int:
+        """
+        Delete all documents from a specific source file
+        
+        Returns:
+            Number of deleted documents (0 if none found or error)
+        """
         if self.collection is None:
             self.create_collection_if_not_exists()
         
         try:
+            # Load collection to query
+            self.collection.load()
+            
+            # Query to check if documents exist
             expr = f'source_file == "{source_file}"'
+            results = self.collection.query(expr=expr, limit=1, output_fields=["id"])
+            
+            if not results or len(results) == 0:
+                logger.info(f"No documents found for {source_file}")
+                return 0
+            
+            # Delete documents
             self.collection.delete(expr)
             self.collection.flush()
+            
             logger.info(f"Deleted documents from {source_file}")
+            return len(results) if results else 0
         except Exception as e:
-            logger.error(f"Error deleting documents: {e}")
-            raise
+            logger.warning(f"Error deleting documents (may not exist): {e}")
+            return 0  # Return 0 instead of raising
     
     def get_collection_stats(self) -> Dict:
         """Get statistics about the collection"""
@@ -279,7 +330,7 @@ class MilvusClient:
 # Global instance
 _milvus_client: Optional[MilvusClient] = None
 
-def get_milvus_client(embedding_dimension: int = 768) -> MilvusClient:
+def get_milvus_client(embedding_dimension: int = 1024) -> MilvusClient:
     """Get or create the global Milvus client instance"""
     global _milvus_client
     if _milvus_client is None:

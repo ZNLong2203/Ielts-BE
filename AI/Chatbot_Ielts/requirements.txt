@@ -7,6 +7,7 @@ torch
 httpx
 python-dotenv
 sentence-transformers
+sacremoses
 pymilvus
 PyPDF2
 pypdf
