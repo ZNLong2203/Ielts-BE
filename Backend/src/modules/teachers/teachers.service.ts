@@ -150,6 +150,15 @@ export class TeachersService {
       throw new NotFoundException('Teacher not found');
     }
 
+    // delete old certificate files if exist
+    const teacher = await this.prisma.teachers.findUnique({
+      where: { user_id: id },
+    });
+
+    if (teacher?.certificate_urls && teacher.certificate_urls.length > 0) {
+      await this.filesService.deleteFiles(teacher.certificate_urls);
+    }
+
     const fileData = await this.filesService.uploadFile(
       file.buffer,
       file.originalname,

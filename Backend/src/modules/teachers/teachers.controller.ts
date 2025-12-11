@@ -20,20 +20,63 @@ import { PaginationQueryDto } from 'src/common/dto/pagination-query.dto';
 import { MESSAGE } from 'src/common/message';
 import {
   CheckPolicies,
+  CurrentUser,
   MessageResponse,
   Public,
 } from 'src/decorator/customize';
+import { UploadedFileType } from 'src/interface/file-type.interface';
+import { IUser } from 'src/interface/users.interface';
 import {
   UpdateAvailabilityDto,
   UpdateTeacherDto,
   UpdateTeacherStatusDto,
 } from 'src/modules/teachers/dto/update-teacher.dto';
 import { TeachersService } from './teachers.service';
-import { UploadedFileType } from 'src/interface/file-type.interface';
 
 @Controller('teachers')
 export class TeachersController {
   constructor(private readonly teachersService: TeachersService) {}
+
+  @ApiOperation({
+    summary: 'Update teacher certification',
+    description: 'Update the certification details of a teacher.',
+  })
+  @ApiBody({
+    type: 'multipart/form-data',
+    description: 'Teacher certification file (image or PDF)',
+    schema: {
+      type: 'object',
+      properties: {
+        file: {
+          type: 'string',
+          format: 'binary',
+        },
+      },
+    },
+  })
+  @Public()
+  @MessageResponse(MESSAGE.TEACHER.TEACHER_CERTIFICATION_UPDATE)
+  @Patch('certificate')
+  @UseInterceptors(FileInterceptor('file'))
+  @CheckPolicies(canUpdateTeacherCertification)
+  async uploadCertificate(
+    @CurrentUser() user: IUser,
+    @UploadedFile(
+      new ParseFilePipeBuilder()
+        .addFileTypeValidator({
+          fileType: 'image/jpeg|image/png|image/jpg|application/pdf',
+        })
+        .addMaxSizeValidator({
+          maxSize: 5 * 1024 * 1024, // 5MB
+        })
+        .build({
+          errorHttpStatusCode: HttpStatus.UNPROCESSABLE_ENTITY,
+        }),
+    )
+    file: UploadedFileType,
+  ) {
+    return this.teachersService.updateCertificate(user.id, file);
+  }
 
   @ApiOperation({
     summary: 'Get all teachers',
@@ -108,46 +151,5 @@ export class TeachersController {
     @Body() availabilityDto: UpdateAvailabilityDto,
   ) {
     return this.teachersService.scheduleAvailability(id, availabilityDto);
-  }
-
-  @ApiOperation({
-    summary: 'Update teacher certification',
-    description: 'Update the certification details of a teacher.',
-  })
-  @ApiBody({
-    type: 'multipart/form-data',
-    description: 'Teacher certification file (image or PDF)',
-    schema: {
-      type: 'object',
-      properties: {
-        file: {
-          type: 'string',
-          format: 'binary',
-        },
-      },
-    },
-  })
-  @Public()
-  @MessageResponse(MESSAGE.TEACHER.TEACHER_CERTIFICATION_UPDATE)
-  @Patch(':id/certificate')
-  @UseInterceptors(FileInterceptor('file'))
-  @CheckPolicies(canUpdateTeacherCertification)
-  async uploadCertificate(
-    @Param('id') id: string,
-    @UploadedFile(
-      new ParseFilePipeBuilder()
-        .addFileTypeValidator({
-          fileType: 'image/jpeg|image/png|image/jpg|application/pdf',
-        })
-        .addMaxSizeValidator({
-          maxSize: 5 * 1024 * 1024, // 5MB
-        })
-        .build({
-          errorHttpStatusCode: HttpStatus.UNPROCESSABLE_ENTITY,
-        }),
-    )
-    file: UploadedFileType,
-  ) {
-    return this.teachersService.updateCertificate(id, file);
   }
 }

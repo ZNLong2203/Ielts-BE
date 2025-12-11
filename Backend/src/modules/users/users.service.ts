@@ -447,7 +447,12 @@ export class UsersService {
       throw new BadRequestException('File is required for avatar upload');
     }
 
-    // Lưu file lên Cloudinary
+    // Xóa avatar cũ nếu có
+    if (existingUser.avatar) {
+      await this.filesService.deleteFiles(existingUser.avatar);
+    }
+
+    // Lưu file
     const fileData = await this.filesService.uploadFile(
       file.buffer,
       file.originalname,

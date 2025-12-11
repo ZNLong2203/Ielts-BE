@@ -25,7 +25,7 @@ import {
   ApiTags,
 } from '@nestjs/swagger';
 import { Request, Response } from 'express';
-import { Student, Teacher } from 'src/casl/entities';
+import { Student, Teacher, User } from 'src/casl/entities';
 import { Action } from 'src/casl/enums/action.enum';
 import { MESSAGE } from 'src/common/message';
 import {
@@ -51,6 +51,7 @@ import {
 } from 'src/modules/users/dto/update-user.dto';
 import { RegisterStudentDto } from '../../modules/users/dto/create-user.dto';
 import { AuthService } from './auth.service';
+import { canUpdateTeacherCertification } from 'src/casl/policies/teacher.policies';
 
 @ApiExtraModels(RegisterStudentDto, RegisterTeacherDto)
 @ApiTags('Authentication')
@@ -249,6 +250,47 @@ export class AuthController {
     @Body() updateProfileDto: UpdateUserDto,
   ) {
     return this.authService.updateProfile(user.id, updateProfileDto);
+  }
+
+  @ApiOperation({
+    summary: 'Update user avatar',
+    description: 'Update user avatar image.',
+  })
+  @ApiBearerAuth()
+  @CheckPolicies((ability) => ability.can(Action.Update, User))
+  @ApiBody({
+    type: 'multipart/form-data',
+    description: 'User avatar image file',
+    schema: {
+      type: 'object',
+      properties: {
+        file: {
+          type: 'string',
+          format: 'binary',
+        },
+      },
+    },
+  })
+  @UseInterceptors(FileInterceptor('file'))
+  @MessageResponse(MESSAGE.USER.AVATAR_UPDATE)
+  @Patch('profile/avatar')
+  async updateAvatar(
+    @CurrentUser() user: IUser,
+    @UploadedFile(
+      new ParseFilePipeBuilder()
+        .addFileTypeValidator({
+          fileType: 'image/jpeg|image/png|image/jpg',
+        })
+        .addMaxSizeValidator({
+          maxSize: 2 * 1024 * 1024, // 2MB
+        })
+        .build({
+          errorHttpStatusCode: HttpStatus.UNPROCESSABLE_ENTITY,
+        }),
+    )
+    file: UploadedFileType,
+  ) {
+    return this.authService.updateAvatar(user.id, file);
   }
 
   @ApiOperation({

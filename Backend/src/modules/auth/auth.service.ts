@@ -223,6 +223,10 @@ export class AuthService {
     return this.usersService.updateProfile(id, updateProfileDto);
   }
 
+  async updateAvatar(id: string, file: UploadedFileType) {
+    return this.usersService.updateAvatar(id, file);
+  }
+
   async updateStudentProfile(id: string, updateProfileDto: UpdateStudentDto) {
     return this.studentsService.update(id, updateProfileDto);
   }
