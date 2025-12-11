@@ -15,7 +15,8 @@ import {
 import { FileInterceptor } from '@nestjs/platform-express';
 import { ApiBody, ApiOperation } from '@nestjs/swagger';
 import { Request } from 'express';
-import { canUpdateTeacherCertification } from 'src/casl/policies/teacher.policies';
+import { Teacher } from 'src/casl/entities';
+import { Action } from 'src/casl/enums/action.enum';
 import { PaginationQueryDto } from 'src/common/dto/pagination-query.dto';
 import { MESSAGE } from 'src/common/message';
 import {
@@ -54,11 +55,10 @@ export class TeachersController {
       },
     },
   })
-  @Public()
   @MessageResponse(MESSAGE.TEACHER.TEACHER_CERTIFICATION_UPDATE)
   @Patch('certificate')
   @UseInterceptors(FileInterceptor('file'))
-  @CheckPolicies(canUpdateTeacherCertification)
+  @CheckPolicies((ability) => ability.can(Action.UpdateCertification, Teacher))
   async uploadCertificate(
     @CurrentUser() user: IUser,
     @UploadedFile(

@@ -85,6 +85,7 @@ export class CaslAbilityFactory {
     can(Action.Read, User, { id: user.id } as MongoQuery);
     can(Action.Update, User, { id: user.id } as MongoQuery);
     can(Action.Update, Teacher, { userId: user.id } as MongoQuery);
+    can(Action.UpdateCertification, Teacher, { userId: user.id } as MongoQuery);
 
     // Blog permissions for Teacher
     can(Action.Create, Blog);

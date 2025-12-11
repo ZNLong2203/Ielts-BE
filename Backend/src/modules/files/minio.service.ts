@@ -47,7 +47,8 @@ export class MinioService {
         if (
           bucketName === this.buckets.images ||
           bucketName === this.buckets.videos ||
-          bucketName === this.buckets.audio
+          bucketName === this.buckets.audio ||
+          bucketName === this.buckets.documents
         ) {
           const policy = {
             Version: '2012-10-17',
@@ -87,15 +88,22 @@ export class MinioService {
       const fileName = `${uuid()}${fileExtension}`;
       const objectName = folder ? `${folder}/${fileName}` : fileName;
 
+      const metadata: Record<string, string> = {
+        'Content-Type': mimetype,
+        'Cache-Control': 'max-age=31536000',
+      };
+
+      // Set Content-Disposition to inline for PDFs to allow viewing in browser
+      if (mimetype === 'application/pdf') {
+        metadata['Content-Disposition'] = 'inline';
+      }
+
       const uploadInfo = await this.minioClient.putObject(
         bucketName,
         objectName,
         buffer,
         buffer.length,
-        {
-          'Content-Type': mimetype,
-          'Cache-Control': 'max-age=31536000',
-        },
+        metadata,
       );
 
       const url = await this.getFileUrl(bucketName, objectName);
@@ -297,7 +305,8 @@ export class MinioService {
       if (
         bucketName === this.buckets.images ||
         bucketName === this.buckets.videos ||
-        bucketName === this.buckets.audio
+        bucketName === this.buckets.audio ||
+        bucketName === this.buckets.documents
       ) {
         return `http://localhost:9000/${bucketName}/${objectName}`;
       }

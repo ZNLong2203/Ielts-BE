@@ -168,9 +168,7 @@ export class TeachersService {
     return this.prisma.teachers.update({
       where: { user_id: id },
       data: {
-        certificate_urls: {
-          push: fileData.url,
-        },
+        certificate_urls: [fileData.url],
       },
     });
   }

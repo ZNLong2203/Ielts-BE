@@ -74,10 +74,11 @@ export const canUpdateTeacherCertification: PolicyHandlerCallback = async (
   ability: AppAbility,
   request: Request,
 ): Promise<boolean> => {
-  const teacherId = request.params.id;
+  const teacherId = request.params.id ?? null;
 
   // If no specific ID, check generic permission
   if (!teacherId) {
+    console.log('No teacher ID in request params');
     return ability.can(Action.UpdateCertification, Teacher);
   }
 
