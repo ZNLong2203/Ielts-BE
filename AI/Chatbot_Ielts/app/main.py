@@ -288,7 +288,7 @@ async def search_documents(req: DocumentSearchRequest):
         results = milvus_client.search(
             query_embedding=query_embedding,
             top_k=req.top_k,
-            score_threshold=0.3
+            score_threshold=0.6
         )
         
         return DocumentSearchResponse(query=req.query, results=results)

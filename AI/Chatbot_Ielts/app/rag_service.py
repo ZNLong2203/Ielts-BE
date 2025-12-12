@@ -10,7 +10,7 @@ logger = logging.getLogger(__name__)
 class RAGService:
     """Service for RAG-based question answering"""
     
-    def __init__(self, top_k: int = 5, score_threshold: float = 0.5):
+    def __init__(self, top_k: int = 5, score_threshold: float = 0.6):
         """
         Initialize RAG service
         
@@ -25,6 +25,15 @@ class RAGService:
             embedding_dimension=self.embedding_service.get_embedding_dimension()
         )
         self.conversation_service = get_conversation_service()
+        # Skip retrieval for greetings/very short queries to avoid noisy context
+        self.min_query_tokens_for_rag = 3
+
+    def _should_use_rag(self, query: str, use_rag: bool) -> bool:
+        """Decide whether to perform retrieval based on query length and flag"""
+        if not use_rag:
+            return False
+        tokens = query.strip().split()
+        return len(tokens) >= self.min_query_tokens_for_rag
     
     def retrieve_context(self, query: str) -> List[Dict]:
         """
@@ -120,7 +129,9 @@ class RAGService:
                 conversation_history
             )
         
-        if not use_rag:
+        should_use_rag = self._should_use_rag(query, use_rag)
+
+        if not should_use_rag:
             if summarized_history:
                 prompt = self.conversation_service.format_conversation_for_prompt(
                     conversation_history=summarized_history,
@@ -139,7 +150,9 @@ Instructions:
         
         try:
             # Retrieve relevant context
-            retrieved_docs = self.retrieve_context(query)
+            retrieved_docs = []
+            if should_use_rag:
+                retrieved_docs = self.retrieve_context(query)
             
             # Format and optionally summarize context
             context = ""
@@ -165,7 +178,9 @@ Instructions:
             if context:
                 instructions.append("- Use the relevant study materials provided above to answer accurately.")
                 instructions.append("- If using information from study materials, cite the source (e.g., Document X).")
+                instructions.append("- If the query is just a greeting or unrelated small talk, ignore the study materials and answer briefly.")
             
+            instructions.append("- Respond in English unless the user writes Vietnamese; avoid mixing languages unless explicitly asked.")
             instructions.append("- Provide a comprehensive and helpful answer.")
             
             instructions_text = "\n".join(instructions) if instructions else ""
