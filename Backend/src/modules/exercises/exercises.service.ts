@@ -970,7 +970,8 @@ export class ExerciseService {
 
       if (
         question.question_type === 'multiple_choice' ||
-        question.question_type === 'drop_list'
+        question.question_type === 'droplist' ||
+        question.question_type === 'drop_list' // Support legacy format
       ) {
         // For multiple choice and drop_list, check if user selected the correct option
         const correctOption = question.question_options?.find(
@@ -1099,7 +1100,8 @@ export class ExerciseService {
 
         if (
           question.question_type === 'multiple_choice' ||
-          question.question_type === 'drop_list'
+          question.question_type === 'droplist' ||
+          question.question_type === 'drop_list' // Support legacy format
         ) {
           // For these types, userAnswer is option ID(s) - UUIDs
           if (Array.isArray(userAnswer)) {
