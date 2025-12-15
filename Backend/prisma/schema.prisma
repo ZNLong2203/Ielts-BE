@@ -19,6 +19,7 @@ model users {
   gender                   String?               @db.VarChar(10)
   country                  String?               @db.VarChar(100)
   city                     String?               @db.VarChar(100)
+  auth_provider            String?               @default("local") @db.VarChar(50)
   status                   String?               @default("active") @db.VarChar(20)
   email_verified           Boolean?              @default(false)
   email_verification_token String?               @db.VarChar(255)

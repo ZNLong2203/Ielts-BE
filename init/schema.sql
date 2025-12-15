@@ -10,6 +10,7 @@ CREATE TABLE users (
     gender VARCHAR(10),
     country VARCHAR(100),
     city VARCHAR(100),
+    auth_provider VARCHAR(50) DEFAULT 'local', -- local, google
     status VARCHAR(20) DEFAULT 'active', -- active, inactive, banned
     email_verified BOOLEAN DEFAULT FALSE,
     email_verification_token VARCHAR(255),

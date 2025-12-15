@@ -34,13 +34,6 @@ import {
   UserSubmission,
 } from 'src/casl/entities';
 import { Action } from 'src/casl/enums/action.enum';
-import { BlogCommentsService } from 'src/modules/blog-comments/blog-comments.service';
-import { BlogsService } from 'src/modules/blogs/blogs.service';
-import { CouponsService } from 'src/modules/coupons/coupons.service';
-import { CoursesService } from 'src/modules/courses/courses.service';
-import { StudentsService } from 'src/modules/students/students.service';
-import { TeachersService } from 'src/modules/teachers/teachers.service';
-import { UsersService } from 'src/modules/users/users.service';
 
 // Định nghĩa tất cả các subject types có thể được sử dụng
 
@@ -117,27 +110,4 @@ export type AppAbility = MongoAbility<[Action, Subjects]>;
 // Interface cho Policy Handler
 export interface PolicyHandlerCallback {
   (ability: AppAbility, request: Request): boolean | Promise<boolean>;
-}
-
-// Interface cho Service Context trong request
-export interface ServiceContext {
-  studentsService?: StudentsService;
-  teachersService?: TeachersService;
-  usersService?: UsersService;
-  blogCommentsService?: BlogCommentsService;
-  blogsService?: BlogsService;
-  coursesService?: CoursesService;
-  couponsService?: CouponsService;
-  writingService?: any; // WritingService type
-  [key: string]: any;
-}
-
-export interface ServiceTypeMap {
-  studentsService: StudentsService;
-  teachersService: TeachersService;
-  usersService: UsersService;
-  blogCommentsService: BlogCommentsService;
-  blogsService: BlogsService;
-  coursesService: CoursesService;
-  couponsService: CouponsService;
 }

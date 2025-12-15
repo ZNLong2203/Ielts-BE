@@ -15,6 +15,12 @@ export const USER_ROLE = {
   STUDENT: 'student',
 } as const;
 
+export const AUTH_PROVIDER = {
+  LOCAL: 'local',
+  GOOGLE: 'google',
+} as const;
+
 export type UserRole = (typeof USER_ROLE)[keyof typeof USER_ROLE];
 export type UserStatus = (typeof USER_STATUS)[keyof typeof USER_STATUS];
 export type UserGender = (typeof USER_GENDER)[keyof typeof USER_GENDER];
+export type AuthProvider = (typeof AUTH_PROVIDER)[keyof typeof AUTH_PROVIDER];

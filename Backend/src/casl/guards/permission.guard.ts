@@ -7,7 +7,7 @@ import {
   Logger,
   NotFoundException,
 } from '@nestjs/common';
-import { ModuleRef, Reflector } from '@nestjs/core';
+import { Reflector } from '@nestjs/core';
 import { Request } from 'express';
 import { CaslAbilityFactory } from 'src/casl/casl-ability.factory';
 import {
@@ -15,15 +15,7 @@ import {
   IS_PUBLIC_PERMISSION,
   POLICIES_KEY,
 } from 'src/decorator/customize';
-import { BlogsService } from 'src/modules/blogs/blogs.service';
-import { CouponsService } from 'src/modules/coupons/coupons.service';
-import { CoursesService } from 'src/modules/courses/courses.service';
-import { PolicyHandlerCallback, ServiceContext } from 'src/types/ability.types';
-import { StudentsService } from '../../modules/students/students.service';
-import { TeachersService } from '../../modules/teachers/teachers.service';
-import { UsersService } from '../../modules/users/users.service';
-import { BlogCommentsService } from 'src/modules/blog-comments/blog-comments.service';
-import { WritingService } from 'src/modules/writing/writing.service';
+import { PolicyHandlerCallback } from 'src/types/ability.types';
 
 @Injectable()
 export class PermissionGuard implements CanActivate {
@@ -32,7 +24,6 @@ export class PermissionGuard implements CanActivate {
   constructor(
     private readonly reflector: Reflector,
     private readonly caslAbilityFactory: CaslAbilityFactory,
-    private readonly moduleRef: ModuleRef,
   ) {}
 
   /**
@@ -86,9 +77,6 @@ export class PermissionGuard implements CanActivate {
       // Create ability for user
       const ability = this.caslAbilityFactory.createForUser(user);
 
-      // Inject services into request context
-      request.serviceContext = this.getServiceContext();
-
       // Attach ability to request
       request.ability = ability;
 
@@ -128,91 +116,6 @@ export class PermissionGuard implements CanActivate {
 
       // Rethrow the error
       throw e;
-    }
-  }
-
-  /**
-   * Gets available services for policy handlers with proper typing
-   * @returns ServiceContext object with typed service instances
-   */
-  private getServiceContext(): ServiceContext {
-    try {
-      // Type-safe service retrieval
-      const serviceContext: ServiceContext = {};
-
-      // Try to get each service and add to context if available
-      try {
-        serviceContext.studentsService = this.moduleRef.get(StudentsService, {
-          strict: false,
-        });
-      } catch (e) {
-        this.logger.debug('StudentsService not available');
-      }
-
-      try {
-        serviceContext.couponsService = this.moduleRef.get(CouponsService, {
-          strict: false,
-        });
-      } catch (e) {
-        this.logger.debug('CouponsService not available');
-      }
-
-      try {
-        serviceContext.teachersService = this.moduleRef.get(TeachersService, {
-          strict: false,
-        });
-      } catch (e) {
-        this.logger.debug('TeachersService not available');
-      }
-
-      try {
-        serviceContext.blogsService = this.moduleRef.get(BlogsService, {
-          strict: false,
-        });
-      } catch (e) {
-        this.logger.debug('BlogsService not available');
-      }
-
-      try {
-        serviceContext.coursesService = this.moduleRef.get(CoursesService, {
-          strict: false,
-        });
-      } catch (e) {
-        this.logger.debug('CoursesService not available');
-      }
-
-      try {
-        serviceContext.blogCommentsService = this.moduleRef.get(
-          BlogCommentsService,
-          {
-            strict: false,
-          },
-        );
-      } catch (e) {
-        this.logger.debug('BlogCommentsService not available');
-      }
-
-      try {
-        serviceContext.usersService = this.moduleRef.get(UsersService, {
-          strict: false,
-        });
-      } catch (e) {
-        this.logger.debug('UsersService not available');
-      }
-
-      try {
-        serviceContext.writingService = this.moduleRef.get(WritingService, {
-          strict: false,
-        });
-      } catch (e) {
-        this.logger.debug('WritingService not available');
-      }
-
-      return serviceContext;
-    } catch (error) {
-      const e = error as Error;
-      this.logger.error(`Failed to get services: ${e.message}`);
-      return {};
     }
   }
 }

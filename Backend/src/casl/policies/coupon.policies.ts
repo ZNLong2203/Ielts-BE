@@ -1,9 +1,7 @@
-import { NotFoundException } from '@nestjs/common';
 import { Request } from 'express';
 import { Coupon } from 'src/casl/entities';
 import { AppAbility, PolicyHandlerCallback } from 'src/types/ability.types';
 import { Action } from '../enums/action.enum';
-import { getService } from './base.policies';
 
 /**
  * Check if user can create coupon (admin only)
@@ -16,6 +14,7 @@ export const canCreateCoupon: PolicyHandlerCallback = async (
 
 /**
  * Check if user can update coupon
+ * No database access - uses body.created_by or assumes admin permission
  */
 export const canUpdateCoupon: PolicyHandlerCallback = async (
   ability: AppAbility,
@@ -28,18 +27,13 @@ export const canUpdateCoupon: PolicyHandlerCallback = async (
     return ability.can(Action.Update, Coupon);
   }
 
-  // Get coupon from database
-  const couponsService = getService(request, 'couponsService');
-  const coupon = await couponsService.findOne(couponId);
-
-  if (!coupon) {
-    throw new NotFoundException('Coupon not found');
-  }
+  // Get created_by from request body if provided
+  const createdBy = request.body?.created_by;
 
   // Create coupon subject for permission check
   const couponSubject = new Coupon({
-    id: coupon.id,
-    created_by: coupon.created_by?.id || undefined,
+    id: couponId,
+    created_by: createdBy,
   });
 
   // Check if user can update this coupon
@@ -59,16 +53,11 @@ export const canDeleteCoupon: PolicyHandlerCallback = async (
     return ability.can(Action.Delete, Coupon);
   }
 
-  const couponsService = getService(request, 'couponsService');
-  const coupon = await couponsService.findOne(couponId);
-
-  if (!coupon) {
-    throw new NotFoundException('Coupon not found');
-  }
+  const createdBy = request.body?.created_by;
 
   const couponSubject = new Coupon({
-    id: coupon.id,
-    created_by: coupon.created_by?.id || undefined,
+    id: couponId,
+    created_by: createdBy,
   });
 
   return ability.can(Action.Delete, couponSubject);

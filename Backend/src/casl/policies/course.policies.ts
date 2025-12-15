@@ -1,10 +1,8 @@
 // src/casl/policies/course.policies.ts
-import { NotFoundException } from '@nestjs/common';
 import { Request } from 'express';
 import { AppAbility, PolicyHandlerCallback } from 'src/types/ability.types';
 import { Course, CourseCategory } from '../entities';
 import { Action } from '../enums/action.enum';
-import { getService } from './base.policies';
 
 /**
  * Check if user can create course
@@ -18,6 +16,7 @@ export const canCreateCourse: PolicyHandlerCallback = async (
 
 /**
  * Check if user can update course
+ * No database access - uses body.teacher_id or user role to determine permission
  */
 export const canUpdateCourse: PolicyHandlerCallback = async (
   ability: AppAbility,
@@ -30,18 +29,13 @@ export const canUpdateCourse: PolicyHandlerCallback = async (
     return ability.can(Action.Update, Course);
   }
 
-  // Get course from database
-  const coursesService = getService(request, 'coursesService');
-  const course = await coursesService.findById(courseId);
-
-  if (!course) {
-    throw new NotFoundException('Course not found');
-  }
+  // Get teacher ID from request body if provided
+  const teacherId = request.body?.teacher_id;
 
   // Create course subject for permission check
   const courseSubject = new Course({
-    id: course.id,
-    teacherId: course.teacher?.id,
+    id: courseId,
+    teacherId: teacherId,
   });
 
   // Check if user can update this course
@@ -61,16 +55,11 @@ export const canPublishCourse: PolicyHandlerCallback = async (
     return ability.can(Action.Publish, Course);
   }
 
-  const coursesService = getService(request, 'coursesService');
-  const course = await coursesService.findById(courseId);
-
-  if (!course) {
-    throw new NotFoundException('Course not found');
-  }
+  const teacherId = request.body?.teacher_id;
 
   const courseSubject = new Course({
-    id: course.id,
-    teacherId: course.teacher?.id,
+    id: courseId,
+    teacherId: teacherId,
   });
 
   return ability.can(Action.Publish, courseSubject);
