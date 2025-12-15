@@ -62,4 +62,3 @@ export const canUpdateTeacherCertification: PolicyHandlerCallback = async (
   // Check if user can update certification
   return ability.can(Action.UpdateCertification, teacherSubject);
 };
-};
