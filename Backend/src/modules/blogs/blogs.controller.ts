@@ -270,6 +270,39 @@ export class BlogsController {
 
   @Public()
   @SkipCheckPermission()
+  @Get('/featured')
+  @ApiOperation({
+    summary: 'Get featured blogs',
+    description: 'Retrieve featured published blogs (default limit: 4)',
+  })
+  @ApiQuery({
+    name: 'limit',
+    required: false,
+    type: Number,
+    description: 'Number of featured blogs to retrieve',
+    example: 4,
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Featured blogs retrieved successfully',
+    schema: {
+      type: 'object',
+      properties: {
+        data: {
+          type: 'array',
+          items: { $ref: '#/components/schemas/BlogResponseDto' },
+        },
+      },
+    },
+  })
+  @MessageResponse(MESSAGE.BLOG.BLOG_FEATURED)
+  async getFeaturedBlogs(@Query('limit') limit?: number) {
+    const blogs = await this.blogsService.getFeaturedBlogs(limit);
+    return blogs;
+  }
+
+  @Public()
+  @SkipCheckPermission()
   @Get('/detail/:id')
   @ApiOperation({
     summary: 'Get published blog details',

@@ -76,6 +76,7 @@ export const MESSAGE = {
     BLOG_COMMENT_UNLIKED: 'Blog comment unliked successfully',
     TEACHER_NOT_FOUND: 'Teacher not found',
     INVALID_IMAGE_URL: 'Invalid image URL format',
+    BLOG_FEATURED: 'Featured blogs retrieved successfully',
   },
 
   BLOG_COMMENT: {
