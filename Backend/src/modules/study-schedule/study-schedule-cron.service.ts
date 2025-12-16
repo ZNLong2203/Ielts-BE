@@ -70,15 +70,30 @@ export class StudyScheduleCronService {
           const schedule = reminder.study_schedules;
           const course = schedule?.courses;
           if (!user || !schedule) {
-            return;
+            continue;
           }
+
+          const startTime = format(schedule.start_time, 'HH:mm');
+          const startDateTime = new Date(
+            `${format(new Date(schedule.scheduled_date), 'yyyy-MM-dd')}T${startTime}`,
+          );
+
+          const endTime = format(schedule.end_time, 'HH:mm');
+          const endDateTime = new Date(
+            `${format(new Date(schedule.scheduled_date), 'yyyy-MM-dd')}T${endTime}`,
+          );
+
+          const formatted = `${format(startDateTime, 'HH:mm')} to ${format(
+            endDateTime,
+            'HH:mm',
+          )}, ${format(startDateTime, 'EEEE, MMMM dd, yyyy')}`;
 
           // 1. Gửi email reminder
           await this.mailService.sendStudyReminder({
             to: user.email,
             userName: user.full_name || 'Learner',
             course: course?.title || 'Study Session',
-            scheduledTime: reminder.scheduled_time,
+            scheduledTime: formatted,
             studyGoal: schedule.study_goal || undefined,
             thumbnail: course?.thumbnail || undefined,
           });

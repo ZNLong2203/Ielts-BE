@@ -13,7 +13,8 @@ export class MailService {
     private readonly usersService: UsersService,
     private readonly configService: ConfigService,
   ) {
-    this.dashboardUrl = this.configService.get('FRONTEND_URL') + '/dashboard';
+    this.dashboardUrl =
+      this.configService.get('FRONTEND_URL') + '/student/dashboard';
   }
 
   async sendVerificationEmail(id: string, to: string, token: string) {
@@ -63,7 +64,7 @@ export class MailService {
     to: string;
     userName: string;
     course: string;
-    scheduledTime: Date;
+    scheduledTime: string;
     studyGoal?: string;
     thumbnail?: string;
   }) {
@@ -82,7 +83,6 @@ export class MailService {
           studyGoal: data.studyGoal,
           thumbnail: data.thumbnail,
           dashboardUrl: this.dashboardUrl,
-          unsubscribeUrl: `${this.dashboardUrl}/settings/notifications`,
         },
       });
 
