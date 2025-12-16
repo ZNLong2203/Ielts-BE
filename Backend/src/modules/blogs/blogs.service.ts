@@ -30,7 +30,6 @@ export class BlogsService {
     return cloudinaryPattern.test(url) || generalUrlPattern.test(url);
   }
 
-  // Helper method to clear all teacher blogs cache including pagination
   private async clearTeacherBlogsCache(teacherId: string): Promise<void> {
     try {
       // Get all keys matching the pattern
@@ -41,10 +40,8 @@ export class BlogsService {
         await this.redisService.getClient().del(...keys);
       }
 
-      // Also clear the base cache key
       await this.redisService.del(`teacherBlogs:${teacherId}`);
     } catch (error) {
-      // Log error but don't throw to avoid breaking the main operation
       console.error('Error clearing teacher blogs cache:', error);
     }
   }
@@ -260,12 +257,10 @@ export class BlogsService {
 
       await this.redisService.del('allBlogCategories');
 
-      // Prepare update data
       const updateData: Partial<blog_categories> = { ...updateBlogCategoryDto };
 
       // If name is being updated, regenerate slug
       if (updateBlogCategoryDto.name) {
-        // Get current category to check if slug needs to be updated
         const currentCategory =
           await this.prismaService.blog_categories.findUnique({
             where: { id },
@@ -273,13 +268,11 @@ export class BlogsService {
           });
 
         if (currentCategory) {
-          // Generate new slug and ensure it's different from current slug
           const newSlug = await this.generateUniqueSlug(
             updateBlogCategoryDto.name,
             id, // Exclude current category from slug check
           );
 
-          // Only update slug if it's different from current slug
           if (newSlug !== currentCategory.slug) {
             updateData.slug = newSlug;
           }
@@ -484,6 +477,51 @@ export class BlogsService {
     }
   }
 
+  async getFeaturedBlogs(limit = 4) {
+    try {
+      const featuredBlogs = await this.prismaService.blogs.findMany({
+        where: {
+          is_featured: true,
+          status: 'published',
+          deleted: false,
+        },
+        take: limit,
+        orderBy: { created_at: 'desc' },
+        select: {
+          id: true,
+          author_id: true,
+          users: {
+            select: {
+              id: true,
+              full_name: true,
+              avatar: true,
+              email: true,
+              role: true,
+            },
+          },
+          category_id: true,
+          title: true,
+          content: true,
+          image: true,
+          tags: true,
+          status: true,
+          is_featured: true,
+          like_count: true,
+          published_at: true,
+          created_at: true,
+          updated_at: true,
+        },
+      });
+
+      return featuredBlogs;
+    } catch (error) {
+      if (error instanceof Error) {
+        throw new Error(error.message);
+      }
+      throw new Error(MESSAGE.ERROR.UNEXPECTED_ERROR);
+    }
+  }
+
   async findPublishedBlogDetail(id: string): Promise<blogs | null> {
     try {
       const cachedBlog = await this.redisService.get(`publishedBlog:${id}`);
@@ -516,7 +554,7 @@ export class BlogsService {
     }
   }
 
-  // ========== TEACHER BLOG METHODS ==========
+  // TEACHER BLOG METHODS 
   async createTeacherBlog(
     createBlogDto: CreateBlogDto,
     teacherId: string,
@@ -559,7 +597,6 @@ export class BlogsService {
         },
       });
 
-      // Clear all teacher blogs cache (including pagination)
       await this.clearTeacherBlogsCache(teacherId);
       await this.redisService.del('allBlogsAdmin');
       await this.redisService.del('blogsByStatus:draft');
