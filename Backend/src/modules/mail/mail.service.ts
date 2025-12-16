@@ -1,7 +1,6 @@
 import { MailerService } from '@nestjs-modules/mailer';
 import { BadRequestException, Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { format } from 'date-fns';
 import { UsersService } from 'src/modules/users/users.service';
 
 @Injectable()
@@ -76,10 +75,7 @@ export class MailService {
         context: {
           userName: data.userName,
           course: data.course,
-          scheduledTime: format(
-            data.scheduledTime,
-            'HH:mm, EEEE, MMMM dd, yyyy',
-          ),
+          scheduledTime: data.scheduledTime,
           studyGoal: data.studyGoal,
           thumbnail: data.thumbnail,
           dashboardUrl: this.dashboardUrl,
