@@ -223,7 +223,6 @@ export class CoursesService {
             id: true,
             qualification: true,
             experience_years: true,
-            rating: true,
             users: {
               select: {
                 id: true,
@@ -298,7 +297,6 @@ export class CoursesService {
             avatar: course.teachers.users?.avatar,
             qualification: course.teachers.qualification,
             experience_years: course.teachers.experience_years,
-            rating: course.teachers.rating,
           }
         : null,
       category: course.course_categories

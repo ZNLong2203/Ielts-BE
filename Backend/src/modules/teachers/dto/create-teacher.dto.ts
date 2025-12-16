@@ -57,14 +57,4 @@ export class CreateTeacherDto {
   @IsString()
   @IsOptional()
   teaching_style?: string;
-
-  @ApiProperty({
-    description: 'Hourly rate for teaching',
-    minimum: 0,
-    example: 250000,
-  })
-  @IsNumber()
-  @Min(0)
-  @Type(() => Number)
-  hourly_rate: number;
 }

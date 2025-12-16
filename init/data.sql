@@ -13,10 +13,10 @@ INSERT INTO students (id, user_id, bio, target_ielts_score, current_level, learn
 ('450e8400-e29b-41d4-a716-446655440002', '550e8400-e29b-41d4-a716-446655440005', 'Working professional seeking IELTS certification', 7.0, 6.0, ARRAY['General Training', 'Immigration', 'Speaking Confidence'], 'vi'),
 ('450e8400-e29b-41d4-a716-446655440003', '550e8400-e29b-41d4-a716-446655440006', 'Fresh graduate planning to work overseas', 8.0, 6.5, ARRAY['Academic IELTS', 'Band 8 Achievement', 'All Skills'], 'vi');
 
--- Insert sample teachersx
-INSERT INTO teachers (id, user_id, qualification, experience_years, specializations, ielts_band_score, certificate_urls, teaching_style, hourly_rate, rating, status) VALUES
-('350e8400-e29b-41d4-a716-446655440001', '550e8400-e29b-41d4-a716-446655440002', 'TESOL Certified, Masters in Applied Linguistics', 8, ARRAY['reading', 'writing'], 8.5, ARRAY['/images/default_image.jpg', '/images/default_image.jpg'], 'Interactive and practical approach with real-world examples', 500000, 4.8, 'approved'),
-('350e8400-e29b-41d4-a716-446655440002', '550e8400-e29b-41d4-a716-446655440003', 'CELTA Certified, 10+ years teaching experience', 12, ARRAY['speaking', 'listening'], 9.0, ARRAY['/images/default_image.jpg'], 'Conversation-focused methodology with confidence building', 600000, 4.9, 'approved');
+-- Insert sample teachers
+INSERT INTO teachers (id, user_id, qualification, experience_years, specializations, ielts_band_score, certificate_urls, teaching_style, status) VALUES
+('350e8400-e29b-41d4-a716-446655440001', '550e8400-e29b-41d4-a716-446655440002', 'TESOL Certified, Masters in Applied Linguistics', 8, ARRAY['reading', 'writing'], 8.5, ARRAY['/images/default_image.jpg', '/images/default_image.jpg'], 'Interactive and practical approach with real-world examples', 'approved'),
+('350e8400-e29b-41d4-a716-446655440002', '550e8400-e29b-41d4-a716-446655440003', 'CELTA Certified, 10+ years teaching experience', 12, ARRAY['speaking', 'listening'], 9.0, ARRAY['/images/default_image.jpg'], 'Conversation-focused methodology with confidence building', 'approved');
 
 -- Insert sample course categories
 INSERT INTO course_categories (id, name, description, icon, ordering, is_active) VALUES

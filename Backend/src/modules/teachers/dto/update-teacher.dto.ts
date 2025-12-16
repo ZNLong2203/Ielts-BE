@@ -43,13 +43,6 @@ export class UpdateTeacherDto extends PartialType(CreateTeacherDto) {
 
   @ApiPropertyOptional({ description: "Teacher's approach to teaching" })
   teaching_style?: string;
-
-  @ApiProperty({
-    description: 'Hourly rate for teaching',
-    minimum: 0,
-    example: 250000,
-  })
-  hourly_rate: number;
 }
 
 export class UpdateTeacherStatusDto {
