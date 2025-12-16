@@ -341,11 +341,48 @@ export class BlogsService {
         return publishedBlogs;
       }
 
-      const whereCondition: Prisma.blogsWhereInput = {
+      // Handle search separately for title/content while keeping generic filters
+      const { search, ...restQuery } = rawQuery || {};
+
+      let whereCondition: Prisma.blogsWhereInput = {
         status: 'published',
         deleted: false,
-        ...this.utilsService.buildWhereFromQuery(rawQuery || {}),
+        ...this.utilsService.buildWhereFromQuery(restQuery || {}),
       };
+
+      if (typeof search === 'string' && search.trim().length > 0) {
+        const searchTerm = search.trim();
+
+        const searchCondition: Prisma.blogsWhereInput = {
+          OR: [
+            {
+              title: {
+                contains: searchTerm,
+                mode: 'insensitive',
+              },
+            },
+            {
+              content: {
+                contains: searchTerm,
+                mode: 'insensitive',
+              },
+            },
+          ],
+        };
+
+        // Merge existing OR with search OR if present
+        if (Array.isArray(whereCondition.OR) && whereCondition.OR.length > 0) {
+          whereCondition = {
+            ...whereCondition,
+            OR: [...whereCondition.OR, ...searchCondition.OR!],
+          };
+        } else {
+          whereCondition = {
+            ...whereCondition,
+            ...searchCondition,
+          };
+        }
+      }
 
       return this.utilsService.paginate({
         model: this.prismaService.blogs,

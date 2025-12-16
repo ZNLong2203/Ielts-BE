@@ -43,9 +43,7 @@ CREATE TABLE teachers (
     ielts_band_score DECIMAL(2,1),
     certificate_urls TEXT[],
     teaching_style TEXT,
-    hourly_rate DECIMAL(10,2),
     availability JSONB, -- schedule availability
-    rating DECIMAL(2,1) DEFAULT 0,
     status TEXT DEFAULT 'pending', -- pending, approved, rejected, inactive
     deleted BOOLEAN DEFAULT FALSE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,

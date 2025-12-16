@@ -429,9 +429,7 @@ model teachers {
   ielts_band_score Decimal?  @db.Decimal(2, 1)
   certificate_urls String[]
   teaching_style   String?
-  hourly_rate      Decimal?  @db.Decimal(10, 2)
   availability     Json?
-  rating           Decimal?  @default(0) @db.Decimal(2, 1)
   status           String?   @default("pending")
   deleted          Boolean?  @default(false)
   created_at       DateTime? @default(now()) @db.Timestamp(6)
