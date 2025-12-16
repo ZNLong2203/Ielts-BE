@@ -103,7 +103,7 @@ export class MailService {
   }) {
     try {
       const resultUrl = `${this.dashboardUrl}/my-quizzes/${data.testResultId}`;
-      
+
       await this.mailerService.sendMail({
         to: data.to,
         subject: `Your Writing Test Has Been Graded - Band Score: ${data.bandScore}`,
@@ -120,7 +120,9 @@ export class MailService {
       this.logger.log(`Writing grading complete email sent to ${data.to}`);
     } catch (error) {
       const e = error as Error;
-      this.logger.error(`Failed to send writing grading email to ${data.to}: ${e.message}`);
+      this.logger.error(
+        `Failed to send writing grading email to ${data.to}: ${e.message}`,
+      );
       throw error;
     }
   }
