@@ -419,7 +419,7 @@ export class PaymentsService {
       await tx.combo_enrollments.create({
         data: {
           user_id: order.user_id,
-          combo_id,
+          combo_id: comboId,
           created_at: new Date(),
         },
       });

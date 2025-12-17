@@ -1044,35 +1044,55 @@ export class StudyScheduleService {
   }
 
   private async createReminder(schedule: study_schedules) {
-    const startTime = this.formatTimeToString(schedule.start_time);
-    const scheduledDateTime = new Date(
-      `${format(new Date(schedule.scheduled_date), 'yyyy-MM-dd')}T${startTime}`,
-    );
+    try {
+      const startTime = this.formatTimeToString(schedule.start_time);
+      const scheduledDateTime = new Date(
+        `${format(new Date(schedule.scheduled_date), 'yyyy-MM-dd')}T${startTime}`,
+      );
 
-    // kiểm tra xem thời gian nhắc nhở không null
-    if (!schedule.reminder_minutes_before) {
-      return;
-    }
+      // kiểm tra xem thời gian nhắc nhở không null
+      if (!schedule.reminder_minutes_before) {
+        this.logger.warn(
+          `Reminder not created for schedule ${schedule.id}: reminder_minutes_before is null`,
+        );
+        return;
+      }
 
-    const reminderTime = addMinutes(
-      scheduledDateTime,
-      -schedule.reminder_minutes_before,
-    );
+      const reminderTime = addMinutes(
+        scheduledDateTime,
+        -schedule.reminder_minutes_before,
+      );
 
-    if (isAfter(reminderTime, new Date())) {
-      await this.prisma.study_reminders.create({
-        data: {
-          user_id: schedule.user_id,
-          schedule_id: schedule.id,
-          title: `Study Session Reminder`,
-          message: `Your study session "${schedule.study_goal || 'Study Session'}" starts in ${schedule.reminder_minutes_before} minutes!`,
-          scheduled_time: reminderTime,
-          status: REMINDER_STATUS.PENDING,
-        },
-      });
+      const now = new Date();
+      const isReminderInFuture = isAfter(reminderTime, now);
 
-      this.logger.log(
-        `Created reminder for schedule ${schedule.id} at ${format(reminderTime, 'yyyy-MM-dd HH:mm')}`,
+      if (isReminderInFuture) {
+        await this.prisma.study_reminders.create({
+          data: {
+            user_id: schedule.user_id,
+            schedule_id: schedule.id,
+            title: `Study Session Reminder`,
+            message: `Your study session "${schedule.study_goal || 'Study Session'}" starts in ${schedule.reminder_minutes_before} minutes!`,
+            scheduled_time: reminderTime,
+            status: REMINDER_STATUS.PENDING,
+          },
+        });
+
+        this.logger.log(
+          `Created reminder for schedule ${schedule.id} at ${format(reminderTime, 'yyyy-MM-dd HH:mm')}`,
+        );
+      } else {
+        this.logger.warn(
+          `Reminder not created for schedule ${schedule.id}: reminder time (${format(reminderTime, 'yyyy-MM-dd HH:mm')}) is in the past. ` +
+          `Scheduled time: ${format(scheduledDateTime, 'yyyy-MM-dd HH:mm')}, ` +
+          `Reminder minutes before: ${schedule.reminder_minutes_before}`,
+        );
+      }
+    } catch (error) {
+      const e = error as Error;
+      this.logger.error(
+        `Failed to create reminder for schedule ${schedule.id}: ${e.message}`,
+        e.stack,
       );
     }
   }
