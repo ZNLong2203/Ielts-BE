@@ -1,4 +1,3 @@
-// src/casl/policies/teacher.policies.ts
 import { Request } from 'express';
 import { AppAbility, PolicyHandlerCallback } from 'src/types/ability.types';
 import { Teacher } from '../entities';

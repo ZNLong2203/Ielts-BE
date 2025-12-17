@@ -262,7 +262,6 @@ export class StudentsService {
 
             // Course is completed when all lessons are completed
             // Check both: completed_lessons === total_lessons AND total_lessons > 0
-            // This is the most reliable indicator since lesson count can change
             const isCompleted =
               totalLessons > 0 && completedLessons === totalLessons;
 
@@ -295,11 +294,16 @@ export class StudentsService {
         // Otherwise, calculate from actual lesson progress
         let overallProgressPercentage: number;
         let finalCoursesWithProgress = coursesWithProgress;
-        
-        if (enrollment.certificate_url && Number(enrollment.overall_progress_percentage) >= 100) {
+
+        if (
+          enrollment.certificate_url &&
+          Number(enrollment.overall_progress_percentage) >= 100
+        ) {
           // If certificate exists, use the database value (100%)
           // and mark all courses as completed
-          overallProgressPercentage = Number(enrollment.overall_progress_percentage);
+          overallProgressPercentage = Number(
+            enrollment.overall_progress_percentage,
+          );
           finalCoursesWithProgress = coursesWithProgress.map((course) => ({
             ...course,
             progress: 100,
@@ -335,8 +339,9 @@ export class StudentsService {
             enrollment_count: combo.enrollment_count,
             tags: combo.tags,
             total_courses: courses.length,
-            completed_courses: finalCoursesWithProgress.filter((c) => c.is_completed)
-              .length,
+            completed_courses: finalCoursesWithProgress.filter(
+              (c) => c.is_completed,
+            ).length,
           },
           courses: finalCoursesWithProgress,
         };
@@ -424,7 +429,6 @@ export class StudentsService {
             : 0;
 
         // Course is completed when all lessons are completed
-        // This is the most reliable indicator since lesson count can change
         const isCompleted =
           totalLessons > 0 && completedLessons === totalLessons;
 

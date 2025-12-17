@@ -1,5 +1,4 @@
 export interface VideoJobData {
-  // buffer: Buffer; //  Remove buffer
   fileName: string;
   bucketName: string;
   folder: string;
@@ -42,8 +41,8 @@ export interface PresignedUploadResponse {
   fileName: string;
   originalName: string;
   presignedUrl: string;
-  uploadUrl: string; // For compatibility
-  fields: Record<string, string>; // For form data (empty for MinIO PUT)
+  uploadUrl: string;
+  fields: Record<string, string>;
   bucketName: string;
   objectName: string;
   expiresAt: Date;

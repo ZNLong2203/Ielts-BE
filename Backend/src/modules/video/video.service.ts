@@ -1,4 +1,3 @@
-// filepath: d:\documents\code\git\Ielts-BE\Backend\src\modules\video\video.service.ts
 import { InjectQueue } from '@nestjs/bullmq';
 import { BadRequestException, Injectable, Logger } from '@nestjs/common';
 import { Job, Queue } from 'bullmq';

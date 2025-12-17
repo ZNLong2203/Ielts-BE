@@ -1,4 +1,3 @@
-// src/modules/teachers/dto/create-teacher.dto.ts
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import {

@@ -38,9 +38,6 @@ async function bootstrap() {
     }),
   );
 
-  // useGlobalGuards() method is used to apply the JwtAuthGuard to all routes in the application.
-  // app.useGlobalGuards(new JwtAuthGuard(reflector));
-
   app.useGlobalInterceptors(
     new TransformInterceptor(reflector),
     new LoggingInterceptor(),
@@ -52,14 +49,12 @@ async function bootstrap() {
 
   app.enableVersioning({
     type: VersioningType.URI,
-    // prefix: 'api/v',
     defaultVersion: ['1'],
   });
 
   app.use(cookieParser());
 
   app.enableCors({
-    // origin: true (cho phép kết nối từ cùng origin với server)
     origin: 'http://localhost:8000',
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
     preflightContinue: false,

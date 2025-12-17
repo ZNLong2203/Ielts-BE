@@ -1,26 +1,26 @@
 import {
+  Body,
   Controller,
   Get,
-  Post,
-  Body,
   Param,
+  Post,
   Res,
   UnauthorizedException,
 } from '@nestjs/common';
-import { Response } from 'express';
 import {
-  ApiTags,
   ApiBearerAuth,
+  ApiBody,
   ApiOperation,
   ApiResponse,
-  ApiBody,
+  ApiTags,
 } from '@nestjs/swagger';
+import { Response } from 'express';
+import { MESSAGE } from 'src/common/message';
 import {
   CurrentUser,
   MessageResponse,
   SkipCheckPermission,
 } from 'src/decorator/customize';
-import { MESSAGE } from 'src/common/message';
 import { IUser } from 'src/interface/users.interface';
 import { CertificatesService } from './certificates.service';
 import { GenerateCertificateDto } from './dto/generate-certificate.dto';
@@ -31,7 +31,6 @@ import { GenerateCertificateDto } from './dto/generate-certificate.dto';
 export class CertificatesController {
   constructor(private readonly certificatesService: CertificatesService) {}
 
-  // Route dynamic phải đặt TRƯỚC route root để tránh conflict
   @Get(':comboEnrollmentId/view')
   @SkipCheckPermission()
   @ApiOperation({

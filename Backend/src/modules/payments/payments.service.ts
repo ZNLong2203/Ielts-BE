@@ -23,7 +23,6 @@ import {
   PaymentCreateResponseDto,
 } from './dto/create-payment.dto';
 import { StripeProvider } from './providers/stripe.provider';
-import { ZaloPayProvider } from './providers/zalopay.provider';
 
 @Injectable()
 export class PaymentsService {
@@ -32,7 +31,6 @@ export class PaymentsService {
   constructor(
     private readonly config: ConfigService,
     private readonly stripeProvider: StripeProvider,
-    private readonly zaloProvider: ZaloPayProvider,
     private readonly prisma: PrismaService,
   ) {}
 
@@ -68,10 +66,6 @@ export class PaymentsService {
 
     if (method === PaymentMethod.STRIPE) {
       return await this.processStripePayment(validPayment, dto);
-    }
-
-    if (method === PaymentMethod.ZALOPAY) {
-      return await this.processZaloPayPayment(validPayment, dto);
     }
 
     throw new BadRequestException('Unsupported payment method');
@@ -122,82 +116,6 @@ export class PaymentsService {
     };
   }
 
-  private async processZaloPayPayment(
-    payment: { id: string; order_id: string },
-    dto: CreatePaymentDto,
-  ): Promise<PaymentCreateResponseDto> {
-    const { orderId, amount, description } = dto;
-    const baseUrl =
-      this.config.get<string>('APP_BASE_URL') || 'http://localhost:3000';
-    const frontendUrl = this.config.get<string>('FRONTEND_URL') || baseUrl;
-    const returnUrl = `${baseUrl}/webhooks/zalopay`;
-    const redirectUrl = `${frontendUrl}/zalopay-success?order=${orderId}&paymentId=${payment.id}`;
-
-    // find all order items
-    const order = await this.prisma.orders.findUnique({
-      where: { id: orderId },
-    });
-    const orderItems = await this.prisma.order_items.findMany({
-      where: { order_id: orderId },
-      include: { combo_courses: true, courses: true },
-    });
-
-    const resp = await this.zaloProvider.createOrder(
-      amount,
-      order,
-      description,
-      returnUrl,
-      redirectUrl,
-      orderItems,
-    );
-
-    if (resp.respData.return_code !== 1) {
-      this.logger.error(
-        `ZaloPay create order failed: ${resp.respData.return_message}`,
-      );
-
-      // update payment status
-      await this.updateZaloPaymentStatus(
-        payment.id,
-        PaymentStatus.FAILED,
-        '',
-        returnUrl,
-      );
-
-      throw new Error(
-        'ZaloPay create order failed: ' +
-          resp.respData.return_message +
-          ', ' +
-          resp.respData.sub_return_message,
-      );
-    }
-
-    const checkoutUrl = resp.respData?.order_url ?? null;
-
-    await this.prisma.payments.update({
-      where: { id: payment.id },
-      data: {
-        transaction_id: resp.appTransId,
-        gateway_response: {
-          provider: 'zalopay',
-          app_trans_id: resp.appTransId,
-          return_code: resp.respData.return_code,
-          return_message: resp.respData.return_message,
-          order_url: resp.respData.order_url,
-          zp_trans_token: resp.respData.zp_trans_token,
-        },
-        updated_at: new Date(),
-      },
-    });
-
-    return {
-      paymentId: payment.id,
-      provider: 'zalopay',
-      checkoutUrl,
-      raw: resp.respData,
-    };
-  }
-
   async handleStripeEvent(event: Stripe.Event): Promise<void> {
     const { type, data } = event;
     const session = data.object as Stripe.Checkout.Session;
@@ -228,56 +146,6 @@ export class PaymentsService {
       );
     } else {
       await this.updatePaymentStatus(payment.id, PaymentStatus.FAILED, event);
-    }
-  }
-
-  async handleZaloCallback(
-    body: unknown,
-  ): Promise<{ return_code: number; return_message: string }> {
-    const verified = this.zaloProvider.verifyCallback(
-      body as { data: string; mac: string },
-    );
-
-    if (!verified.valid) {
-      throw new BadRequestException(
-        `Invalid ZaloPay callback: ${verified.reason}`,
-      );
-    }
-
-    const data = verified.data;
-    if (!data) {
-      throw new BadRequestException('No callback data received');
-    }
-
-    const appTransId = data.app_trans_id;
-    const zpTransId = data.zp_trans_id.toString();
-
-    const payment = await this.findPaymentByTransactionId(appTransId);
-
-    if (!payment) {
-      this.logger.warn(`Zalo callback, payment not found: ${appTransId}`);
-      return { return_code: 0, return_message: 'Payment not found' };
-    }
-
-    // ZaloPay uses return_code 1 for success
-    const isSuccess = data.app_id > 0; // Valid app_id indicates success
-
-    if (isSuccess) {
-      await this.updateZaloPaymentStatus(
-        payment.id,
-        PaymentStatus.COMPLETED,
-        zpTransId,
-        data,
-      );
-      return { return_code: 1, return_message: 'success' };
-    } else {
-      await this.updateZaloPaymentStatus(
-        payment.id,
-        PaymentStatus.FAILED,
-        zpTransId,
-        data,
-      );
-      return { return_code: 0, return_message: 'payment failed' };
     }
   }
 
@@ -400,19 +268,6 @@ export class PaymentsService {
     });
   }
 
-  // call ZALOPAY_QUERY_ENDPOINT to retrieve payment information
-  async findPaymentByZaloId(
-    app_trans_id: string,
-  ): Promise<PaymentRecord | null> {
-    const resp =
-      await this.zaloProvider.findPaymentStatusByAppTransId(app_trans_id);
-    if (!resp) {
-      return null;
-    }
-
-    return resp;
-  }
-
   private async findPaymentByOrderId(
     orderId: string,
   ): Promise<PaymentRecord | null> {
@@ -473,56 +328,6 @@ export class PaymentsService {
           : OrderStatus.FAILED;
       await tx.orders.update({
         where: { id: payment.order_id ?? '' },
-        data: {
-          status: orderStatus,
-          payment_status: status,
-        },
-      });
-    });
-  }
-
-  private async updateZaloPaymentStatus(
-    paymentId: string,
-    status: PaymentStatus,
-    zpTransId: string,
-    callbackData: unknown,
-  ): Promise<void> {
-    const payment = await this.prisma.payments.findUnique({
-      where: { id: paymentId },
-      select: { gateway_response: true, transaction_id: true },
-    });
-
-    if (!payment) {
-      throw new NotFoundException('Payment not found');
-    }
-
-    const currentGatewayResponse =
-      (payment.gateway_response as Record<string, unknown>) ?? {};
-
-    // use transaction
-    await this.prisma.$transaction(async (tx) => {
-      const paymentUpdate = await tx.payments.update({
-        where: { id: paymentId },
-        data: {
-          status,
-          processed_at: new Date(),
-          updated_at: new Date(),
-          transaction_id: zpTransId || payment.transaction_id,
-          gateway_response: {
-            ...currentGatewayResponse,
-            zalopay_callback: callbackData,
-          } as any,
-        },
-      });
-
-      // update order status
-      // set order status based on payment status
-      const orderStatus =
-        status === PaymentStatus.COMPLETED
-          ? OrderStatus.COMPLETED
-          : OrderStatus.FAILED;
-      await tx.orders.update({
-        where: { id: paymentUpdate.order_id ?? '' },
         data: {
           status: orderStatus,
           payment_status: status,

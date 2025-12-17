@@ -234,7 +234,7 @@ export class OrdersService {
       orderId,
       amount: finalAmount,
       currency: 'VND',
-      method: paymentMethod, // 'ZALOPAY' or 'STRIPE'
+      method: paymentMethod, // 'STRIPE'
       description: `Payment for order ${orderCode}`,
     };
 

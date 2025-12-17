@@ -1,4 +1,3 @@
-// Backend/src/modules/grading/strategies/true-false.grader.ts
 import {
   Grader,
   GradingResult,

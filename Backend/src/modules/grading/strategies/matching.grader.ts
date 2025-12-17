@@ -1,4 +1,3 @@
-// Backend/src/modules/grading/strategies/matching.grader.ts
 import {
   Grader,
   GradingResult,

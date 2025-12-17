@@ -1,4 +1,3 @@
-// src/casl/types/ability.types.ts
 import { InferSubjects, MongoAbility } from '@casl/ability';
 import { Request } from 'express';
 import {

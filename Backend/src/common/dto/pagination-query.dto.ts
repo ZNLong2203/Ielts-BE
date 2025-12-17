@@ -1,4 +1,3 @@
-// src/common/dto/pagination-query.dto.ts
 import { Type } from 'class-transformer';
 import { IsBoolean, IsNumber, IsOptional, IsString } from 'class-validator';
 

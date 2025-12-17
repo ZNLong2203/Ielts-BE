@@ -30,21 +30,21 @@ import {
   Public,
   SkipCheckPermission,
 } from 'src/decorator/customize';
+import { IUser } from 'src/interface/users.interface';
 import {
   CreateExerciseDto,
   CreateQuestionDto,
 } from 'src/modules/exercises/dto/create-exercise.dto';
 import {
+  ExerciseSubmissionResponseDto,
+  SubmitExerciseDto,
+} from 'src/modules/exercises/dto/submit-exercise.dto';
+import {
   ExerciseResponseDto,
   UpdateExerciseDto,
 } from 'src/modules/exercises/dto/update-exercise.dto';
-import {
-  SubmitExerciseDto,
-  ExerciseSubmissionResponseDto,
-} from 'src/modules/exercises/dto/submit-exercise.dto';
 import { ExerciseService } from 'src/modules/exercises/exercises.service';
 import { ApiResponseDto } from 'src/modules/sections/dto/section-response.dto';
-import { IUser } from 'src/interface/users.interface';
 
 @ApiTags('Lesson Exercises')
 @Controller('lessons/:lessonId/exercises')
@@ -115,7 +115,6 @@ export class ExerciseController {
     @Param('lessonId', ParseUUIDPipe) lessonId: string,
     @Body() createDto: CreateExerciseDto,
   ) {
-    // Override lesson_id from URL param
     createDto.lesson_id = lessonId;
     const exercise = await this.exerciseService.createExercise(
       createDto,
@@ -366,7 +365,6 @@ export class ExerciseController {
     @Param('exerciseId', ParseUUIDPipe) exerciseId: string,
     @Body() updateDto: UpdateExerciseDto,
   ) {
-    // Ensure lesson_id consistency
     if (updateDto.lesson_id && updateDto.lesson_id !== lessonId) {
       updateDto.lesson_id = lessonId;
     }

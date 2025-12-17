@@ -1,9 +1,8 @@
-import { Body, Controller, HttpCode, Post, Req, Res } from '@nestjs/common';
+import { Controller, HttpCode, Post, Req, Res } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { Request, Response } from 'express';
 import { Public } from 'src/decorator/customize';
-import { ZaloPayCallbackDto } from 'src/modules/payments/dto/create-payment.dto';
 import { PaymentsService } from 'src/modules/payments/payments.service';
 import { Stripe } from 'stripe';
 import { StripeProvider } from './providers/stripe.provider';
@@ -39,18 +38,5 @@ export class WebhookController {
     }
     await this.paymentsService.handleStripeEvent(event);
     return res.json({ received: true });
-  }
-
-  @Post('zalopay')
-  @HttpCode(200)
-  @Public()
-  @ApiOperation({ summary: 'ZaloPay callback endpoint' })
-  async zalopay(@Body() dto: ZaloPayCallbackDto, @Res() res: Response) {
-    try {
-      await this.paymentsService.handleZaloCallback(dto);
-      return res.json({ returncode: 1, returnmessage: 'OK' });
-    } catch {
-      return res.status(400).json({ returncode: -1, returnmessage: 'INVALID' });
-    }
   }
 }

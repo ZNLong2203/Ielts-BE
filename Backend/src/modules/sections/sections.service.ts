@@ -1,4 +1,3 @@
-// src/modules/sections/sections.service.ts
 import {
   BadRequestException,
   Injectable,

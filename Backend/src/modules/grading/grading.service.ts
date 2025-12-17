@@ -1,4 +1,3 @@
-// Backend/src/modules/grading/services/grading.service.ts
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { QUESTION_TYPE } from 'src/modules/exercises/constants';
 import { BandCalculatorService } from 'src/modules/grading/band-calculator.service';

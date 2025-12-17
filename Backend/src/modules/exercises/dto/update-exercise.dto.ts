@@ -1,11 +1,9 @@
-// src/modules/lessons/dto/exercise/update-exercise.dto.ts
 import { ApiProperty, PartialType } from '@nestjs/swagger';
 import { QUESTION_TYPE, QuestionType } from 'src/modules/exercises/constants';
 import { CreateExerciseDto } from './create-exercise.dto';
 
 export class UpdateExerciseDto extends PartialType(CreateExerciseDto) {}
 
-// src/modules/lessons/dto/exercise/exercise-response.dto.ts
 export class QuestionOptionResponseDto {
   @ApiProperty()
   id: string;

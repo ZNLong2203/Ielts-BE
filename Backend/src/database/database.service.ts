@@ -25,7 +25,7 @@ export class DatabaseService {
       data: {
         email,
         password: this.usersService.getHashPassword(password),
-        role: 'ADMIN', // ensure this is a valid enum in your schema
+        role: 'ADMIN',
         status: 'active',
         email_verified: true,
       },

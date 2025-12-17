@@ -1,8 +1,3 @@
-import {
-  COUPONS_DISCOUNT_TYPE,
-  CouponsDiscountType,
-} from './../../../common/constants/coupons';
-// src/modules/coupons/dto/create-coupon.dto.ts
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import {
@@ -18,6 +13,10 @@ import {
   MaxLength,
   Min,
 } from 'class-validator';
+import {
+  COUPONS_DISCOUNT_TYPE,
+  CouponsDiscountType,
+} from './../../../common/constants/coupons';
 
 export class CreateCouponDto {
   @ApiProperty({

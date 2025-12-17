@@ -1,4 +1,3 @@
-// Backend/src/modules/grading/strategies/multiple-choice.grader.ts
 import {
   Grader,
   GradingResult,

@@ -1,4 +1,3 @@
-// src/casl/policies/writing.policies.ts
 import { AppAbility, PolicyHandlerCallback } from 'src/types/ability.types';
 import { Exercise, UserSubmission } from '../entities';
 import { Action } from '../enums/action.enum';

@@ -1,4 +1,3 @@
-// src/modules/coupons/controllers/coupons.controller.ts
 import {
   Body,
   Controller,
@@ -142,7 +141,6 @@ export class CouponsController {
     return this.couponsService.validateCoupon(validateCouponDto, user.id);
   }
 
-  // This endpoint is typically called from the Orders service
   @Post('apply')
   @ApiOperation({
     summary:

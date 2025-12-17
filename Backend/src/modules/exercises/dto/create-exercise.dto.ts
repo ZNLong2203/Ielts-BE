@@ -1,4 +1,3 @@
-// src/modules/lessons/dto/exercise/create-exercise.dto.ts
 import { ApiProperty } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import {
@@ -11,7 +10,6 @@ import {
   IsOptional,
   IsString,
   IsUUID,
-  Max,
   Min,
   ValidateNested,
 } from 'class-validator';
@@ -63,14 +61,6 @@ export class QuestionOptionDto {
 }
 
 export class CreateQuestionDto {
-  // @ApiProperty({
-  //   description: 'Exercise ID',
-  //   example: 'exercise-uuid-123',
-  // })
-  // @IsString()
-  // @IsNotEmpty()
-  // exercise_id: string;
-
   @ApiProperty({
     description:
       'Question Group ID (required for MATCHING type, optional for others)',

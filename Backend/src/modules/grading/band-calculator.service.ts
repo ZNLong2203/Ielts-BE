@@ -1,4 +1,3 @@
-// Backend/src/modules/grading/services/band-calculator.service.ts
 import { Injectable } from '@nestjs/common';
 import {
   LISTENING_BAND_SCORES,

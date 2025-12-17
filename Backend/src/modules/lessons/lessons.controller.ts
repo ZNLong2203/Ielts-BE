@@ -1,4 +1,3 @@
-// src/modules/lessons/lessons.controller.ts
 import {
   Body,
   Controller,

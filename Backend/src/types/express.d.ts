@@ -1,4 +1,3 @@
-// src/types/express.d.ts
 import 'express';
 import { IUser } from 'src/interface/users.interface';
 import { AppAbility } from '../casl/casl-ability.factory';

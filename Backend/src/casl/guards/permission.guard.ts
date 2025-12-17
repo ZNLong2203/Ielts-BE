@@ -1,4 +1,3 @@
-// src/casl/guards/permission.guard.ts
 import {
   CanActivate,
   ExecutionContext,
@@ -108,13 +107,10 @@ export class PermissionGuard implements CanActivate {
       return true;
     } catch (error) {
       const e = error as Error;
-      // Log error details
       this.logger.error(
         `Permission error for user ${user?.id} on ${request.method} ${request.path}: ${e.message}`,
         e.stack,
       );
-
-      // Rethrow the error
       throw e;
     }
   }

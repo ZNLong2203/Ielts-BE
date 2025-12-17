@@ -6,7 +6,6 @@ import {
 import { Request } from 'express';
 import { PolicyHandlerCallback } from 'src/types/ability.types';
 
-// Ex: @Public() decorator is used to mark a route as public.
 export const IS_PUBLIC_KEY = 'isPublic';
 export const Public = () => SetMetadata(IS_PUBLIC_KEY, true);
 
@@ -21,7 +20,6 @@ export const SkipCheckPermission = () =>
   SetMetadata(IS_PUBLIC_PERMISSION, true);
 
 // Get req.user from the request object.
-// ExecutionContext giống không gian thực thi, khi truy cập vào có thể lấy request, response, user, ...
 export const CurrentUser = createParamDecorator(
   (data: unknown, ctx: ExecutionContext) => {
     const request = ctx.switchToHttp().getRequest<Request>();
@@ -29,7 +27,7 @@ export const CurrentUser = createParamDecorator(
   },
 );
 
-// Decorator cho policies (AND logic - phải có tất cả các policies)
+// Decorator cho policies
 export const POLICIES_KEY = 'policies';
 export const CheckPolicies = (...handlers: PolicyHandlerCallback[]) =>
   SetMetadata(POLICIES_KEY, handlers);

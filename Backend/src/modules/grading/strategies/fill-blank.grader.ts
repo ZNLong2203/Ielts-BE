@@ -1,4 +1,3 @@
-// Backend/src/modules/grading/strategies/fill-blank.grader.ts
 import {
   Grader,
   GradingResult,

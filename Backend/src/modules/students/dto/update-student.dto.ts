@@ -10,7 +10,6 @@ import {
 } from 'class-validator';
 import { CreateStudentDto } from './create-student.dto';
 
-// Extend PartialType(CreateStudentDto) but remove password field for updates
 export class UpdateStudentDto extends PartialType(CreateStudentDto) {
   @ApiPropertyOptional({ description: 'Biography' })
   @IsString()

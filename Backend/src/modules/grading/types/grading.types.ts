@@ -1,5 +1,3 @@
-// Backend/src/modules/grading/types/grading.types.ts
-
 import { QuestionType } from 'src/modules/exercises/constants';
 
 export interface QuestionOption {

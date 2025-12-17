@@ -1,11 +1,12 @@
 import {
   BadRequestException,
   Injectable,
-  NotFoundException,
   Logger,
+  NotFoundException,
 } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { PaginationQueryDto } from 'src/common/dto/pagination-query.dto';
+import { CertificatesService } from 'src/modules/certificates/certificates.service';
 import {
   CreateLessonDto,
   ReorderLessonsDto,
@@ -14,7 +15,6 @@ import { UpdateLessonDto } from 'src/modules/lessons/dto/update-lesson.dto';
 import { VideoService } from 'src/modules/video/video.service';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { UtilsService } from 'src/utils/utils.service';
-import { CertificatesService } from 'src/modules/certificates/certificates.service';
 
 @Injectable()
 export class LessonsService {
@@ -464,7 +464,6 @@ export class LessonsService {
 
     const now = new Date();
 
-    // Use transaction to ensure data consistency
     await this.prisma.$transaction(async (tx) => {
       // 1. Update or create user_progress for lesson
       await tx.user_progress.upsert({
@@ -679,20 +678,16 @@ export class LessonsService {
         });
 
         // Auto-generate certificate if combo reaches 100% and certificate doesn't exist
-        if (
-          overallProgress >= 100 &&
-          !updatedEnrollment.certificate_url
-        ) {
+        if (overallProgress >= 100 && !updatedEnrollment.certificate_url) {
           // Generate certificate asynchronously to avoid blocking
-          this.generateCertificateAsync(
-            userId,
-            comboEnrollment.id,
-          ).catch((error) => {
-            this.logger.error(
-              `Failed to auto-generate certificate for combo enrollment ${comboEnrollment.id}:`,
-              error,
-            );
-          });
+          this.generateCertificateAsync(userId, comboEnrollment.id).catch(
+            (error) => {
+              this.logger.error(
+                `Failed to auto-generate certificate for combo enrollment ${comboEnrollment.id}:`,
+                error,
+              );
+            },
+          );
         }
       }
     });
