@@ -218,39 +218,39 @@ export class VideoProcessor extends WorkerHost {
         if (isAudio) {
           // Cấu hình HLS chỉ cho audio
           ff.outputOptions([
-            '-vn',
-            '-acodec aac',
-            '-b:a 128k',
-            '-ar 44100',
-            '-ac 2',
-            '-hls_time 6',
-            '-hls_playlist_type vod',
-            '-hls_segment_filename',
+            '-vn', // Bỏ qua video stream (chỉ xử lý audio)
+            '-acodec aac', // Codec âm thanh: AAC (tương thích rộng rãi)
+            '-b:a 128k', // Bitrate âm thanh: 128 kbps (chất lượng chuẩn)
+            '-ar 44100', // Sample rate: 44.1 kHz (chất lượng CD)
+            '-ac 2', // Audio channels: 2 (stereo)
+            '-hls_time 6', // Độ dài mỗi segment: 6 giây
+            '-hls_playlist_type vod', // Loại playlist: VOD (Video On Demand - không phải live)
+            '-hls_segment_filename', // Tên file cho các segment
             containerSegmentPattern,
-            '-f hls',
+            '-f hls', // Format đầu ra: HLS (HTTP Live Streaming)
           ]);
         } else {
           ff.outputOptions([
-            '-c:v libx264',
-            '-preset faster',
-            '-profile:v main',
-            '-level 3.1',
-            '-crf 26',
-            '-c:a aac',
-            '-b:a 128k',
-            '-ar 44100',
-            '-sc_threshold 0',
-            '-g 60',
-            '-keyint_min 60',
-            '-hls_time 6',
-            '-hls_playlist_type vod',
-            '-hls_segment_filename',
+            '-c:v libx264', // Codec video: H.264 (tương thích rộng rãi)
+            '-preset faster', // Tốc độ encoding: faster (cân bằng giữa tốc độ và chất lượng)
+            '-profile:v main', // Profile H.264: main (tương thích hầu hết thiết bị)
+            '-level 3.1', // Level H.264: 3.1 (hỗ trợ đến 1280x720@30fps)
+            '-crf 26', // Constant Rate Factor: 26 (chất lượng tốt, file size hợp lý, 0-51 scale)
+            '-c:a aac', // Codec âm thanh: AAC
+            '-b:a 128k', // Bitrate âm thanh: 128 kbps
+            '-ar 44100', // Sample rate: 44.1 kHz
+            '-sc_threshold 0', // Tắt scene change detection (để keyframe đều đặn)
+            '-g 60', // GOP size: 60 frames (khoảng cách giữa các keyframe)
+            '-keyint_min 60', // Khoảng cách tối thiểu giữa các keyframe: 60 frames
+            '-hls_time 6', // Độ dài mỗi segment: 6 giây
+            '-hls_playlist_type vod', // Loại playlist: VOD
+            '-hls_segment_filename', // Tên file cho các segment
             containerSegmentPattern,
-            '-threads 0',
-            '-movflags +faststart',
-            '-tune film',
-            '-vf scale=1280:720:force_original_aspect_ratio=decrease,pad=1280:720:(ow-iw)/2:(oh-ih)/2',
-            '-f hls',
+            '-threads 0', // Số threads: tự động (sử dụng tất cả CPU cores)
+            '-movflags +faststart', // Tối ưu cho streaming (metadata ở đầu file)
+            '-tune film', // Tối ưu cho nội dung phim (giảm noise, tăng chất lượng)
+            '-vf scale=1280:720:force_original_aspect_ratio=decrease,pad=1280:720:(ow-iw)/2:(oh-ih)/2', // Scale về 720p, giữ tỷ lệ, thêm padding đen nếu cần
+            '-f hls', // Format đầu ra: HLS
           ]);
         }
         ff.output(containerOutputPlaylist)
