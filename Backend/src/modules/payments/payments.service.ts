@@ -410,14 +410,20 @@ export class PaymentsService {
       course_id: courseId,
     }));
 
-    // tạo transaction để chèn tất cả các bản ghi đăng ký và đăng ký combo
-    await tx.combo_enrollments.create({
-      data: {
-        user_id: order.user_id,
-        combo_id: orderItems[0].combo_id!,
-        created_at: new Date(),
-      },
-    });
+    // create combo enrollment records for each combo in the order
+    const uniqueComboIds = Array.from(
+      new Set(orderItems.map((item) => item.combo_id!).filter(Boolean)),
+    );
+
+    for (const comboId of uniqueComboIds) {
+      await tx.combo_enrollments.create({
+        data: {
+          user_id: order.user_id,
+          combo_id,
+          created_at: new Date(),
+        },
+      });
+    }
 
     await tx.enrollments.createMany({
       data: enrollmentRecords,

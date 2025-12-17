@@ -39,54 +39,81 @@ export class OrdersService {
     return Number(value);
   }
 
-  /**
-   * Create order from comboId.
-   * - combo.original_price used as total_amount
-   * - combo.combo_price used as base after combo discount
-   * - coupon (if any) applies on combo_price (not on original_price)
-   */
   async createOrder(userId: string, dto: CreateOrderDto) {
-    const { comboId, couponId, paymentMethod, notes } = dto;
+    const { comboId, comboIds, couponId, paymentMethod, notes } = dto;
 
-    // 1) fetch combo row (combo_courses table)
-    const combo = await this.prisma.combo_courses.findUnique({
-      where: { id: comboId, deleted: false },
+    const comboIdList =
+      comboIds && comboIds.length > 0
+        ? comboIds
+        : comboId
+        ? [comboId]
+        : [];
+
+    if (comboIdList.length === 0) {
+      throw new BadRequestException('comboId or comboIds is required');
+    }
+
+    // 1) fetch combo rows (combo_courses table)
+    const combos = await this.prisma.combo_courses.findMany({
+      where: { id: { in: comboIdList }, deleted: false },
     });
 
-    if (!combo) throw new NotFoundException('Combo not found');
+    if (!combos || combos.length === 0) {
+      throw new NotFoundException('Combo not found');
+    }
 
-    // kiểm tra combo với người dùng này đã mua chưa
-    const hasPurchased = await this.prisma.orders.findFirst({
+    // ensure all requested combos exist
+    const foundIds = new Set(combos.map((c) => c.id));
+    const missing = comboIdList.filter((id) => !foundIds.has(id));
+    if (missing.length > 0) {
+      throw new NotFoundException(
+        `Combo(s) not found: ${missing.join(', ')}`,
+      );
+    }
+
+    // check combos with this user have already purchased
+    const existingCompletedOrder = await this.prisma.orders.findFirst({
       where: {
         user_id: userId,
+        status: OrderStatus.COMPLETED,
         order_items: {
           some: {
-            combo_id: comboId,
+            combo_id: { in: comboIdList },
           },
         },
-        status: OrderStatus.COMPLETED,
       },
     });
 
-    if (hasPurchased) {
-      throw new ConflictException('User has already purchased this combo');
+    if (existingCompletedOrder) {
+      throw new ConflictException(
+        'User has already purchased one or more selected combos',
+      );
     }
 
-    // 2) course_ids array -> fetch courses
-    const courseIds: string[] = combo.course_ids ?? [];
-    if (courseIds.length === 0)
-      throw new BadRequestException('Combo has no courses');
+    // 2) collect all course_ids across combos
+    const allCourseIds: string[] = combos.flatMap(
+      (c) => c.course_ids ?? [],
+    );
+    if (allCourseIds.length === 0) {
+      throw new BadRequestException('Selected combos have no courses');
+    }
 
     const courses = await this.prisma.courses.findMany({
-      where: { id: { in: courseIds } },
+      where: { id: { in: allCourseIds } },
     });
     if (!courses || courses.length === 0)
-      throw new BadRequestException('Courses in combo not found');
+      throw new BadRequestException('Courses in combos not found');
 
-    // 3) amounts
-    const totalAmount = this.toNumber(combo.original_price); // original_price
-    const comboPrice = this.toNumber(combo.combo_price); // price to pay for combo before coupon
-    // giảm giá nội bộ của combo
+    // 3) amounts (sum over all combos)
+    const totalAmount = combos.reduce(
+      (sum, c) => sum + this.toNumber(c.original_price),
+      0,
+    ); // original total price
+    const comboPrice = combos.reduce(
+      (sum, c) => sum + this.toNumber(c.combo_price),
+      0,
+    ); // total combo price before coupon
+    // internal discount from combos
     const internalComboDiscount = Math.max(0, totalAmount - comboPrice);
 
     // 4) coupon validation and compute coupon discount (applied on comboPrice)
@@ -114,14 +141,16 @@ export class OrdersService {
         throw new BadRequestException('Coupon usage limit reached');
       }
 
-      // nếu coupon_type == 'combo' và applicable_combos không rỗng => kiểm tra comboId có mặt
+      // if coupon_type == 'combo' and applicable_combos not empty => check any comboId present
       if (
         couponRecord.coupon_type === 'combo' &&
         couponRecord.applicable_combos &&
         Array.isArray(couponRecord.applicable_combos) &&
         couponRecord.applicable_combos.length > 0
       ) {
-        const applicable = couponRecord.applicable_combos.includes(comboId);
+        const applicable = comboIdList.some((id) =>
+          couponRecord!.applicable_combos.includes(id),
+        );
         if (!applicable)
           throw new BadRequestException('Coupon not applicable for this combo');
       }
@@ -162,18 +191,23 @@ export class OrdersService {
     const orderId = uuidv4();
     const orderCode = `ORD-${Date.now()}`;
 
-    // chuẩn bị dữ liệu items
-    const itemsPayload = courses.map((c) => ({
-      id: uuidv4(),
-      order_id: orderId,
-      course_id: c.id,
-      course_title: c.title,
-      combo_id: combo.id,
-      combo_name: combo.name,
-      item_type: 'course',
-      price: this.toNumber(c.price),
-      discount_amount: 0,
-    }));
+    // prepare items payload: each course is linked with its parent combo
+    const itemsPayload = courses.map((c) => {
+      const parentCombo = combos.find((combo) =>
+        (combo.course_ids ?? []).includes(c.id),
+      );
+      return {
+        id: uuidv4(),
+        order_id: orderId,
+        course_id: c.id,
+        course_title: c.title,
+        combo_id: parentCombo?.id ?? combos[0].id,
+        combo_name: parentCombo?.name ?? combos[0].name,
+        item_type: 'course',
+        price: this.toNumber(c.price),
+        discount_amount: 0,
+      };
+    });
 
     // transaction: tạo đơn hàng và các mục và sử dụng coupon và tăng used_count của coupon
     await this.prisma.$transaction(async (tx) => {
@@ -217,7 +251,7 @@ export class OrdersService {
             coupon_id: couponRecord.id,
             user_id: userId,
             order_id: orderId,
-            combo_id: combo.id,
+            combo_id: combos[0].id,
             discount_amount: new Prisma.Decimal(couponDiscount),
           },
         });

@@ -705,8 +705,14 @@ export class CoursesService {
 
     // Tìm các combo có thể giúp bao phủ phạm vi mục tiêu
     const suitableCombos = parsedCombos.filter((combo: any) => {
-      // Combo nên bắt đầu ở hoặc trước cấp độ hiện tại của người dùng
-      // và kết thúc ở hoặc sau cấp độ mục tiêu của người dùng
+      // Combo should start at or before user's current level
+      // and end at or after user's target level.
+      //
+      // Single-combo case is only used when ONE combo can cover
+      // the whole journey (e.g. 3.5–7.0 in one package).
+      // Filtering first combos that start below currentLevel is
+      // handled in `findBestComboCombination`, so we don't apply
+      // that constraint here.
       return combo.startLevel <= currentLevel && combo.endLevel >= targetLevel;
     });
 
@@ -759,7 +765,12 @@ export class CoursesService {
       // Kiểm tra xem combo này có thể giúp mở rộng phạm vi của chúng ta không
       if (
         combo.startLevel <= currentCoverage &&
-        combo.endLevel > currentCoverage
+        combo.endLevel > currentCoverage &&
+        // For the *first* combo, avoid ones that start below the user's
+        // current level. This prevents including ranges like 3.0–4.0
+        // when the user starts from 3.5, where combos such as 3.5–5.0
+        // are more appropriate.
+        !(selectedCombos.length === 0 && combo.startLevel < currentLevel)
       ) {
         selectedCombos.push(combo);
         totalOriginalPrice += Number(combo.original_price) || 0;
