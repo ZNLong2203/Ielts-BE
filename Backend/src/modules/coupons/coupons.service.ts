@@ -27,7 +27,7 @@ export class CouponsService {
    * Create a new coupon
    */
   async create(createCouponDto: CreateCouponDto, userId: string) {
-    // Check if coupon code already exists
+    // Kiểm tra xem mã coupon đã tồn tại chưa
     const existingCoupon = await this.prisma.coupons.findFirst({
       where: {
         code: createCouponDto.code,
@@ -39,7 +39,7 @@ export class CouponsService {
       throw new ConflictException('Coupon code already exists');
     }
 
-    // Validate date range
+    // Xác thực phạm vi ngày
     const now = new Date();
     if (createCouponDto.valid_from < now) {
       throw new BadRequestException('Valid from date must be in the future');
@@ -51,7 +51,7 @@ export class CouponsService {
       );
     }
 
-    // Validate discount value based on type
+    // Xác thực giá trị giảm giá dựa trên loại
     if (
       createCouponDto.discount_type === COUPONS_DISCOUNT_TYPE.PERCENTAGE &&
       createCouponDto.discount_value > 100
@@ -59,7 +59,7 @@ export class CouponsService {
       throw new BadRequestException('Percentage discount cannot exceed 100%');
     }
 
-    // Create coupon
+    // Tạo coupon
     return this.prisma.coupons.create({
       data: {
         code: createCouponDto.code,
@@ -160,7 +160,7 @@ export class CouponsService {
    * Update coupon by ID
    */
   async update(id: string, updateCouponDto: UpdateCouponDto) {
-    // Check if coupon exists
+    // Kiểm tra xem coupon có tồn tại không
     const coupon = await this.prisma.coupons.findFirst({
       where: { id, deleted: false },
     });
@@ -169,7 +169,7 @@ export class CouponsService {
       throw new NotFoundException('Coupon not found');
     }
 
-    // Check code uniqueness if changing code
+    // Kiểm tra tính duy nhất của mã nếu thay đổi mã
     if (updateCouponDto.code && updateCouponDto.code !== coupon.code) {
       const existingCoupon = await this.prisma.coupons.findFirst({
         where: {
@@ -184,7 +184,7 @@ export class CouponsService {
       }
     }
 
-    // Validate discount value based on type if changing
+    // Xác thực giá trị giảm giá dựa trên loại nếu thay đổi
     if (
       updateCouponDto.discount_type === COUPONS_DISCOUNT_TYPE.PERCENTAGE &&
       updateCouponDto.discount_value &&
@@ -193,7 +193,7 @@ export class CouponsService {
       throw new BadRequestException('Percentage discount cannot exceed 100%');
     }
 
-    // Validate date range if changing dates
+    // Xác thực phạm vi ngày nếu thay đổi ngày
     if (updateCouponDto.valid_from && updateCouponDto.valid_until) {
       if (updateCouponDto.valid_until <= updateCouponDto.valid_from) {
         throw new BadRequestException(
@@ -214,7 +214,7 @@ export class CouponsService {
       }
     }
 
-    // Update coupon
+    // Cập nhật coupon
     return this.prisma.coupons.update({
       where: { id },
       data: {
@@ -261,7 +261,7 @@ export class CouponsService {
    * Delete coupon (soft delete)
    */
   async remove(id: string): Promise<{ success: boolean; message: string }> {
-    // Check if coupon exists
+    // Kiểm tra xem coupon có tồn tại không
     const coupon = await this.prisma.coupons.findFirst({
       where: { id, deleted: false },
     });
@@ -270,7 +270,7 @@ export class CouponsService {
       throw new NotFoundException('Coupon not found');
     }
 
-    // Soft delete
+    // Xóa mềm
     await this.prisma.coupons.update({
       where: { id },
       data: {
@@ -289,7 +289,7 @@ export class CouponsService {
   async validateCoupon(validateCouponDto: ValidateCouponDto, userId: string) {
     const { code, combo_ids, total_amount } = validateCouponDto;
 
-    // Find coupon by code
+    // Tìm coupon theo mã
     const coupon = await this.prisma.coupons.findFirst({
       where: {
         code: code,
@@ -298,17 +298,17 @@ export class CouponsService {
       },
     });
 
-    // Check if coupon exists
+    // Kiểm tra xem coupon có tồn tại không
     if (!coupon) {
       return { isValid: false, errorMessage: 'Coupon not found' };
     }
 
-    // Check if coupon is active
+    // Kiểm tra xem coupon có đang hoạt động không
     if (!coupon.is_active) {
       return { isValid: false, errorMessage: 'Coupon is inactive' };
     }
 
-    // Check date validity
+    // Kiểm tra tính hợp lệ của ngày
     const now = new Date();
     if (now < coupon.valid_from) {
       return { isValid: false, errorMessage: 'Coupon is not yet valid' };
@@ -318,7 +318,7 @@ export class CouponsService {
       return { isValid: false, errorMessage: 'Coupon has expired' };
     }
 
-    // Check usage limit
+    // Kiểm tra giới hạn sử dụng
     if (
       coupon.usage_limit &&
       coupon.used_count &&
@@ -327,7 +327,7 @@ export class CouponsService {
       return { isValid: false, errorMessage: 'Coupon usage limit reached' };
     }
 
-    // Check if user already used this coupon
+    // Kiểm tra xem người dùng đã sử dụng coupon này chưa
     const userUsage = await this.prisma.coupon_usage.findFirst({
       where: {
         coupon_id: coupon.id,
@@ -343,9 +343,9 @@ export class CouponsService {
       };
     }
 
-    // Check combo applicability
+    // Kiểm tra khả năng áp dụng combo
     if (coupon.applicable_combos && coupon.applicable_combos.length > 0) {
-      // Check if any of the cart combos are applicable
+      // Kiểm tra xem có combo nào trong giỏ hàng được áp dụng không
       const hasApplicableCombo = combo_ids.some((comboId) =>
         coupon.applicable_combos.includes(comboId),
       );
@@ -358,7 +358,7 @@ export class CouponsService {
       }
     }
 
-    // Check minimum order amount if specified
+    // Kiểm tra số tiền đơn hàng tối thiểu nếu được chỉ định
     if (
       coupon.minimum_amount &&
       total_amount &&
@@ -370,7 +370,7 @@ export class CouponsService {
       };
     }
 
-    // Calculate potential discount (if total amount provided)
+    // Tính toán giảm giá tiềm năng (nếu cung cấp tổng số tiền)
     let discount_amount = 0;
     if (total_amount) {
       if (coupon.discount_type === COUPONS_DISCOUNT_TYPE.PERCENTAGE) {

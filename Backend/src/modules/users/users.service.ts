@@ -50,7 +50,7 @@ export class UsersService {
       });
       if (existing) throw new BadRequestException('Email already exists');
 
-      // Hash password
+      // Mã hóa mật khẩu
       const hashedPassword = this.getHashPassword(dto.password);
 
       // generate email verification token unique, if exists, generate again
@@ -139,7 +139,7 @@ export class UsersService {
 
       const { ielts_band_score, experience_years } = dto;
 
-      // validate ielts_band_score can transform to number, and is between 0 and 9
+      // Xác thực ielts_band_score có thể chuyển thành số và nằm trong khoảng 0 đến 9
       if (ielts_band_score && isNaN(Number(ielts_band_score))) {
         throw new BadRequestException('Invalid IELTS band score');
       }
@@ -152,7 +152,7 @@ export class UsersService {
         );
       }
 
-      // validate experience_years can transform to number, and is positive
+      // Xác thực experience_years có thể chuyển thành số và là số dương
       if (experience_years && isNaN(Number(experience_years))) {
         throw new BadRequestException('Invalid experience years');
       }
@@ -160,10 +160,10 @@ export class UsersService {
         throw new BadRequestException('Experience years must be positive');
       }
 
-      // Hash password
+      // Mã hóa mật khẩu
       const hashedPassword = this.getHashPassword(dto.password);
 
-      // generate email verification token unique, if exists, generate again
+      // Tạo token xác thực email duy nhất, nếu đã tồn tại thì tạo lại
       let token = uuidv4();
       let existingToken = await this.prisma.users.findFirst({
         where: { email_verification_token: token },
@@ -468,12 +468,12 @@ export class UsersService {
   async createGoogleStudent(userData: Prisma.usersCreateInput) {
     try {
       const result = await this.prisma.$transaction(async (tx) => {
-        // Create user
+        // Tạo người dùng
         const user = await tx.users.create({
           data: userData,
         });
 
-        // Create student profile if role is STUDENT
+        // Tạo hồ sơ học viên nếu vai trò là STUDENT
         if (userData.role === USER_ROLE.STUDENT) {
           await tx.students.create({
             data: {

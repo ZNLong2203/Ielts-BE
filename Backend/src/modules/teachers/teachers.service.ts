@@ -62,7 +62,7 @@ export class TeachersService {
     });
   }
 
-  // find all new registered teachers
+  // Tìm tất cả các giáo viên đăng ký mới
   async findNewTeachers(
     query: PaginationQueryDto,
     rawQuery: Record<string, any>,
@@ -72,7 +72,7 @@ export class TeachersService {
 
     whereCondition.role = USER_ROLE.TEACHER;
 
-    // check status in table teachers is PENDING
+    // Kiểm tra trạng thái trong bảng teachers là PENDING
     whereCondition.teachers = {
       status: TEACHER_STATUS.PENDING,
     };
@@ -150,7 +150,7 @@ export class TeachersService {
       throw new NotFoundException('Teacher not found');
     }
 
-    // delete old certificate files if exist
+    // Xóa các tệp chứng chỉ cũ nếu tồn tại
     const teacher = await this.prisma.teachers.findUnique({
       where: { user_id: id },
     });

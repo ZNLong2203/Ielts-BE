@@ -1,40 +1,33 @@
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import {
-  Controller,
-  Post,
   Body,
-  UseInterceptors,
-  UploadedFile,
-  HttpStatus,
-  HttpException,
+  Controller,
   Delete,
   Get,
   HttpCode,
+  HttpException,
+  HttpStatus,
   Param,
+  Post,
   Put,
+  UploadedFile,
+  UseInterceptors,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
-import {
-  ApiTags,
-  ApiOperation,
-  ApiConsumes,
-  ApiBody,
-  ApiParam,
-  ApiResponse,
-} from '@nestjs/swagger';
-import { SpeakingService } from './speaking.service';
+import { ApiBody, ApiConsumes, ApiOperation, ApiTags } from '@nestjs/swagger';
+import { MessageResponse, Public } from 'src/decorator/customize';
+import { UploadedFileType } from 'src/interface/file-type.interface';
+import { CreateSpeakingMockTestExerciseDto } from './dto/create-speaking-mock-test.dto';
 import {
   GradeSpeakingDto,
   SpeakingGradeResponse,
+  SpeakingPart,
+  SpeakingQuestion,
   TranscribeAndGradeDto,
   TranscribeAndGradeResponse,
-  SpeakingQuestion,
-  SpeakingPart,
 } from './dto/grade-speaking.dto';
-import { CreateSpeakingMockTestExerciseDto } from './dto/create-speaking-mock-test.dto';
 import { UpdateSpeakingMockTestExerciseDto } from './dto/update-speaking-mock-test.dto';
-import { Public, MessageResponse } from 'src/decorator/customize';
-import { UploadedFileType } from 'src/interface/file-type.interface';
+import { SpeakingService } from './speaking.service';
 
 @ApiTags('speaking')
 @Controller('speaking')
@@ -117,7 +110,7 @@ export class SpeakingController {
       targetDuration?: string;
     },
   ): Promise<TranscribeAndGradeResponse> {
-    // Validate file type manually
+    // Xác thực loại file thủ công
     const allowedTypes = [
       'audio/mpeg',
       'audio/wav',
@@ -159,7 +152,7 @@ export class SpeakingController {
     return await this.speakingService.transcribeAndGrade(dto);
   }
 
-  // Mock Test Exercise Endpoints
+  // Các endpoint cho Bài tập Mock Test
   @Post('mock-test')
   @ApiOperation({
     summary: 'Create speaking exercise for mock test',

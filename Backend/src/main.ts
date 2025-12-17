@@ -20,16 +20,16 @@ async function bootstrap() {
   const port = configService.get<number>('PORT') || 3000;
   const reflector = app.get(Reflector);
 
-  // Raw body parser for Stripe webhooks
+  // Parser raw body cho Stripe webhooks
   app.use('/api/v1/webhooks/stripe', express.raw({ type: 'application/json' }));
 
-  // Configure body parsing for different content types
+  // Cấu hình phân tích cú pháp body cho các loại content khác nhau
   app.use(express.json({ limit: '50mb' }));
   app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
   app.useGlobalPipes(
     new ValidationPipe({
-      // whitelist: true (remove all properties that do not have any decorators that define in DTO)
+      // whitelist: true (loại bỏ tất cả các thuộc tính không có decorator được định nghĩa trong DTO)
       transform: true, // convert payload to DTO
       transformOptions: {
         enableImplicitConversion: true, // Cho phép Nest tự ép string -> boolean/number

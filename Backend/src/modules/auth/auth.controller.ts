@@ -175,7 +175,7 @@ export class AuthController {
   @Get('google')
   @UseGuards(GoogleAuthGuard)
   async googleAuth() {
-    // Guard auto redirects to Google
+    // Guard tự động chuyển hướng đến Google
   }
 
   @ApiOperation({

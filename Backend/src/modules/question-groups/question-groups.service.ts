@@ -30,7 +30,7 @@ export class QuestionGroupsService {
    * Create Question Group for Exercise
    */
   async createQuestionGroup(createDto: CreateQuestionGroupDto) {
-    // Validate exercise exists
+    // Xác thực bài tập tồn tại
     const exercise = await this.prisma.exercises.findFirst({
       where: {
         id: createDto.exercise_id,
@@ -47,7 +47,7 @@ export class QuestionGroupsService {
       throw new NotFoundException('Exercise not found');
     }
 
-    // Validate ordering uniqueness within exercise
+    // Xác thực tính duy nhất của thứ tự trong bài tập
     if (createDto.ordering !== undefined) {
       const existingGroup = await this.prisma.question_groups.findFirst({
         where: {
@@ -64,7 +64,7 @@ export class QuestionGroupsService {
       }
     }
 
-    // Validate matching options for MATCHING type
+    // Xác thực các tùy chọn ghép đôi cho loại MATCHING
     if (createDto.question_type === QUESTION_TYPE.MATCHING) {
       if (
         !createDto.matching_options ||
@@ -77,12 +77,12 @@ export class QuestionGroupsService {
     }
 
     return await this.prisma.$transaction(async (tx) => {
-      // Get next ordering if not provided
+      // Lấy thứ tự tiếp theo nếu không được cung cấp
       const ordering =
         createDto.ordering ??
         (await this.getNextOrdering(tx, createDto.exercise_id));
 
-      // Create question group
+      // Tạo nhóm câu hỏi
       const questionGroup = await tx.question_groups.create({
         data: {
           exercise_id: createDto.exercise_id,
@@ -97,7 +97,7 @@ export class QuestionGroupsService {
         },
       });
 
-      // Create matching options if provided
+      // Tạo các tùy chọn ghép đôi nếu được cung cấp
       if (
         createDto.question_type === QUESTION_TYPE.MATCHING &&
         createDto.matching_options &&
@@ -114,7 +114,7 @@ export class QuestionGroupsService {
         `Created question group for exercise: ${createDto.exercise_id}`,
       );
 
-      // Return complete question group details
+      // Trả về chi tiết nhóm câu hỏi đầy đủ
       return await this.getQuestionGroupById(questionGroup.id, tx);
     });
   }
@@ -241,7 +241,7 @@ export class QuestionGroupsService {
       throw new NotFoundException('Question group not found');
     }
 
-    // Validate ordering uniqueness if being updated
+    // Xác thực tính duy nhất của thứ tự nếu đang được cập nhật
     if (
       updateDto.ordering !== undefined &&
       updateDto.ordering !== existingGroup.ordering
@@ -262,7 +262,7 @@ export class QuestionGroupsService {
       }
     }
 
-    // Validate matching options for MATCHING type
+    // Xác thực các tùy chọn ghép đôi cho loại MATCHING
     if (
       updateDto.question_type === QUESTION_TYPE.MATCHING &&
       updateDto.matching_options
@@ -275,21 +275,21 @@ export class QuestionGroupsService {
     }
 
     return await this.prisma.$transaction(async (tx) => {
-      // Update matching options if provided
+      // Cập nhật các tùy chọn ghép đôi nếu được cung cấp
       if (updateDto.matching_options !== undefined) {
-        // Delete existing matching options
+        // Xóa các tùy chọn ghép đôi hiện tại
         await tx.matching_options.updateMany({
           where: { set_id: id },
           data: { deleted: true, updated_at: new Date() },
         });
 
-        // Create new matching options if provided
+        // Tạo các tùy chọn ghép đôi mới nếu được cung cấp
         if (updateDto.matching_options.length > 0) {
           await this.createMatchingOptions(tx, id, updateDto.matching_options);
         }
       }
 
-      // Update question group
+      // Cập nhật nhóm câu hỏi
       await tx.question_groups.update({
         where: { id },
         data: {
@@ -307,7 +307,7 @@ export class QuestionGroupsService {
 
       this.logger.log(`Updated question group: ${id}`);
 
-      // Return complete question group details
+      // Trả về chi tiết nhóm câu hỏi đầy đủ
       return await this.getQuestionGroupById(id, tx);
     });
   }
@@ -328,7 +328,7 @@ export class QuestionGroupsService {
       throw new NotFoundException('Question group not found');
     }
 
-    // Check if there are questions in this group
+    // Kiểm tra xem có câu hỏi trong nhóm này không
     const questionsCount = await this.prisma.questions.count({
       where: {
         question_group_id: id,
@@ -343,7 +343,7 @@ export class QuestionGroupsService {
     }
 
     await this.prisma.$transaction(async (tx) => {
-      // Soft delete matching options
+      // Xóa mềm các tùy chọn ghép đôi
       await tx.matching_options.updateMany({
         where: { set_id: id },
         data: {
@@ -352,7 +352,7 @@ export class QuestionGroupsService {
         },
       });
 
-      // Soft delete question group
+      // Xóa mềm nhóm câu hỏi
       await tx.question_groups.update({
         where: { id },
         data: {
@@ -387,7 +387,7 @@ export class QuestionGroupsService {
         FileType.EXERCISE_IMAGE,
       );
 
-      // Delete old image if exists
+      // Xóa hình ảnh cũ nếu tồn tại
       if (questionGroup.image_url) {
         try {
           await this.filesService.deleteFiles([questionGroup.image_url]);
@@ -432,7 +432,7 @@ export class QuestionGroupsService {
       throw new NotFoundException('Exercise not found');
     }
 
-    // Validate all question groups belong to this exercise
+    // Xác thực tất cả các nhóm câu hỏi thuộc bài tập này
     const groupIds = groupOrders.map((g) => g.id);
     const groups = await this.prisma.question_groups.findMany({
       where: {
@@ -448,7 +448,7 @@ export class QuestionGroupsService {
       );
     }
 
-    // Check for duplicate ordering values
+    // Kiểm tra các giá trị thứ tự trùng lặp
     const orderings = groupOrders.map((g) => g.ordering);
     if (new Set(orderings).size !== orderings.length) {
       throw new BadRequestException(

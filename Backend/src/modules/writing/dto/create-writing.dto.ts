@@ -1,12 +1,12 @@
 import {
-  IsString,
-  IsNotEmpty,
-  IsOptional,
-  IsEnum,
-  IsUUID,
-  IsNumber,
-  IsBoolean,
   IsArray,
+  IsBoolean,
+  IsEnum,
+  IsNotEmpty,
+  IsNumber,
+  IsOptional,
+  IsString,
+  IsUUID,
 } from 'class-validator';
 
 export enum WritingTaskType {

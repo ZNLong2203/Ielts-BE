@@ -24,11 +24,11 @@ export class DockerFFmpegConfigService {
     const projectRoot = path.resolve(process.cwd(), '..');
     const isWindows = os.platform() === 'win32';
 
-    // Get paths
+    // Lấy đường dẫn
     const ffmpegPath = this.getWrapperPath(projectRoot, 'ffmpeg', isWindows);
     const ffprobePath = this.getWrapperPath(projectRoot, 'ffprobe', isWindows);
 
-    // Set FFmpeg paths for fluent-ffmpeg
+    // Thiết lập đường dẫn FFmpeg cho fluent-ffmpeg
     ffmpeg.setFfmpegPath(ffmpegPath);
     ffmpeg.setFfprobePath(ffprobePath);
 
@@ -47,11 +47,11 @@ export class DockerFFmpegConfigService {
     isWindows: boolean,
   ): string {
     if (isWindows) {
-      // On Windows: just use tool from PATH
+      // Trên Windows: chỉ sử dụng tool từ PATH
       this.logger.debug(`Using ${tool} from PATH`);
       return tool; // fluent-ffmpeg sẽ tìm ffmpeg.exe/ffprobe.exe từ PATH
     } else {
-      // Linux/macOS: use shell wrapper
+      // Linux/macOS: sử dụng shell wrapper
       const shellPath = path.join(projectRoot, 'ffmpeg', `${tool}-docker`);
       this.logger.debug(`Using shell wrapper for ${tool}: ${shellPath}`);
       return shellPath;
@@ -67,7 +67,7 @@ export class DockerFFmpegConfigService {
     }
 
     try {
-      // Check if container is running
+      // Kiểm tra container đang chạy
       const { stdout } = await execAsync(
         `docker ps --filter "name=${this.containerName}" --format "{{.Names}}"`,
       );
@@ -112,7 +112,7 @@ export class DockerFFmpegConfigService {
       return normalizedPath;
     }
 
-    //  Fix: Storage và tmp paths phải relative to docker-compose.yml location
+    // Sửa lỗi: Storage và tmp paths phải relative to vị trí docker-compose.yml
     const dockerComposeDir = path.resolve(process.cwd(), '..'); // Parent directory
     const storagePath = path.resolve(dockerComposeDir, 'storage');
     const tmpPath = path.resolve(dockerComposeDir, 'temp'); // Project temp directory
@@ -122,7 +122,7 @@ export class DockerFFmpegConfigService {
     this.logger.debug(` Tmp: ${tmpPath}`);
     this.logger.debug(` Docker compose dir: ${dockerComposeDir}`);
 
-    // Storage mapping
+    // Ánh xạ Storage
     if (normalizedPath.startsWith(storagePath)) {
       const relativePath = path.relative(storagePath, normalizedPath);
       const containerPath = `/data/${relativePath.replace(/\\/g, '/')}`;
@@ -130,7 +130,7 @@ export class DockerFFmpegConfigService {
       return containerPath;
     }
 
-    // Tmp mapping
+    // Ánh xạ Tmp
     if (normalizedPath.startsWith(tmpPath)) {
       const relativePath = path.relative(tmpPath, normalizedPath);
       const containerPath = `/tmp/${relativePath.replace(/\\/g, '/')}`;
@@ -138,13 +138,13 @@ export class DockerFFmpegConfigService {
       return containerPath;
     }
 
-    // Already container path
+    // Đã là đường dẫn container
     if (localPath.startsWith('/tmp/') || localPath.startsWith('/data/')) {
       this.logger.debug(` Already container path: ${localPath}`);
       return localPath;
     }
 
-    // Fallback
+    // Dự phòng
     const fileName = path.basename(normalizedPath);
     const containerPath = `/tmp/${fileName}`;
     this.logger.warn(

@@ -39,7 +39,7 @@ export class AdminDashboardService {
     const previousMonthDate = new Date();
     previousMonthDate.setMonth(currentDate.getMonth() - 1);
 
-    // Get current month data
+    // Lấy dữ liệu tháng hiện tại
     const [totalUsers, totalCourses, totalMockTests, totalRevenue] =
       await Promise.all([
         this.prisma.users.count({ where: { deleted: false } }),
@@ -48,7 +48,7 @@ export class AdminDashboardService {
         this.getTotalRevenue(),
       ]);
 
-    // Get previous month data for growth calculation
+    // Lấy dữ liệu tháng trước để tính toán tăng trưởng
     const [previousUsers, previousCourses, previousMockTests, previousRevenue] =
       await Promise.all([
         this.prisma.users.count({
@@ -72,7 +72,7 @@ export class AdminDashboardService {
         this.getTotalRevenue(previousMonthDate),
       ]);
 
-    // Get today's data (from start of today)
+    // Lấy dữ liệu hôm nay (từ đầu ngày)
     const todayStart = new Date();
     todayStart.setHours(0, 0, 0, 0);
     const todayEnd = new Date();
@@ -110,7 +110,7 @@ export class AdminDashboardService {
         this.getTodayRevenue(),
       ]);
 
-    // Calculate growth percentages
+    // Tính phần trăm tăng trưởng
     const userGrowth = this.calculateGrowth(totalUsers, previousUsers);
     const courseGrowth = this.calculateGrowth(totalCourses, previousCourses);
     const mockTestGrowth = this.calculateGrowth(
@@ -138,7 +138,7 @@ export class AdminDashboardService {
   async getRecentActivities(limit: number = 10): Promise<RecentActivityDto[]> {
     const activities: RecentActivityDto[] = [];
 
-    // Get recent user registrations
+    // Lấy các đăng ký người dùng gần đây
     const recentUsers = await this.prisma.users.findMany({
       where: { deleted: false, role: { not: USER_ROLE.ADMIN } },
       orderBy: { created_at: 'desc' },
@@ -150,7 +150,7 @@ export class AdminDashboardService {
       },
     });
 
-    // Get recent course creations
+    // Lấy các khóa học được tạo gần đây
     const recentCourses = await this.prisma.courses.findMany({
       where: { deleted: false },
       orderBy: { created_at: 'desc' },
@@ -173,7 +173,7 @@ export class AdminDashboardService {
       },
     });
 
-    // Get recent payments
+    // Lấy các thanh toán gần đây
     const recentPayments = await this.prisma.payments.findMany({
       where: {
         deleted: false,
@@ -199,7 +199,7 @@ export class AdminDashboardService {
       },
     });
 
-    // Get recent test completions
+    // Lấy các bài kiểm tra hoàn thành gần đây
     const recentTestResults = await this.prisma.test_results.findMany({
       where: { deleted: false },
       orderBy: { updated_at: 'desc' },
@@ -222,7 +222,7 @@ export class AdminDashboardService {
       },
     });
 
-    // Convert to activities
+    // Chuyển đổi thành activities
     recentUsers.forEach((user) => {
       activities.push({
         type: 'user_registered',
@@ -282,7 +282,7 @@ export class AdminDashboardService {
       });
     });
 
-    // Sort by timestamp and limit
+    // Sắp xếp theo timestamp và giới hạn
     return activities
       .sort(
         (a, b) =>
@@ -295,7 +295,7 @@ export class AdminDashboardService {
     const currentDate = new Date();
     const months: ChartDataPointDto[] = [];
 
-    // Get data for last 12 months
+    // Lấy dữ liệu cho 12 tháng trước
     for (let i = 11; i >= 0; i--) {
       const date = new Date();
       date.setMonth(currentDate.getMonth() - i);
@@ -329,7 +329,7 @@ export class AdminDashboardService {
     const currentDate = new Date();
     const months: ChartDataPointDto[] = [];
 
-    // Get data for last 12 months
+    // Lấy dữ liệu cho 12 tháng trước
     for (let i = 11; i >= 0; i--) {
       const date = new Date();
       date.setMonth(currentDate.getMonth() - i);

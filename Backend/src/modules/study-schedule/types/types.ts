@@ -141,7 +141,7 @@ export interface ComboScheduleProgress {
   upcoming_sessions: StudyScheduleDetails[];
 }
 
-// Skill focus types
+// Loại tập trung kỹ năng
 export type SkillFocus =
   | 'general'
   | 'reading'
@@ -149,10 +149,10 @@ export type SkillFocus =
   | 'listening'
   | 'speaking';
 
-// Target band ranges
+// Phạm vi band điểm mục tiêu
 export type TargetBandRange = '3.5-5.0' | '5.0-6.5' | '6.5-8.0' | '8.0+';
 
-// Day of week
+// Ngày trong tuần
 export type DayOfWeek =
   | 'monday'
   | 'tuesday'

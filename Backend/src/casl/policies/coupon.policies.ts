@@ -22,21 +22,21 @@ export const canUpdateCoupon: PolicyHandlerCallback = async (
 ): Promise<boolean> => {
   const couponId = request.params.id;
 
-  // If no ID provided, check generic permission
+  // Nếu không có ID được cung cấp, kiểm tra quyền chung
   if (!couponId) {
     return ability.can(Action.Update, Coupon);
   }
 
-  // Get created_by from request body if provided
+  // Lấy created_by từ request body nếu được cung cấp
   const createdBy = request.body?.created_by;
 
-  // Create coupon subject for permission check
+  // Tạo coupon subject để kiểm tra quyền
   const couponSubject = new Coupon({
     id: couponId,
     created_by: createdBy,
   });
 
-  // Check if user can update this coupon
+  // Kiểm tra xem người dùng có thể cập nhật coupon này không
   return ability.can(Action.Update, couponSubject);
 };
 
@@ -69,6 +69,6 @@ export const canDeleteCoupon: PolicyHandlerCallback = async (
 export const canApplyCoupon: PolicyHandlerCallback = async (
   ability: AppAbility,
 ): Promise<boolean> => {
-  // All authenticated users can apply coupons
+  // Tất cả người dùng đã xác thực có thể áp dụng coupon
   return ability.can(Action.Read, 'all');
 };

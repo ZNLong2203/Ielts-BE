@@ -15,7 +15,7 @@ export class BandCalculatorService {
     totalQuestions: number,
     skillType: SectionType,
   ): number {
-    // Normalize to 40 questions (IELTS standard)
+    // Chuẩn hóa về 40 câu hỏi (chuẩn IELTS)
     const normalized = Math.round((correctAnswers / totalQuestions) * 40);
 
     let bandTable: { min: number; max: number; band: number }[];

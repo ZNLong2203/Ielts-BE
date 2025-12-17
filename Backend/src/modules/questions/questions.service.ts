@@ -29,7 +29,7 @@ export class QuestionsService {
    *  Create Question for Question Group
    */
   async createQuestion(createDto: CreateQuestionTestDto) {
-    // Validate question group exists
+    // Xác thực nhóm câu hỏi tồn tại
     let questionGroup: {
       id: string;
       exercise_id: string | null;
@@ -54,7 +54,7 @@ export class QuestionsService {
         );
       }
 
-      // For MATCHING type, question must belong to a group
+      // Đối với loại MATCHING, câu hỏi phải thuộc một nhóm
       if (
         createDto.question_type === QUESTION_TYPE.MATCHING &&
         questionGroup.question_type !== QUESTION_TYPE.MATCHING
@@ -69,17 +69,17 @@ export class QuestionsService {
       );
     }
 
-    // Validate question type specific requirements
+    // Xác thực yêu cầu cụ thể của loại câu hỏi
     this.validateQuestionTypeRequirements(createDto);
 
     return await this.prisma.$transaction(async (tx) => {
-      // Get next ordering if not provided
+      // Lấy thứ tự tiếp theo nếu không được cung cấp
       const ordering = await this.getNextOrdering(
         tx,
         createDto.question_group_id || '',
       );
 
-      // Create question
+      // Tạo câu hỏi
       const question = await tx.questions.create({
         data: {
           exercise_id: questionGroup?.exercise_id || null,
@@ -97,7 +97,7 @@ export class QuestionsService {
         },
       });
 
-      // Create question options if provided
+      // Tạo các tùy chọn câu hỏi nếu được cung cấp
       if (createDto.options && createDto.options.length > 0) {
         await this.createQuestionOptions(
           tx,
@@ -107,7 +107,7 @@ export class QuestionsService {
         );
       }
 
-      // Create correct answer options for FILL_BLANK
+      // Tạo các tùy chọn câu trả lời đúng cho FILL_BLANK
       if (
         createDto.question_type === QUESTION_TYPE.FILL_BLANK ||
         createDto.question_type === QUESTION_TYPE.TRUE_FALSE
@@ -120,7 +120,7 @@ export class QuestionsService {
         );
       }
 
-      // update correct_answer_count in question group
+      // cập nhật correct_answer_count trong nhóm câu hỏi
       if (createDto.question_group_id) {
         const correctAnswersCount = await tx.question_options.count({
           where: {
@@ -143,7 +143,7 @@ export class QuestionsService {
         ` Created question for group: ${question.question_group_id}`,
       );
 
-      // Return complete question details
+      // Trả về chi tiết câu hỏi đầy đủ
       return await this.getQuestionById(question.id, tx);
     });
   }
@@ -152,7 +152,7 @@ export class QuestionsService {
    *  Get Questions by Exercise ID
    */
   async getQuestionsByExercise(exerciseId: string) {
-    // Validate exercise exists
+    // Xác thực bài tập tồn tại
     const exercise = await this.prisma.exercises.findFirst({
       where: {
         id: exerciseId,
@@ -205,7 +205,7 @@ export class QuestionsService {
       this.mapQuestionToDetails(question as unknown as QuestionDetails),
     );
 
-    // Group questions by question_group_id if they exist
+    // Nhóm câu hỏi theo question_group_id nếu chúng tồn tại
     const groupedQuestions: Record<string, QuestionWithDetails[]> = {};
     const ungroupedQuestions: QuestionWithDetails[] = [];
 
@@ -311,7 +311,7 @@ export class QuestionsService {
       throw new NotFoundException('Question not found');
     }
 
-    // Validate question group if provided
+    // Xác thực nhóm câu hỏi nếu được cung cấp
     if (updateDto.question_group_id) {
       const questionGroup = await this.prisma.question_groups.findFirst({
         where: {
@@ -327,7 +327,7 @@ export class QuestionsService {
         );
       }
 
-      // For MATCHING type, question must belong to a MATCHING group
+      // Đối với loại MATCHING, câu hỏi phải thuộc nhóm MATCHING
       if (
         (updateDto.question_type || existingQuestion.question_type) ===
           QUESTION_TYPE.MATCHING &&
@@ -346,7 +346,7 @@ export class QuestionsService {
       );
     }
 
-    // Validate question type requirements if type is being changed
+    // Xác thực yêu cầu loại câu hỏi nếu loại đang được thay đổi
     if (
       updateDto.question_type &&
       updateDto.question_type !== existingQuestion.question_type
@@ -355,7 +355,7 @@ export class QuestionsService {
     }
 
     return await this.prisma.$transaction(async (tx) => {
-      // Update question
+      // Cập nhật câu hỏi
       await tx.questions.update({
         where: { id },
         data: {
@@ -373,15 +373,15 @@ export class QuestionsService {
         },
       });
 
-      // Update question options if provided
+      // Cập nhật các tùy chọn câu hỏi nếu được cung cấp
       if (updateDto.options !== undefined) {
-        // Delete existing options
+        // Xóa các tùy chọn hiện tại
         await tx.question_options.updateMany({
           where: { question_id: id },
           data: { deleted: true },
         });
 
-        // Create new options
+        // Tạo các tùy chọn mới
         if (updateDto.options.length > 0) {
           await this.createQuestionOptions(
             tx,
@@ -392,7 +392,7 @@ export class QuestionsService {
         }
       }
 
-      // Update correct answer options for FILL_BLANK
+      // Cập nhật các tùy chọn câu trả lời đúng cho FILL_BLANK
       if (
         updateDto.question_type === QUESTION_TYPE.FILL_BLANK ||
         updateDto.question_type === QUESTION_TYPE.TRUE_FALSE
@@ -412,7 +412,7 @@ export class QuestionsService {
 
       this.logger.log(` Updated question: ${id}`);
 
-      // Return complete question details
+      // Trả về chi tiết câu hỏi đầy đủ
       return await this.getQuestionById(id, tx);
     });
   }
@@ -435,7 +435,7 @@ export class QuestionsService {
     }
 
     await this.prisma.$transaction(async (tx) => {
-      // Soft delete question options
+      // Xóa mềm các tùy chọn câu hỏi
       await tx.question_options.updateMany({
         where: { question_id: id },
         data: {

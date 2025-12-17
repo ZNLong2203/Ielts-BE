@@ -117,12 +117,12 @@ export class AuthService {
     const { email, firstName, lastName, picture } = googleUser;
     let user = await this.usersService.findByEmail(email);
 
-    // If user doesn't exist, create a new one
+    // Nếu người dùng không tồn tại, tạo mới
     if (!user) {
       const fullName = `${firstName} ${lastName}`;
       const password = '';
 
-      // Create user via UsersService
+      // Tạo người dùng thông qua UsersService
       const newUserData: Prisma.usersCreateInput = {
         email: email,
         password,
@@ -161,7 +161,7 @@ export class AuthService {
   async googleStudentLogin(googleUser: IUser, res: Response) {
     try {
       const data = await this.login(googleUser, res);
-      // Redirect to frontend with access_token in URL params
+      // Chuyển hướng đến frontend với access_token trong URL params
       const frontendUrl = this.configService.get<string>('FRONTEND_URL');
       const { access_token, user } = data;
 
@@ -232,14 +232,14 @@ export class AuthService {
     return userInfo;
   }
 
-  // change password
+  // Thay đổi mật khẩu
   async changePassword(user: IUser, dto: UpdatePasswordDto, res: Response) {
     const userProfile = await this.usersService.findById(user.id);
     if (!userProfile) {
       throw new BadRequestException('User not found');
     }
 
-    // Check if user uses Google authentication
+    // Kiểm tra người dùng có sử dụng xác thực Google không
     if (userProfile.auth_provider === AUTH_PROVIDER.GOOGLE) {
       throw new BadRequestException(
         'Cannot change password for Google-authenticated accounts. Please use Google to manage your password.',
@@ -265,7 +265,7 @@ export class AuthService {
       password: hashedPassword,
     });
 
-    // logout user after password change
+    // Đăng xuất người dùng sau khi thay đổi mật khẩu
     await this.logout(user, res);
 
     return { updatedAt: updatedUser.updated_at };
@@ -288,7 +288,7 @@ export class AuthService {
   }
 
   // --------------------------------------------------------------------------
-  // Helper methods
+  // Các phương thức hỗ trợ
   // --------------------------------------------------------------------------
   private createAccessToken(payload: object | Buffer) {
     return this.jwtService.sign(payload);

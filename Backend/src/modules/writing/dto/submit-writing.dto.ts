@@ -1,9 +1,9 @@
 import {
-  IsString,
   IsNotEmpty,
-  IsUUID,
-  IsOptional,
   IsNumber,
+  IsOptional,
+  IsString,
+  IsUUID,
 } from 'class-validator';
 
 export class SubmitWritingDto {

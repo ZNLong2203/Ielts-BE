@@ -1,58 +1,57 @@
 import {
-  Controller,
-  Post,
-  Get,
-  Put,
-  Delete,
   Body,
+  Controller,
+  Delete,
+  Get,
   Param,
+  Post,
+  Put,
   Query,
   UseGuards,
-  Request,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
-import { WritingService } from './writing.service';
-import { CreateWritingDto } from './dto/create-writing.dto';
-import { UpdateWritingDto } from './dto/update-writing.dto';
-import { CreateWritingMockTestExerciseDto } from './dto/create-writing-mock-test.dto';
-import { UpdateWritingMockTestExerciseDto } from './dto/update-writing-mock-test.dto';
+import { Exercise } from 'src/casl/entities/exercise.entity';
+import { Action } from 'src/casl/enums/action.enum';
+import { PermissionGuard } from 'src/casl/guards/permission.guard';
 import {
-  SubmitWritingDto,
-  WritingSubmissionResponse,
-} from './dto/submit-writing.dto';
+  canCreateWritingExercise,
+  canGradeWritingSubmission,
+  canSubmitWritingExercise,
+  canUpdateWritingExercise,
+  canViewWritingSubmissions,
+} from 'src/casl/policies/writing.policies';
+import { MESSAGE } from 'src/common/message';
+import {
+  CheckPolicies,
+  CurrentUser,
+  MessageResponse,
+  Public,
+  SkipCheckPermission,
+} from 'src/decorator/customize';
+import { IUser } from 'src/interface/users.interface';
+import { JwtAuthGuard } from 'src/modules/auth/guards/jwt-auth.guard';
+import { CreateWritingMockTestExerciseDto } from './dto/create-writing-mock-test.dto';
+import { CreateWritingDto } from './dto/create-writing.dto';
 import {
   GradeWritingSubmissionDto,
   WritingGradeResponse,
 } from './dto/grade-writing-submission.dto';
-import { QueryWritingDto } from './dto/query-writing.dto';
 import {
-  GradeWritingDto,
   WritingGradeResponse as GeminiWritingGradeResponse,
+  GradeWritingDto,
 } from './dto/grade-writing.dto';
+import { QueryWritingDto } from './dto/query-writing.dto';
 import {
   SaveWritingAssessmentDto,
   WritingAssessmentResponse,
 } from './dto/save-writing-assessment.dto';
 import {
-  Public,
-  CurrentUser,
-  SkipCheckPermission,
-  MessageResponse,
-} from 'src/decorator/customize';
-import { MESSAGE } from 'src/common/message';
-import { JwtAuthGuard } from 'src/modules/auth/guards/jwt-auth.guard';
-import { PermissionGuard } from 'src/casl/guards/permission.guard';
-import { CheckPolicies } from 'src/decorator/customize';
-import { Action } from 'src/casl/enums/action.enum';
-import { Exercise } from 'src/casl/entities/exercise.entity';
-import { IUser } from 'src/interface/users.interface';
-import {
-  canCreateWritingExercise,
-  canUpdateWritingExercise,
-  canSubmitWritingExercise,
-  canGradeWritingSubmission,
-  canViewWritingSubmissions,
-} from 'src/casl/policies/writing.policies';
+  SubmitWritingDto,
+  WritingSubmissionResponse,
+} from './dto/submit-writing.dto';
+import { UpdateWritingMockTestExerciseDto } from './dto/update-writing-mock-test.dto';
+import { UpdateWritingDto } from './dto/update-writing.dto';
+import { WritingService } from './writing.service';
 
 @ApiTags('Writing')
 @Controller('writing')
@@ -107,7 +106,7 @@ export class WritingController {
     return { message: MESSAGE.WRITING.DELETE_SUCCESS };
   }
 
-  // Student Submission APIs
+  // APIs nộp bài của học viên
   @Post('submit')
   @ApiOperation({ summary: 'Submit a writing exercise' })
   @ApiBearerAuth()
@@ -129,7 +128,7 @@ export class WritingController {
     return this.writingService.getSubmissionsByUser(user.id);
   }
 
-  // Teacher Grading APIs
+  // APIs chấm điểm của giáo viên
   @Post('grade-submission')
   @ApiOperation({ summary: 'Grade a writing submission' })
   @ApiBearerAuth()
@@ -151,7 +150,7 @@ export class WritingController {
     return this.writingService.getSubmissionsByExercise(exerciseId);
   }
 
-  // AI Grading API
+  // API chấm điểm bằng AI
   @Post('grade')
   @ApiOperation({ summary: 'Grade writing using AI (Gemini)' })
   @Public()
@@ -162,7 +161,7 @@ export class WritingController {
     return this.writingService.gradeWritingByGemini(gradeWritingDto);
   }
 
-  // Save writing assessment
+  // Lưu đánh giá bài viết
   @Post('save-assessment')
   @ApiOperation({ summary: 'Save writing assessment to database' })
   @ApiBearerAuth()
@@ -175,7 +174,7 @@ export class WritingController {
     return this.writingService.saveWritingAssessment(user.id, saveDto);
   }
 
-  // Get my writing assessments
+  // Lấy danh sách đánh giá bài viết của tôi
   @Get('my-assessments')
   @ApiOperation({ summary: 'Get my writing assessments' })
   @ApiBearerAuth()
@@ -193,7 +192,7 @@ export class WritingController {
     );
   }
 
-  // Get writing assessment by ID
+  // Lấy đánh giá bài viết theo ID
   @Get('assessment/:id')
   @ApiOperation({ summary: 'Get writing assessment by ID' })
   @ApiBearerAuth()
@@ -205,7 +204,7 @@ export class WritingController {
     return this.writingService.getWritingAssessmentById(id);
   }
 
-  // Mock Test Exercise Endpoints
+  // Các endpoints cho bài tập Mock Test
   @Post('mock-test')
   @ApiOperation({
     summary: 'Create writing exercise for mock test',

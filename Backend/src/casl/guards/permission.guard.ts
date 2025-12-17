@@ -29,7 +29,7 @@ export class PermissionGuard implements CanActivate {
    * Validates if the current request can be activated based on user permissions
    */
   async canActivate(context: ExecutionContext): Promise<boolean> {
-    // Check if the endpoint is marked as public
+    // Kiểm tra xem endpoint có được đánh dấu là public không
     const isPublic = this.reflector.getAllAndOverride<boolean>(IS_PUBLIC_KEY, [
       context.getHandler(),
       context.getClass(),
@@ -39,7 +39,7 @@ export class PermissionGuard implements CanActivate {
       return true;
     }
 
-    // Check if permission check should be skipped
+    // Kiểm tra xem có nên bỏ qua kiểm tra quyền không
     const skipPermission = this.reflector.getAllAndOverride<boolean>(
       IS_PUBLIC_PERMISSION,
       [context.getHandler(), context.getClass()],
@@ -49,12 +49,12 @@ export class PermissionGuard implements CanActivate {
       return true;
     }
 
-    // Get policy handlers defined for this route
+    // Lấy các policy handlers được định nghĩa cho route này
     const policyHandlers = this.reflector.getAllAndOverride<
       PolicyHandlerCallback[]
     >(POLICIES_KEY, [context.getHandler(), context.getClass()]);
 
-    // If no policies defined, restrict access by default
+    // Nếu không có policies được định nghĩa, hạn chế truy cập theo mặc định
     if (!policyHandlers || policyHandlers.length === 0) {
       this.logger.warn(
         `No permission policies defined for route: ${context.getHandler().name}`,
@@ -64,7 +64,7 @@ export class PermissionGuard implements CanActivate {
       );
     }
 
-    // Get request and user
+    // Lấy request và user
     const request = context.switchToHttp().getRequest<Request>();
     const user = request.user;
 
@@ -73,13 +73,13 @@ export class PermissionGuard implements CanActivate {
     }
 
     try {
-      // Create ability for user
+      // Tạo ability cho user
       const ability = this.caslAbilityFactory.createForUser(user);
 
-      // Attach ability to request
+      // Đính kèm ability vào request
       request.ability = ability;
 
-      // Execute all policy handlers
+      // Thực thi tất cả các policy handlers
       for (const handler of policyHandlers) {
         try {
           const result = await Promise.resolve(handler(ability, request));
@@ -93,12 +93,12 @@ export class PermissionGuard implements CanActivate {
           }
         } catch (error) {
           const e = error as Error;
-          // Pass through NotFoundException
+          // Truyền qua NotFoundException
           if (e instanceof NotFoundException) {
             throw e;
           }
 
-          // Transform other errors to ForbiddenException
+          // Chuyển đổi các lỗi khác thành ForbiddenException
           this.logger.error(`Policy error: ${e.message}`);
           throw new ForbiddenException(e.message || 'Permission denied');
         }

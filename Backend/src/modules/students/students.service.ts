@@ -72,7 +72,7 @@ export class StudentsService {
   }
 
   async getStudentDashboard(userId: string) {
-    // Verify student exists
+    // Xác minh sinh viên tồn tại
     const student = await this.prisma.students.findFirst({
       where: { user_id: userId, deleted: false },
       include: {
@@ -91,14 +91,14 @@ export class StudentsService {
       throw new Error('Student not found');
     }
 
-    // Get combo enrollments with progress
+    // Lấy các ghi danh combo với tiến độ
     const comboEnrollments = await this.getStudentComboEnrollments(userId);
 
-    // Get individual course enrollments (for tracking progress only, not sold separately)
+    // Lấy các ghi danh khóa học riêng lẻ (chỉ để theo dõi tiến độ, không bán riêng)
     const courseEnrollments = await this.getStudentCourseEnrollments(userId);
 
-    // Calculate statistics - only count courses from combo enrollments
-    // Use Set to deduplicate in case a course appears in multiple combos
+    // Tính toán thống kê - chỉ đếm các khóa học từ ghi danh combo
+    // Sử dụng Set để loại trùng lặp trong trường hợp một khóa học xuất hiện trong nhiều combo
     const uniqueCourses = new Set<string>();
     comboEnrollments?.forEach((combo) => {
       combo.courses?.forEach((course) => {
@@ -107,8 +107,8 @@ export class StudentsService {
     });
     const totalCourses = uniqueCourses.size;
 
-    // Calculate completed courses (only from combos)
-    // Use is_completed field instead of progress === 100
+    // Tính toán các khóa học đã hoàn thành (chỉ từ combos)
+    // Sử dụng trường is_completed thay vì progress === 100
     const completedCoursesSet = new Set<string>();
     comboEnrollments?.forEach((combo) => {
       combo.courses
@@ -188,7 +188,7 @@ export class StudentsService {
       },
     });
 
-    // Enhance with course details and progress
+    // Bổ sung với chi tiết khóa học và tiến độ
     const enhancedEnrollments = await Promise.all(
       comboEnrollments.map(async (enrollment) => {
         if (!enrollment.combo_courses) {
@@ -197,7 +197,7 @@ export class StudentsService {
 
         const combo = enrollment.combo_courses;
 
-        // Get all courses in this combo
+        // Lấy tất cả các khóa học trong combo này
         const courses = await this.prisma.courses.findMany({
           where: {
             id: { in: combo.course_ids },
@@ -223,10 +223,10 @@ export class StudentsService {
           },
         });
 
-        // Get progress for each course
+        // Lấy tiến độ cho từng khóa học
         const coursesWithProgress = await Promise.all(
           courses.map(async (course) => {
-            // Count total and completed lessons
+            // Đếm tổng số và số bài học đã hoàn thành
             const sections = await this.prisma.sections.findMany({
               where: {
                 course_id: course.id,
@@ -255,13 +255,13 @@ export class StudentsService {
               },
             });
 
-            // Calculate course progress percentage from lessons (source of truth)
-            // Don't use enrollment.progress_percentage as it may be outdated
+            // Tính toán phần trăm tiến độ khóa học từ bài học (nguồn sự thật)
+            // Không sử dụng enrollment.progress_percentage vì nó có thể lỗi thời
             const progressPercentage =
               totalLessons > 0 ? (completedLessons / totalLessons) * 100 : 0;
 
-            // Course is completed when all lessons are completed
-            // Check both: completed_lessons === total_lessons AND total_lessons > 0
+            // Khóa học được hoàn thành khi tất cả các bài học được hoàn thành
+            // Kiểm tra cả hai: completed_lessons === total_lessons VÀ total_lessons > 0
             const isCompleted =
               totalLessons > 0 && completedLessons === totalLessons;
 
@@ -289,9 +289,9 @@ export class StudentsService {
           }),
         );
 
-        // Calculate overall progress percentage from courses
-        // If certificate exists, use database value as it's the source of truth for completion
-        // Otherwise, calculate from actual lesson progress
+        // Tính toán phần trăm tiến độ tổng thể từ các khóa học
+        // Nếu chứng chỉ tồn tại, sử dụng giá trị database vì nó là nguồn sự thật cho việc hoàn thành
+        // Nếu không, tính toán từ tiến độ bài học thực tế
         let overallProgressPercentage: number;
         let finalCoursesWithProgress = coursesWithProgress;
 
@@ -299,8 +299,8 @@ export class StudentsService {
           enrollment.certificate_url &&
           Number(enrollment.overall_progress_percentage) >= 100
         ) {
-          // If certificate exists, use the database value (100%)
-          // and mark all courses as completed
+          // Nếu chứng chỉ tồn tại, sử dụng giá trị database (100%)
+          // và đánh dấu tất cả các khóa học là đã hoàn thành
           overallProgressPercentage = Number(
             enrollment.overall_progress_percentage,
           );
@@ -311,7 +311,7 @@ export class StudentsService {
             completed_lessons: course.total_lessons,
           }));
         } else {
-          // Calculate from actual course progress
+          // Tính toán từ tiến độ khóa học thực tế
           const totalCourseProgress = coursesWithProgress.reduce(
             (acc, course) => acc + course.progress,
             0,
@@ -397,7 +397,7 @@ export class StudentsService {
       },
     });
 
-    // Enhance with progress details
+    // Bổ sung với chi tiết tiến độ
     const enhancedEnrollments = await Promise.all(
       enrollments.map(async (enrollment) => {
         const course = enrollment.courses;
@@ -420,15 +420,15 @@ export class StudentsService {
           },
         });
 
-        // Calculate progress and completion status
-        // Course is completed ONLY when all lessons are completed
+        // Tính toán tiến độ và trạng thái hoàn thành
+        // Khóa học được hoàn thành CHỈ khi tất cả các bài học được hoàn thành
         const progressPercentage = enrollment.progress_percentage
           ? Number(enrollment.progress_percentage)
           : totalLessons > 0
             ? (completedLessons / totalLessons) * 100
             : 0;
 
-        // Course is completed when all lessons are completed
+        // Khóa học được hoàn thành khi tất cả các bài học được hoàn thành
         const isCompleted =
           totalLessons > 0 && completedLessons === totalLessons;
 

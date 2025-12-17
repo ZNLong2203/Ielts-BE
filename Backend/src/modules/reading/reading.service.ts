@@ -40,7 +40,7 @@ export class ReadingService {
     sectionType: SectionType = SECTION_TYPE.READING,
     skillType: SkillType = SKILL_TYPE.READING,
   ) {
-    // Validate test_section exists and is reading type
+    // Xác thực test_section tồn tại và là loại reading
     const testSection = await this.prisma.test_sections.findFirst({
       where: {
         id: createDto.test_section_id,
@@ -62,7 +62,7 @@ export class ReadingService {
       throw new NotFoundException('Reading test section not found');
     }
 
-    // Check if exercise with same title exists in this test section
+    // Kiểm tra xem bài tập với tiêu đề giống nhau có tồn tại không
     const existingExercise = await this.prisma.exercises.findFirst({
       where: {
         test_section_id: createDto.test_section_id,
@@ -150,7 +150,7 @@ export class ReadingService {
     sectionType: SectionType = SECTION_TYPE.READING,
     skillType: SkillType = SKILL_TYPE.READING,
   ) {
-    // Validate test section exists
+    // Xác thực test section tồn tại
     const testSection = await this.prisma.test_sections.findFirst({
       where: {
         id: testSectionId,
@@ -243,13 +243,13 @@ export class ReadingService {
       throw new NotFoundException('Reading exercise not found');
     }
 
-    // get hls if audio_url exists
+    // Lấy hls nếu audio_url tồn tại
     let hls_url: string | null = null;
     if (exercise.audio_url) {
       hls_url = await this.videoService.getVideoHLSUrl(exercise.audio_url);
     }
 
-    // Get question groups with their questions and matching options
+    // Lấy nhóm câu hỏi với các câu hỏi và tùy chọn ghép đôi
     const questionGroupsData = await this.prisma.question_groups.findMany({
       where: {
         exercise_id: id,
@@ -274,7 +274,7 @@ export class ReadingService {
       orderBy: { ordering: 'asc' },
     });
 
-    // Get ungrouped questions
+    // Lấy các câu hỏi không thuộc nhóm
     const ungroupedQuestionsData = await this.prisma.questions.findMany({
       where: {
         exercise_id: id,
@@ -358,7 +358,7 @@ export class ReadingService {
       throw new NotFoundException('Reading exercise not found');
     }
 
-    // Check for title conflict if title is being updated
+    // Kiểm tra xung đột tiêu đề nếu tiêu đề đang được cập nhật
     if (updateDto.title && updateDto.title !== existingExercise.title) {
       const conflictingExercise = await this.prisma.exercises.findFirst({
         where: {
@@ -471,7 +471,7 @@ export class ReadingService {
     }
 
     await this.prisma.$transaction(async (tx) => {
-      // Get all question groups
+      // Lấy tất cả các nhóm câu hỏi
       const questionGroups = await tx.question_groups.findMany({
         where: { exercise_id: id, deleted: false },
         select: { id: true },
@@ -480,7 +480,7 @@ export class ReadingService {
       if (questionGroups.length > 0) {
         const groupIds = questionGroups.map((g) => g.id);
 
-        // Soft delete matching options
+        // Xóa mềm các tùy chọn ghép đôi
         await tx.matching_options.updateMany({
           where: { set_id: { in: groupIds } },
           data: {
@@ -489,7 +489,7 @@ export class ReadingService {
           },
         });
 
-        // Soft delete question groups
+        // Xóa mềm các nhóm câu hỏi
         await tx.question_groups.updateMany({
           where: { exercise_id: id },
           data: {
@@ -499,7 +499,7 @@ export class ReadingService {
         });
       }
 
-      // Get all questions for this exercise
+      // Lấy tất cả các câu hỏi cho bài tập này
       const questions = await tx.questions.findMany({
         where: { exercise_id: id, deleted: false },
         select: { id: true },
@@ -508,7 +508,7 @@ export class ReadingService {
       if (questions.length > 0) {
         const questionIds = questions.map((q) => q.id);
 
-        // Soft delete question options
+        // Xóa mềm các tùy chọn câu hỏi
         await tx.question_options.updateMany({
           where: { question_id: { in: questionIds } },
           data: {
@@ -517,7 +517,7 @@ export class ReadingService {
           },
         });
 
-        // Soft delete questions
+        // Xóa mềm các câu hỏi
         await tx.questions.updateMany({
           where: { exercise_id: id },
           data: {
@@ -527,7 +527,7 @@ export class ReadingService {
         });
       }
 
-      // Soft delete exercise
+      // Xóa mềm bài tập
       await tx.exercises.update({
         where: { id },
         data: {
@@ -627,14 +627,14 @@ export class ReadingService {
   }
 
   private calculateReadingTime(wordCount: number): number {
-    // Average reading speed: 200 words per minute
+    // Tốc độ đọc trung bình: 200 từ mỗi phút
     return Math.ceil(wordCount / 200);
   }
 
   private extractPassageInfo(
     content: any,
   ): ReadingExerciseContent['reading_passage'] {
-    // Default empty passage
+    // Đoạn văn trống mặc định
     const defaultPassage: ReadingExerciseContent['reading_passage'] = {
       title: '',
       content: '',
@@ -648,7 +648,7 @@ export class ReadingService {
       return defaultPassage;
     }
 
-    // Parse JSON string if needed
+    // Phân tích chuỗi JSON nếu cần
     let parsedContent: any;
     if (typeof content === 'string') {
       try {
@@ -661,46 +661,46 @@ export class ReadingService {
       parsedContent = content;
     }
 
-    // Extract reading_passage from parsed content
-    // Support both new format (reading_passage) and old format (passage)
+    // Trích xuất reading_passage từ nội dung đã phân tích
+    // Hỗ trợ cả định dạng mới (reading_passage) và định dạng cũ (passage)
     let readingPassage = parsedContent?.reading_passage;
-    
-    // Backward compatibility: handle old format with "passage" field
+
+    // Tương thích ngược: xử lý định dạng cũ với trường "passage"
     if (!readingPassage && parsedContent?.passage) {
-      // Old format: {"passage": "text with \n\nA\n\n...B\n\n..."}
-      const passageText = typeof parsedContent.passage === 'string' 
-        ? parsedContent.passage 
-        : '';
-      
+      // Định dạng cũ: {"passage": "text with \n\nA\n\n...B\n\n..."}
+      const passageText =
+        typeof parsedContent.passage === 'string' ? parsedContent.passage : '';
+
       // Split by paragraph markers (A, B, C, etc. on new lines)
       const paragraphRegex = /\n\n([A-Z])\n\n/g;
       const matches = [...passageText.matchAll(paragraphRegex)];
-      
+
       if (matches.length > 0) {
         // Extract title (first line before first paragraph)
         const firstMatchIndex = passageText.indexOf(matches[0][0]);
         const title = passageText.substring(0, firstMatchIndex).trim();
-        
+
         // Extract paragraphs
         const paragraphs: any[] = [];
         for (let i = 0; i < matches.length; i++) {
           const label = matches[i][1];
           const startIndex = matches[i].index! + matches[i][0].length;
-          const endIndex = i < matches.length - 1 
-            ? matches[i + 1].index! 
-            : passageText.length;
+          const endIndex =
+            i < matches.length - 1 ? matches[i + 1].index! : passageText.length;
           const content = passageText.substring(startIndex, endIndex).trim();
-          
+
           paragraphs.push({
             id: `para-${i + 1}`,
             label: label,
             content: content,
           });
         }
-        
+
         // Combine all content
-        const fullContent = passageText.replace(/\n\n[A-Z]\n\n/g, '\n\n').trim();
-        
+        const fullContent = passageText
+          .replace(/\n\n[A-Z]\n\n/g, '\n\n')
+          .trim();
+
         readingPassage = {
           title: title || 'Reading Passage',
           content: fullContent,
@@ -711,19 +711,21 @@ export class ReadingService {
         const lines = passageText.split('\n\n');
         const title = lines[0] || 'Reading Passage';
         const content = passageText;
-        
+
         readingPassage = {
           title: title,
           content: content,
-          paragraphs: [{
-            id: 'para-1',
-            label: 'A',
-            content: content,
-          }],
+          paragraphs: [
+            {
+              id: 'para-1',
+              label: 'A',
+              content: content,
+            },
+          ],
         };
       }
     }
-    
+
     if (!readingPassage) {
       return defaultPassage;
     }
@@ -733,11 +735,16 @@ export class ReadingService {
       title: readingPassage.title || '',
       content: readingPassage.content || '',
       paragraphs: readingPassage.paragraphs || [],
-      word_count: readingPassage.word_count || this.calculateWordCount(readingPassage.content || ''),
+      word_count:
+        readingPassage.word_count ||
+        this.calculateWordCount(readingPassage.content || ''),
       difficulty_level: readingPassage.difficulty_level || 5.0,
-      estimated_reading_time: readingPassage.estimated_reading_time || this.calculateReadingTime(
-        readingPassage.word_count || this.calculateWordCount(readingPassage.content || '')
-      ),
+      estimated_reading_time:
+        readingPassage.estimated_reading_time ||
+        this.calculateReadingTime(
+          readingPassage.word_count ||
+            this.calculateWordCount(readingPassage.content || ''),
+        ),
     };
   }
 

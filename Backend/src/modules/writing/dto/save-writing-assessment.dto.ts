@@ -1,11 +1,11 @@
 import {
-  IsString,
-  IsNotEmpty,
-  IsOptional,
+  IsArray,
   IsEnum,
+  IsNotEmpty,
   IsNumber,
   IsObject,
-  IsArray,
+  IsOptional,
+  IsString,
 } from 'class-validator';
 
 export enum WritingTaskType {
@@ -38,7 +38,7 @@ export class SaveWritingAssessmentDto {
   @IsOptional()
   additionalInstructions?: string;
 
-  // Scores
+  // Điểm số
   @IsNumber()
   @IsNotEmpty()
   overallScore: number;
@@ -59,7 +59,7 @@ export class SaveWritingAssessmentDto {
   @IsNotEmpty()
   grammaticalRangeAccuracyScore: number;
 
-  // Feedback
+  // Phản hồi
   @IsString()
   @IsNotEmpty()
   detailedFeedback: string;
@@ -76,12 +76,12 @@ export class SaveWritingAssessmentDto {
   @IsOptional()
   weaknesses?: string[];
 
-  // Detailed metrics
+  // Các chỉ số chi tiết
   @IsObject()
   @IsOptional()
   detailedMetrics?: any;
 
-  // Sample answers
+  // Câu trả lời mẫu
   @IsString()
   @IsOptional()
   upgradedEssay?: string;
@@ -90,7 +90,7 @@ export class SaveWritingAssessmentDto {
   @IsOptional()
   sampleAnswer?: string;
 
-  // Metadata
+  // Thông tin bổ sung
   @IsString()
   @IsOptional()
   aiModel?: string;

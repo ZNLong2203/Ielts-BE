@@ -4,7 +4,7 @@ import { PassportStrategy } from '@nestjs/passport';
 import { ExtractJwt, Strategy } from 'passport-jwt';
 import { IJwtPayload } from 'src/interface/jwt-payload.interface';
 
-// This class is responsible for validating the token and extracting the user information from the token that received from the client.
+// Lớp này chịu trách nhiệm xác thực token và trích xuất thông tin người dùng từ token nhận được từ client.
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy) {
   constructor(private configService: ConfigService) {
@@ -18,7 +18,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
 
   async validate(payload: IJwtPayload) {
     const { id, full_name, email, role } = payload;
-    // khi return về, sẽ được gán vào req.user
+    // Khi return về, sẽ được gán vào req.user
     return {
       id,
       full_name,

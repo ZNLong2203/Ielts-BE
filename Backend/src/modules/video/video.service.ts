@@ -30,7 +30,7 @@ export class VideoService {
   ) {}
 
   // ----------------------------------------------------------------------
-  // Video upload service
+  // Dịch vụ tải lên video
   // ----------------------------------------------------------------------
 
   /**
@@ -41,10 +41,10 @@ export class VideoService {
   ): Promise<PresignedUploadResponse> {
     const { originalName, fileSize, mimetype } = request;
 
-    // Validate using existing method
+    // Xác thực sử dụng phương thức hiện có
     this.validateMediaFile(Buffer.alloc(0), mimetype); // Use empty buffer for validation
 
-    // Additional file size validation
+    // Xác thực kích thước tệp bổ sung
     const maxSize = 2 * 1024 * 1024 * 1024; // 2GB
     if (fileSize > maxSize) {
       throw new BadRequestException('File too large. Maximum size: 2GB');
@@ -58,14 +58,14 @@ export class VideoService {
     const originalObjectName = `${folder}/original/${fileName}`;
 
     try {
-      // Generate presigned URL for upload (expires in 15 minutes)
+      // Tạo presigned URL để tải lên (hết hạn sau 15 phút)
       const presignedUrl = await this.minioService.generatePresignedPutUrl(
         bucketName,
         originalObjectName,
         60 * 60, // 1 hour
       );
 
-      // Store upload session info in Redis (expires in 20 minutes)
+      // Lưu thông tin phiên tải lên trong Redis (hết hạn sau 20 phút)
       const uploadSession = {
         fileName,
         originalName,
@@ -127,7 +127,7 @@ export class VideoService {
   > {
     const sessionKey = `upload-session:${fileName}`;
 
-    //  Track rollback context (reuse existing logic)
+    // Theo dõi ngữ cảnh hoàn tác (sử dụng lại logic hiện có)
     const rollbackContext = {
       tempDir: null as string | null,
       minioObject: null as string | null,
@@ -136,7 +136,7 @@ export class VideoService {
     };
 
     try {
-      // Get upload session
+      // Lấy phiên tải lên
       const uploadSession =
         await this.redisService.getJSON<VideoUploadSession>(sessionKey);
       if (!uploadSession) {
@@ -155,11 +155,11 @@ export class VideoService {
         mimetype,
         folder,
       } = uploadSession;
-      rollbackContext.minioObject = originalObjectName; // Track for rollback
+      rollbackContext.minioObject = originalObjectName; // Theo dõi để hoàn tác
 
       const isAudio = mimetype.startsWith('audio/');
 
-      // Verify file exists in MinIO
+      // Xác minh tệp tồn tại trong MinIO
       const fileExists = await this.minioService.objectExists(
         bucketName,
         originalObjectName,
@@ -170,22 +170,22 @@ export class VideoService {
         );
       }
 
-      // Get file from MinIO for processing
+      // Lấy tệp từ MinIO để xử lý
       const fileBuffer = await this.minioService.getFileBuffer(
         bucketName,
         originalObjectName,
       );
 
-      //  Extract duration using existing logic (create temp file)
+      // Trích xuất thời lượng sử dụng logic hiện có (tạo tệp tạm)
       const baseTmpDir = path.resolve(process.cwd(), '../temp');
       const tempDir = path.join(baseTmpDir, `confirm-${uuid()}`);
       const tempVideoPath = path.join(tempDir, fileName);
-      rollbackContext.tempDir = tempDir; // Track for rollback
+      rollbackContext.tempDir = tempDir; // Theo dõi để hoàn tác
 
       await fs.promises.mkdir(tempDir, { recursive: true });
       await fs.promises.writeFile(tempVideoPath, fileBuffer);
 
-      // Extract duration using Docker FFmpeg (existing logic)
+      // Trích xuất thời lượng sử dụng Docker FFmpeg (logic hiện có)
       const info: { format?: { duration?: number } } =
         (await this.dockerFFmpegConfig.getVideoInfo(tempVideoPath)) as {
           format?: { duration?: number };
@@ -195,14 +195,14 @@ export class VideoService {
         : 0;
       this.logger.log(` Duration: ${duration}s for ${originalName}`);
 
-      //  Cache duration (existing logic)
+      // Lưu cache thời lượng (logic hiện có)
       if (duration > 0) {
         const durationKey = `${isAudio ? 'audio' : 'video'}:${fileName}:duration`;
         rollbackContext.redisKeys.push(durationKey);
         await this.redisService.setJSON(durationKey, duration, 24 * 60 * 60);
       }
 
-      //  Set progress (existing logic)
+      // Đặt tiến trình (logic hiện có)
       const progressKey = `${isAudio ? 'audio' : 'video'}:${fileName}:progress`;
       rollbackContext.redisKeys.push(progressKey);
       const progress: ProcessingProgress = {
@@ -214,7 +214,7 @@ export class VideoService {
       };
       await this.redisService.setJSON(progressKey, progress, 2 * 60 * 60);
 
-      //  Enqueue HLS processing job (existing logic)
+      // Thêm job xử lý HLS vào hàng đợi (logic hiện có)
       const jobData: VideoJobData = {
         fileName,
         bucketName,
@@ -233,19 +233,19 @@ export class VideoService {
       });
       rollbackContext.queueJob = job;
 
-      // Update upload session status
+      // Cập nhật trạng thái phiên tải lên
       uploadSession.status = 'confirmed';
       uploadSession.confirmedAt = new Date();
       uploadSession.duration = duration;
       await this.redisService.setJSON(sessionKey, uploadSession, 24 * 60 * 60); // Keep for 24h
 
-      // Get file URL
+      // Lấy URL tệp
       const originalUrl = await this.minioService.getFileUrl(
         bucketName,
         originalObjectName,
       );
 
-      //  Cleanup temp file (existing logic)
+      // Dọn dẹp tệp tạm (logic hiện có)
       await fs.promises.rm(tempDir, { recursive: true, force: true });
       rollbackContext.tempDir = null; // Mark as cleaned
 
@@ -267,14 +267,14 @@ export class VideoService {
       return result;
     } catch (error) {
       const e = error as Error;
-      //  Use existing rollback logic
+      // Sử dụng logic hoàn tác hiện có
       this.logger.error(
         ` Upload confirmation failed for ${fileName}, initiating rollback:`,
         e,
       );
       await this.performCompleteRollback(rollbackContext);
 
-      // Mark session as failed
+      // Đánh dấu phiên thất bại
       try {
         const uploadSession =
           await this.redisService.getJSON<VideoUploadSession>(sessionKey);
@@ -316,7 +316,7 @@ export class VideoService {
     const tempDir = path.join(baseTmpDir, `upload-${uuid()}`);
     const tempVideoPath = path.join(tempDir, fileName);
 
-    //  Track what needs rollback
+    // Theo dõi gì cần hoàn tác
     const rollbackContext = {
       tempDir: null as string | null,
       minioObject: null as string | null,
@@ -327,25 +327,25 @@ export class VideoService {
     try {
       this.validateMediaFile(buffer, mimetype);
 
-      // Step 1: Create temp file
+      // Bước 1: Tạo tệp tạm
       rollbackContext.tempDir = tempDir;
       await fs.promises.mkdir(tempDir, { recursive: true });
       await fs.promises.writeFile(tempVideoPath, buffer);
 
-      // Step 2: Extract duration using Docker FFmpeg
+      // Bước 2: Trích xuất thời lượng sử dụng Docker FFmpeg
       const info: { format?: { duration?: number } } =
         (await this.dockerFFmpegConfig.getVideoInfo(tempVideoPath)) as {
           format?: { duration?: number };
         };
       console.log('FFprobe info:', JSON.stringify(info, null, 2));
 
-      // Handle case where format might be undefined
+      // Xử lý trường hợp format có thể là undefined
       const duration = info?.format?.duration
         ? Math.round(info.format.duration)
         : 0;
       this.logger.log(` Duration: ${duration}s for ${originalName}`);
 
-      // Step 3: Upload to MinIO
+      // Bước 3: Tải lên MinIO
       rollbackContext.minioObject = originalObjectName;
       const uploadInfo = await this.minioService.putObject(
         bucketName,
@@ -357,14 +357,14 @@ export class VideoService {
         },
       );
 
-      // Step 4: Cache duration
+      // Bước 4: Lưu cache thời lượng
       if (duration > 0) {
         const durationKey = `${isAudio ? 'audio' : 'video'}:${fileName}:duration`;
         rollbackContext.redisKeys.push(durationKey);
         await this.redisService.setJSON(durationKey, duration, 24 * 60 * 60);
       }
 
-      // Step 5: Set progress
+      // Bước 5: Đặt tiến trình
       const progressKey = `${isAudio ? 'audio' : 'video'}:${fileName}:progress`;
       rollbackContext.redisKeys.push(progressKey);
       const progress: ProcessingProgress = {
@@ -376,7 +376,7 @@ export class VideoService {
       };
       await this.redisService.setJSON(progressKey, progress, 2 * 60 * 60);
 
-      // Step 6: Enqueue job
+      // Bước 6: Thêm job vào hàng đợi
       const jobData: VideoJobData = {
         fileName,
         bucketName,
@@ -395,14 +395,14 @@ export class VideoService {
       });
       rollbackContext.queueJob = job;
 
-      // Step 7: Get URLs and cleanup temp
+      // Bước 7: Lấy URLs và dọn dẹp tạm
       const originalUrl = await this.minioService.getFileUrl(
         bucketName,
         originalObjectName,
       );
 
       await fs.promises.rm(tempDir, { recursive: true, force: true });
-      rollbackContext.tempDir = null; // Mark as cleaned
+      rollbackContext.tempDir = null; // Đánh dấu đã dọn dẹp
 
       const result = {
         fileName,
@@ -421,7 +421,7 @@ export class VideoService {
       );
       return result;
     } catch (error) {
-      //  Comprehensive rollback
+      // Hoàn tác toàn diện
       this.logger.error(
         ` Upload failed for ${originalName}, initiating rollback:`,
         error,
@@ -434,7 +434,7 @@ export class VideoService {
     }
   }
 
-  //  Comprehensive rollback method
+  // Phương thức hoàn tác toàn diện
   private async performCompleteRollback(context: {
     tempDir: string | null;
     minioObject: string | null;
@@ -476,12 +476,12 @@ export class VideoService {
       }
 
       try {
-        // Extract fileName from object path: "lessons/original/uuid.mp4" → "uuid.mp4"
+        // Trích xuất fileName từ object path: "lessons/original/uuid.mp4" → "uuid.mp4"
         const fileName = path.basename(context.minioObject);
         const baseName = path.parse(fileName).name; // "uuid"
         const hlsFolder = `lessons/hls/${baseName}/`;
 
-        // Check if HLS folder exists before trying to delete
+        // Kiểm tra HLS folder tồn tại trước khi xóa
         const hlsExists = await this.minioService.objectExists(
           'ielts-videos',
           `${hlsFolder}playlist.m3u8`,
@@ -509,7 +509,7 @@ export class VideoService {
         for (const key of context.redisKeys) {
           await this.redisService.del(key);
         }
-        // clear upload session if exists
+        // xóa phiên tải lên nếu tồn tại
         if (context.minioObject) {
           const fileName = path.basename(context.minioObject);
           const sessionKey = `upload-session:${fileName}`;
@@ -531,12 +531,12 @@ export class VideoService {
         rollbackResults.queueJob = true;
         this.logger.log(` Rollback: Queue job removed: ${context.queueJob.id}`);
       } catch (error) {
-        // Job might not exist yet or already processed
+        // Job có thể chưa tồn tại hoặc đã được xử lý
         this.logger.warn(` Rollback: Could not remove queue job:`, error);
       }
     }
 
-    // Log rollback summary
+    // Ghi nhật ký tóm tắt hoàn tác
     const successCount = Object.values(rollbackResults).filter(Boolean).length;
     const totalCount = Object.values(rollbackResults).length;
 
@@ -559,7 +559,7 @@ export class VideoService {
     const baseName = path.parse(fileName).name;
     const hlsFolder = `lessons/hls/${baseName}/`;
 
-    // Delete original video
+    // Xóa video gốc
     try {
       await this.minioService.deleteFile(bucketName, originalObjectName);
       this.logger.log(` Deleted original video: ${originalObjectName}`);
@@ -570,7 +570,7 @@ export class VideoService {
       );
     }
 
-    // Delete HLS folder
+    // Xóa thư mục HLS
     try {
       const hlsExists = await this.minioService.objectExists(
         bucketName,
@@ -587,7 +587,7 @@ export class VideoService {
       this.logger.error(` Failed to delete HLS folder ${hlsFolder}:`, error);
     }
 
-    // Delete Redis keys
+    // Xóa các khóa Redis
     const durationKey = `${isAudio ? 'audio' : 'video'}:${fileName}:duration`;
     const progressKey = `${isAudio ? 'audio' : 'video'}:${fileName}:progress`;
 
@@ -651,7 +651,7 @@ export class VideoService {
       throw new BadRequestException('Only video or audio files are allowed');
     }
 
-    //  Only check buffer size if not skipping and buffer is provided
+    // Chỉ kiểm tra kích thước buffer nếu không bỏ qua và buffer được cung cấp
     if (!skipSizeCheck && buffer && buffer.length > 0) {
       const maxSize = 2 * 1024 * 1024 * 1024; // 2GB
       if (buffer.length > maxSize) {
@@ -659,7 +659,7 @@ export class VideoService {
       }
     }
 
-    //  Additional mimetype validation
+    // Xác thực mimetype bổ sung
     const supportedVideo = [
       'video/mp4',
       'video/avi',
@@ -685,7 +685,7 @@ export class VideoService {
     }
   }
 
-  // Get HLS URL, return null if not processed yet
+  // Lấy URL HLS, trả về null nếu chưa được xử lý
   async getVideoHLSUrl(fileName: string): Promise<string | null> {
     try {
       const isAudio = this.isAudioFile(fileName);
@@ -708,7 +708,7 @@ export class VideoService {
     }
   }
 
-  // Get original video info
+  // Lấy thông tin video gốc
   async getOriginalVideoInfo(
     fileName: string,
   ): Promise<{ url: string } | null> {
@@ -740,7 +740,7 @@ export class VideoService {
   }
 
   private isAudioFile(fileName: string): boolean {
-    // File: audio/video - uuid.extension
+    // Tệp: audio/video - uuid.extension
     return fileName.startsWith('audio-');
   }
 }

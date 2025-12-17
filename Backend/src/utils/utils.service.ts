@@ -199,7 +199,7 @@ export class UtilsService {
     for (const key in filters) {
       const value = filters[key];
 
-      // Handle logical operators: AND, OR, NOT
+      // Xử lý các toán tử logic: AND, OR, NOT
       if (
         ['AND', 'OR', 'NOT'].includes(key) &&
         typeof value === 'object' &&
@@ -217,7 +217,7 @@ export class UtilsService {
       const segments = key.split('.');
       const lastSegment = segments[segments.length - 1];
 
-      // Check for field[operator] syntax
+      // Kiểm tra cú pháp field[operator]
       const match = lastSegment.match(/^(\w+)\[([a-zA-Z]+)\]$/);
       if (match) {
         const [, field, operator] = match;
@@ -227,7 +227,7 @@ export class UtilsService {
         segments[segments.length - 1] = field;
         const parsed = this.handleValue(value as string);
 
-        // Traverse or initialize the nested structure
+        // Duyệt hoặc khởi tạo cấu trúc lồng
         let current = where;
         for (let i = 0; i < segments.length - 1; i++) {
           const seg = segments[i];
@@ -253,7 +253,7 @@ export class UtilsService {
 
         (current[fieldName] as Record<string, any>)[operator] = parsed;
       }
-      // Handle object value like: age: { gte: 10 }
+      // Xử lý giá trị đối tượng như: age: { gte: 10 }
       else if (
         typeof value === 'object' &&
         value !== null &&
@@ -265,7 +265,7 @@ export class UtilsService {
           this.parseNestedObject(value as Record<string, unknown>),
         );
       }
-      // Handle simple key=value or nested field=value
+      // Xử lý key=value đơn giản hoặc trường lồng nhau=giá trị
       else {
         const parsed = this.handleValue(value as string);
         this.assignDeep(where, segments, parsed);

@@ -11,6 +11,7 @@ import { PaginationQueryDto } from 'src/common/dto/pagination-query.dto';
 import { FilesService } from 'src/modules/files/files.service';
 import { GradingService } from 'src/modules/grading/grading.service';
 import { UserAnswer } from 'src/modules/grading/types/grading.types';
+import { MailService } from 'src/modules/mail/mail.service';
 import {
   MOCK_TEST_RESULT_STATUS,
   SectionType,
@@ -29,7 +30,6 @@ import {
 import { WritingService } from 'src/modules/writing/writing.service';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { UtilsService } from 'src/utils/utils.service';
-import { MailService } from 'src/modules/mail/mail.service';
 import {
   CreateMockTestDto,
   TestSectionSubmissionDto,
@@ -64,7 +64,7 @@ export class MockTestsService {
    * Create Mock Test with Sections
    */
   async create(createDto: CreateMockTestDto) {
-    // Check if test with same title exists
+    // Kiểm tra xem bài kiểm tra với tiêu đề giống nhau có tồn tại không
     const existingTest = await this.prisma.mock_tests.findFirst({
       where: {
         title: createDto.title,
@@ -76,14 +76,14 @@ export class MockTestsService {
       throw new ConflictException('Mock test with this title already exists');
     }
 
-    // Validate sections for test type
+    // Xác thực các phần cho loại bài kiểm tra
     this.validateTestSections(
       createDto.test_type as unknown as SectionType,
       createDto.test_sections,
     );
 
     return await this.prisma.$transaction(async (tx) => {
-      // Create mock test
+      // Tạo bài kiểm tra mock
       const mockTest = await tx.mock_tests.create({
         data: {
           title: createDto.title,
@@ -96,7 +96,7 @@ export class MockTestsService {
         },
       });
 
-      // Create test sections if provided
+      // Tạo các phần kiểm tra nếu được cung cấp
       if (createDto.test_sections && createDto.test_sections.length > 0) {
         for (const [index, sectionDto] of createDto.test_sections.entries()) {
           await tx.test_sections.create({
@@ -113,13 +113,13 @@ export class MockTestsService {
           });
         }
       } else {
-        // Create default sections based on test type
+        // Tạo các phần mặc định dựa trên loại bài kiểm tra
         await this.createDefaultSections(tx, mockTest.id, createDto.test_type);
       }
 
       this.logger.log(`Created mock test: ${mockTest.title}`);
 
-      // Return with includes
+      // Trả về với các thông tin liên kết
       return await tx.mock_tests.findUniqueOrThrow({
         where: { id: mockTest.id },
         include: {
@@ -244,7 +244,7 @@ export class MockTestsService {
       throw new NotFoundException('Mock test not found');
     }
 
-    // Check title conflict if updating
+    // Kiểm tra xung đột tiêu đề nếu đang cập nhật
     if (updateDto.title && updateDto.title !== existingTest.title) {
       const conflictingTest = await this.prisma.mock_tests.findFirst({
         where: {
@@ -273,13 +273,13 @@ export class MockTestsService {
         },
       });
 
-      // update test sections if provided
+      // cập nhật các phần kiểm tra nếu được cung cấp
       if (updateDto.test_sections && updateDto.test_sections.length > 0) {
         const sectionIdsToKeep = updateDto.test_sections
           .map((s) => s.section_id)
           .filter((id): id is string => typeof id === 'string');
 
-        // Soft delete sections not in the update list
+        // Xóa mềm các phần không có trong danh sách cập nhật
         await tx.test_sections.updateMany({
           where: {
             mock_test_id: id,
@@ -291,7 +291,7 @@ export class MockTestsService {
 
         for (const [index, sectionDto] of updateDto.test_sections.entries()) {
           if (sectionDto.section_id) {
-            // Update existing section
+            // Cập nhật phần hiện tại
             await tx.test_sections.update({
               where: { id: sectionDto.section_id },
               data: {
@@ -306,7 +306,7 @@ export class MockTestsService {
               },
             });
           } else {
-            // Create new section
+            // Tạo phần mới
             await tx.test_sections.create({
               data: {
                 mock_test_id: id,
@@ -372,7 +372,7 @@ export class MockTestsService {
     }
 
     await this.prisma.$transaction(async (tx) => {
-      // Get all test sections
+      // Lấy tất cả các phần kiểm tra
       const testSections = await tx.test_sections.findMany({
         where: { mock_test_id: id, deleted: false },
         select: { id: true },
@@ -381,7 +381,7 @@ export class MockTestsService {
       if (testSections.length > 0) {
         const sectionIds = testSections.map((s) => s.id);
 
-        // Get all exercises
+        // Lấy tất cả các bài tập
         const exercises = await tx.exercises.findMany({
           where: { test_section_id: { in: sectionIds }, deleted: false },
           select: { id: true },
@@ -390,7 +390,7 @@ export class MockTestsService {
         if (exercises.length > 0) {
           const exerciseIds = exercises.map((e) => e.id);
 
-          // Get all questions
+          // Lấy tất cả các câu hỏi
           const questions = await tx.questions.findMany({
             where: { exercise_id: { in: exerciseIds }, deleted: false },
             select: { id: true },
@@ -399,34 +399,34 @@ export class MockTestsService {
           if (questions.length > 0) {
             const questionIds = questions.map((q) => q.id);
 
-            // Soft delete question options
+            // Xóa mềm các tùy chọn câu hỏi
             await tx.question_options.updateMany({
               where: { question_id: { in: questionIds } },
               data: { deleted: true, updated_at: new Date() },
             });
 
-            // Soft delete questions
+            // Xóa mềm các câu hỏi
             await tx.questions.updateMany({
               where: { exercise_id: { in: exerciseIds } },
               data: { deleted: true, updated_at: new Date() },
             });
           }
 
-          // Soft delete exercises
+          // Xóa mềm các bài tập
           await tx.exercises.updateMany({
             where: { test_section_id: { in: sectionIds } },
             data: { deleted: true, updated_at: new Date() },
           });
         }
 
-        // Soft delete test sections
+        // Xóa mềm các phần kiểm tra
         await tx.test_sections.updateMany({
           where: { mock_test_id: id },
           data: { deleted: true, updated_at: new Date() },
         });
       }
 
-      // Soft delete mock test
+      // Xóa mềm bài kiểm tra mock
       await tx.mock_tests.update({
         where: { id },
         data: { deleted: true, updated_at: new Date() },
@@ -484,7 +484,6 @@ export class MockTestsService {
     };
   }
 
-
   /**
    * Start Mock Test
    */
@@ -506,7 +505,7 @@ export class MockTestsService {
                       include: {
                         question_options: {
                           where: { deleted: false },
-                          // Exclude is_correct field when sending to learner
+                          // Loại trường is_correct khi gửi cho người học
                           select: {
                             id: true,
                             option_text: true,
@@ -531,7 +530,7 @@ export class MockTestsService {
       throw new NotFoundException('Test not found');
     }
 
-    // Create test result record
+    // Tạo bản ghi kết quả kiểm tra
     const testResult = await this.prisma.test_results.create({
       data: {
         user_id: userId,
@@ -682,7 +681,7 @@ export class MockTestsService {
 
         // Map detailed answers to questions
         let questionReviews: any[] = [];
-        
+
         if (detailedAnswers) {
           // Handle different structures of detailed_answers
           if (Array.isArray(detailedAnswers)) {
@@ -702,21 +701,23 @@ export class MockTestsService {
             });
           } else if (detailedAnswers.all_questions) {
             // Speaking format: { all_questions: [...], part_scores: {...} }
-            questionReviews = detailedAnswers.all_questions.map((result: any) => {
-              const question = questionsMap.get(result.question_id);
-              return {
-                question_id: result.question_id,
-                question: question || null,
-                is_correct: result.is_correct || false,
-                user_answer: result.user_answer || null,
-                correct_answer: result.correct_answer || null,
-                points_earned: result.points_earned || 0,
-                max_points: result.max_points || 1,
-                explanation: question?.explanation || null,
-                part: result.part || null,
-                ai_feedback: result.ai_feedback || null,
-              };
-            });
+            questionReviews = detailedAnswers.all_questions.map(
+              (result: any) => {
+                const question = questionsMap.get(result.question_id);
+                return {
+                  question_id: result.question_id,
+                  question: question || null,
+                  is_correct: result.is_correct || false,
+                  user_answer: result.user_answer || null,
+                  correct_answer: result.correct_answer || null,
+                  points_earned: result.points_earned || 0,
+                  max_points: result.max_points || 1,
+                  explanation: question?.explanation || null,
+                  part: result.part || null,
+                  ai_feedback: result.ai_feedback || null,
+                };
+              },
+            );
           } else if (detailedAnswers.tasks) {
             // Writing format: { tasks: [{ task_type, question_id, ... }] }
             questionReviews = detailedAnswers.tasks.map((task: any) => {
@@ -743,16 +744,18 @@ export class MockTestsService {
 
         // If no detailed answers but questions exist, create empty reviews
         if (questionReviews.length === 0 && questionsMap.size > 0) {
-          questionReviews = Array.from(questionsMap.values()).map((question) => ({
-            question_id: question.id,
-            question: question,
-            is_correct: null,
-            user_answer: null,
-            correct_answer: null,
-            points_earned: 0,
-            max_points: Number(question.points) || 1,
-            explanation: question.explanation || null,
-          }));
+          questionReviews = Array.from(questionsMap.values()).map(
+            (question) => ({
+              question_id: question.id,
+              question: question,
+              is_correct: null,
+              user_answer: null,
+              correct_answer: null,
+              points_earned: 0,
+              max_points: Number(question.points) || 1,
+              explanation: question.explanation || null,
+            }),
+          );
         }
 
         return {
@@ -805,8 +808,12 @@ export class MockTestsService {
       }
 
       const isTask1 =
-        question.question_groups?.[0]?.group_title?.toLowerCase().includes('task 1') ||
-        question.question_groups?.[0]?.group_title?.toLowerCase().includes('task1') ||
+        question.question_groups?.[0]?.group_title
+          ?.toLowerCase()
+          .includes('task 1') ||
+        question.question_groups?.[0]?.group_title
+          ?.toLowerCase()
+          .includes('task1') ||
         question.question_text?.toLowerCase().includes('task 1') ||
         question.question_text?.toLowerCase().includes('150') ||
         question.question_text?.toLowerCase().includes('chart') ||
@@ -919,7 +926,8 @@ export class MockTestsService {
       return {
         success: true,
         data: {
-          message: 'Your writing has been submitted for teacher grading. You will receive an email notification when grading is complete.',
+          message:
+            'Your writing has been submitted for teacher grading. You will receive an email notification when grading is complete.',
           band_score: null,
           correct_answers: null,
           total_questions: questions.length,
@@ -957,7 +965,6 @@ export class MockTestsService {
             deleted: true,
           },
         },
-
       },
       take: 10,
     });
@@ -1200,7 +1207,9 @@ export class MockTestsService {
     });
 
     if (!sectionResult) {
-      throw new NotFoundException('Writing submission not found or already graded');
+      throw new NotFoundException(
+        'Writing submission not found or already graded',
+      );
     }
 
     return {
@@ -1234,7 +1243,9 @@ export class MockTestsService {
     }
 
     if (user.role !== 'teacher') {
-      throw new BadRequestException('Only teachers can grade writing submissions');
+      throw new BadRequestException(
+        'Only teachers can grade writing submissions',
+      );
     }
 
     this.logger.log(
@@ -1296,7 +1307,9 @@ export class MockTestsService {
     });
 
     if (!sectionResult) {
-      throw new NotFoundException('Writing submission not found or already graded');
+      throw new NotFoundException(
+        'Writing submission not found or already graded',
+      );
     }
 
     const detailedAnswers = sectionResult.detailed_answers as any;
@@ -1306,7 +1319,8 @@ export class MockTestsService {
     let overallBandScore = 0;
     if (gradingDto.task1_score && gradingDto.task2_score) {
       // Task 2 = 2/3 weight, Task 1 = 1/3 weight
-      overallBandScore = (gradingDto.task1_score * 1 + gradingDto.task2_score * 2) / 3;
+      overallBandScore =
+        (gradingDto.task1_score * 1 + gradingDto.task2_score * 2) / 3;
     } else if (gradingDto.task2_score) {
       overallBandScore = gradingDto.task2_score;
     } else if (gradingDto.task1_score) {
@@ -1326,9 +1340,11 @@ export class MockTestsService {
             ...task,
             overall_score: gradingDto.task1_score || null,
             task_achievement_score: gradingDto.task1_task_achievement || null,
-            coherence_cohesion_score: gradingDto.task1_coherence_cohesion || null,
+            coherence_cohesion_score:
+              gradingDto.task1_coherence_cohesion || null,
             lexical_resource_score: gradingDto.task1_lexical_resource || null,
-            grammatical_range_accuracy_score: gradingDto.task1_grammatical_range_accuracy || null,
+            grammatical_range_accuracy_score:
+              gradingDto.task1_grammatical_range_accuracy || null,
             detailed_feedback: gradingDto.task1_feedback || null,
           };
         } else if (task.task_type === 'task_2') {
@@ -1336,9 +1352,11 @@ export class MockTestsService {
             ...task,
             overall_score: gradingDto.task2_score || null,
             task_achievement_score: gradingDto.task2_task_achievement || null,
-            coherence_cohesion_score: gradingDto.task2_coherence_cohesion || null,
+            coherence_cohesion_score:
+              gradingDto.task2_coherence_cohesion || null,
             lexical_resource_score: gradingDto.task2_lexical_resource || null,
-            grammatical_range_accuracy_score: gradingDto.task2_grammatical_range_accuracy || null,
+            grammatical_range_accuracy_score:
+              gradingDto.task2_grammatical_range_accuracy || null,
             detailed_feedback: gradingDto.task2_feedback || null,
           };
         }
@@ -1419,7 +1437,8 @@ export class MockTestsService {
         success: true,
         data: {
           ...updatedSectionResult,
-          message: 'Grading submitted successfully. Student has been notified via email.',
+          message:
+            'Grading submitted successfully. Student has been notified via email.',
         },
       };
     });
@@ -2946,4 +2965,3 @@ export class MockTestsService {
     return sectionTemplates[testType] || [];
   }
 }
-

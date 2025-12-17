@@ -120,7 +120,7 @@ export class PaymentsService {
     const { type, data } = event;
     const session = data.object as Stripe.Checkout.Session;
 
-    // Use consistent strategy: try session.id first, then payment_intent.id
+    // Sử dụng chiến lược nhất quán: thử session.id trước, sau đó payment_intent.id
     let payment = await this.findPaymentByTransactionId(session.id);
 
     // 2. Nếu không tìm thấy, thử tìm theo orderId từ metadata
@@ -149,7 +149,7 @@ export class PaymentsService {
     }
   }
 
-  // handle successful payment stripe with successUrl when created to check db updated and redirect
+  // xử lý thanh toán thành công stripe với successUrl khi được tạo để kiểm tra db đã cập nhật và chuyển hướng
   async handleSuccessfulPaymentStripe(
     orderId: string,
     paymentId: string,
@@ -197,15 +197,15 @@ export class PaymentsService {
       );
     });
 
-    // Redirect to success URL
+    // Chuyển hướng đến URL thành công
     const frontendUrl =
       this.config.get<string>('FRONTEND_URL') || 'http://localhost:8000';
     const successUrl = `${frontendUrl}/payment/success?orderId=${orderId}&paymentId=${paymentId}&success=true`;
-    // Implement redirection logic here
+    // Triển khai logic chuyển hướng ở đây
     res.redirect(successUrl);
   }
 
-  // handle cancel payment stripe with cancelUrl when created to check db updated and redirect
+  // xử lý hủy thanh toán stripe với cancelUrl khi được tạo để kiểm tra db đã cập nhật và chuyển hướng
   async handleCancelPaymentStripe(
     orderId: string,
     paymentId: string,
@@ -247,7 +247,7 @@ export class PaymentsService {
       });
     });
 
-    // Redirect to cancel URL
+    // Chuyển hướng đến URL hủy
     const frontendUrl =
       this.config.get<string>('FRONTEND_URL') || 'http://localhost:8000';
     const cancelUrl = `${frontendUrl}/orders?orderId=${orderId}&paymentId=${paymentId}&cancel=true`;
@@ -305,7 +305,7 @@ export class PaymentsService {
     const currentGatewayResponse =
       (payment.gateway_response as Record<string, unknown>) ?? {};
 
-    // use transaction
+    // sử dụng transaction
     await this.prisma.$transaction(async (tx) => {
       const payment = await tx.payments.update({
         where: { id: paymentId },
@@ -320,8 +320,8 @@ export class PaymentsService {
         },
       });
 
-      // update order status
-      // set order status based on payment status
+      // cập nhật trạng thái đơn hàng
+      // đặt trạng thái đơn hàng dựa trên trạng thái thanh toán
       const orderStatus =
         status === PaymentStatus.COMPLETED
           ? OrderStatus.COMPLETED
@@ -345,7 +345,7 @@ export class PaymentsService {
       throw new NotFoundException('Payment not found');
     }
 
-    // use transaction
+    // sử dụng transaction
     return await this.prisma.$transaction(async (tx) => {
       const payment = await tx.payments.update({
         where: { id: paymentId },
@@ -356,7 +356,7 @@ export class PaymentsService {
         },
       });
 
-      // update order status
+      // cập nhật trạng thái đơn hàng
       const order = await tx.orders.update({
         where: { id: payment.order_id ?? '' },
         data: {
@@ -410,7 +410,7 @@ export class PaymentsService {
       course_id: courseId,
     }));
 
-    // create transaction to insert all enrollments and combo enrollment records
+    // tạo transaction để chèn tất cả các bản ghi đăng ký và đăng ký combo
     await tx.combo_enrollments.create({
       data: {
         user_id: order.user_id,

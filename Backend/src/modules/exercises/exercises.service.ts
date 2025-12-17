@@ -119,7 +119,7 @@ export class ExerciseService {
     createDto: CreateExerciseDto,
     lessonId: string,
   ): Promise<Exercise> {
-    // Validate lesson exists
+    // Xác thực bài học có tồn tại
     const lesson = await this.prisma.lessons.findFirst({
       where: { id: lessonId, deleted: false },
     });
@@ -129,7 +129,7 @@ export class ExerciseService {
     }
 
     return await this.prisma.$transaction(async (tx) => {
-      // Create exercise
+      // Tạo bài tập
       const exercise = await tx.exercises.create({
         data: {
           lesson_id: createDto.lesson_id,
@@ -163,7 +163,7 @@ export class ExerciseService {
     exerciseId: string,
     createQuestionDto: CreateQuestionDto,
   ): Promise<Question> {
-    // Validate exercise exists
+    // Xác thực bài tập có tồn tại
     const exercise = await this.prisma.exercises.findFirst({
       where: { id: exerciseId, deleted: false },
     });
@@ -172,9 +172,9 @@ export class ExerciseService {
       throw new NotFoundException('Exercise not found');
     }
 
-    // Create question with transaction
+    // Tạo câu hỏi với giao dịch
     return await this.prisma.$transaction(async (tx) => {
-      // Determine if media_url is image or audio
+      // Xác định xem media_url là hình ảnh hay âm thanh
       let imageUrl: string | null = null;
       let audioUrl: string | null = null;
 
@@ -184,7 +184,7 @@ export class ExerciseService {
         audioUrl = createQuestionDto.audio_url;
       }
 
-      // Create questions with proper typing
+      // Tạo câu hỏi với kiểu dữ liệu chính xác
       const question = await tx.questions.create({
         data: {
           exercise_id: exercise.id,
@@ -200,7 +200,7 @@ export class ExerciseService {
         },
       });
 
-      // Handle different question types
+      // Xử lý các loại câu hỏi khác nhau
       if (this.requiresOptions(createQuestionDto.question_type)) {
         if (
           !createQuestionDto.options ||
@@ -225,7 +225,7 @@ export class ExerciseService {
           options.push(option);
         }
       } else if (this.requiresCorrectAnswer(createQuestionDto.question_type)) {
-        // Store correct answers for fill_blank, true_false
+        // Lưu câu trả lời đúng cho fill_blank, true_false
         const answerData = {
           correct_answer: createQuestionDto.correct_answer,
           alternative_answers: createQuestionDto.alternative_answers || [],
@@ -240,7 +240,7 @@ export class ExerciseService {
           },
         });
       } else if (createQuestionDto.question_type === QUESTION_TYPE.ESSAY) {
-        // Handle essay questions
+        // Xử lý câu hỏi luận
         const essayData = {
           content: createQuestionDto.content,
           word_limit: createQuestionDto.content
@@ -263,7 +263,7 @@ export class ExerciseService {
         });
       }
 
-      // update exercise_metadata
+      // cập nhật exercise_metadata
       const existingContent = exercise.content as any;
       const existingMetadata =
         existingContent?.exercise_metadata as ExerciseMetadata;
@@ -367,12 +367,12 @@ export class ExerciseService {
       throw new NotFoundException('Exercise not found');
     }
 
-    // Process question groups with async audio URL conversion
+    // Xử lý nhóm câu hỏi với chuyển đổi URL âm thanh bất đồng bộ
     const questionGroups = await Promise.all(
       exercise.question_groups.map(async (group) => {
         const questions = await Promise.all(
           group.questions.map(async (question) => {
-            // Check audio URLs
+            // Kiểm tra URL âm thanh
             let audioUrl = question.audio_url;
             if (audioUrl) {
               audioUrl = await this.videoService.getVideoHLSUrl(audioUrl);
@@ -382,7 +382,7 @@ export class ExerciseService {
               ...question,
               audio_url: audioUrl,
               question_options: question.question_options,
-              // Parse stored answer data
+              // Phân tích dữ liệu câu trả lời đã lưu
               ...(this.requiresCorrectAnswer(question.question_type) &&
               question.explanation
                 ? this.parseAnswerData(question.explanation)
@@ -408,10 +408,10 @@ export class ExerciseService {
       }),
     );
 
-    // Process ungrouped questions with async audio URL conversion
+    // Xử lý câu hỏi không thuộc nhóm với chuyển đổi URL âm thanh bất đồng bộ
     const questions = await Promise.all(
       exercise.questions.map(async (question) => {
-        // Check audio URLs
+        // Kiểm tra URL âm thanh
         let audioUrl = question.audio_url;
         if (audioUrl) {
           audioUrl = await this.videoService.getVideoHLSUrl(audioUrl);
@@ -430,7 +430,7 @@ export class ExerciseService {
       }),
     );
 
-    // Process exercise audio URL
+    // Xử lý URL âm thanh của bài tập
     const content = exercise.content as any;
     let audioUrl = content?.media_url;
     if (audioUrl && (audioUrl.includes('.mp3') || audioUrl.includes('.wav'))) {
@@ -466,7 +466,7 @@ export class ExerciseService {
       const existingMetadata =
         existingContent?.exercise_metadata as ExerciseMetadata;
 
-      // Update exercise
+      // Cập nhật bài tập
       const exercise = await tx.exercises.update({
         where: { id: exerciseId },
         data: {
@@ -509,7 +509,7 @@ export class ExerciseService {
     }
 
     return await this.prisma.$transaction(async (tx) => {
-      // Determine if media_url is image or audio
+      // Xác định xem media_url là hình ảnh hay âm thanh
       let imageUrl: string | undefined = undefined;
       let audioUrl: string | undefined = undefined;
 
@@ -520,7 +520,7 @@ export class ExerciseService {
         audioUrl = updateDto.audio_url;
       }
 
-      // Update question
+      // Cập nhật câu hỏi
       const question = await tx.questions.update({
         where: { id: questionId },
         data: {
@@ -536,15 +536,15 @@ export class ExerciseService {
         },
       });
 
-      // Handle different question types
+      // Xử lý các loại câu hỏi khác nhau
       if (this.requiresOptions(updateDto.question_type)) {
-        // Delete existing options
+        // Xóa các lựa chọn hiện có
         await tx.question_options.updateMany({
           where: { question_id: questionId },
           data: { deleted: true },
         });
 
-        // Create new options
+        // Tạo các lựa chọn mới
         for (const optionDto of updateDto.options || []) {
           await tx.question_options.create({
             data: {
@@ -557,7 +557,7 @@ export class ExerciseService {
           });
         }
       } else if (this.requiresCorrectAnswer(updateDto.question_type)) {
-        // Store correct answers for fill_blank, true_false
+        // Lưu câu trả lời đúng cho fill_blank, true_false
         const answerData = {
           correct_answer: updateDto.correct_answer,
           alternative_answers: updateDto.alternative_answers || [],
@@ -572,7 +572,7 @@ export class ExerciseService {
           },
         });
       } else if (updateDto.question_type === QUESTION_TYPE.ESSAY) {
-        // Handle essay questions
+        // Xử lý câu hỏi luận
         const essayData = {
           content: updateDto.content,
           word_limit: updateDto.content ? parseInt(updateDto.content) : null,
@@ -593,7 +593,7 @@ export class ExerciseService {
         });
       }
 
-      // Update exercise metadata
+      // Cập nhật metadata của bài tập
       if (!question.exercise_id)
         throw new NotFoundException('Associated exercise not found');
       const exercise = await tx.exercises.findFirst({

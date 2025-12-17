@@ -51,19 +51,19 @@ export class StudyScheduleService {
     userId: string,
     createDto: CreateScheduleDto,
   ): Promise<StudyScheduleDetails> {
-    // Validate course enrollment
+    // Xác thực ghi danh khóa học
     await this.validateEnrollment(
       userId,
       createDto.course_id,
       createDto.combo_id,
     );
 
-    // Validate lesson if provided
+    // Xác thực bài học nếu được cung cấp
     if (createDto.lesson_id) {
       await this.validateLesson(createDto.lesson_id, createDto.course_id);
     }
 
-    // Calculate duration
+    // Tính thời lượng
     const duration = this.calculateDuration(
       createDto.start_time,
       createDto.end_time,
@@ -73,7 +73,7 @@ export class StudyScheduleService {
       throw new BadRequestException('End time must be after start time');
     }
 
-    // Check schedule conflicts
+    // Kiểm tra xung đột lịch trình
     const hasConflict = await this.checkScheduleConflict(
       userId,
       createDto.scheduled_date,
@@ -87,11 +87,11 @@ export class StudyScheduleService {
       );
     }
 
-    // Convert time strings to DateTime objects for Prisma
+    // Chuyển đổi chuỗi thời gian thành đối tượng DateTime cho Prisma
     const startTimeDate = this.parseTimeString(createDto.start_time);
     const endTimeDate = this.parseTimeString(createDto.end_time);
 
-    // Create schedule
+    // Tạo lịch học
     const schedule = await this.prisma.study_schedules.create({
       data: {
         user_id: userId,
@@ -111,7 +111,7 @@ export class StudyScheduleService {
       include: this.getScheduleIncludes(),
     });
 
-    // Create reminder if enabled
+    // Tạo nhắc nhở nếu được bật
     if (schedule.reminder_enabled) {
       await this.createReminder(schedule);
     }
@@ -130,7 +130,7 @@ export class StudyScheduleService {
     userId: string,
     bulkDto: BulkCreateScheduleDto,
   ): Promise<{ created_count: number; schedules: StudyScheduleDetails[] }> {
-    // Validate combo enrollment
+    // Xác thực ghi danh combo
     const comboEnrollment = await this.prisma.combo_enrollments.findFirst({
       where: {
         user_id: userId,
@@ -157,7 +157,7 @@ export class StudyScheduleService {
     const combo = comboEnrollment.combo_courses;
     const courseIds = combo?.course_ids as unknown as string[];
 
-    // Get all courses in combo
+    // Lấy tất cả các khóa học trong combo
     const courses = await this.prisma.courses.findMany({
       where: {
         id: { in: courseIds },
@@ -170,7 +170,7 @@ export class StudyScheduleService {
       throw new BadRequestException('No courses found in this combo');
     }
 
-    // Generate schedules
+    // Tạo các lịch học
     const schedulesToCreate: any[] = [];
     const startDate = new Date();
     const totalWeeks = bulkDto.weeks_count;
@@ -178,7 +178,7 @@ export class StudyScheduleService {
     let currentWeek = 0;
     let courseIndex = 0;
 
-    // Day name to number mapping
+    // Ánh xạ tên ngày sang số
     const dayMap: { [key: string]: number } = {
       sunday: 0,
       monday: 1,
@@ -201,7 +201,7 @@ export class StudyScheduleService {
           (dayNumber - getDay(weekStart) + 7) % 7,
         );
 
-        // Check if date is not in the past
+        // Kiểm tra ngày không phải trong quá khứ
         if (isAfter(sessionDate, new Date())) {
           const course = courses[courseIndex];
           const duration = this.calculateDuration(
@@ -209,7 +209,7 @@ export class StudyScheduleService {
             timeSlot.end_time,
           );
 
-          // Convert time strings to Date objects for Prisma
+          // Chuyển đổi chuỗi thời gian thành đối tượng Date cho Prisma
           const startTimeDate = this.parseTimeString(timeSlot.start_time);
           const endTimeDate = this.parseTimeString(timeSlot.end_time);
 
@@ -234,7 +234,7 @@ export class StudyScheduleService {
       currentWeek++;
     }
 
-    // Bulk insert schedules
+    // Chèn hàng loạt các lịch học
     const createdSchedules = await this.prisma.$transaction(
       schedulesToCreate.map((data: study_schedules) =>
         this.prisma.study_schedules.create({
@@ -244,7 +244,7 @@ export class StudyScheduleService {
       ),
     );
 
-    // Create reminders for enabled schedules
+    // Tạo nhắc nhở cho các lịch học được bật
     const reminderPromises = createdSchedules
       .filter((s) => s.reminder_enabled)
       .map((s) => this.createReminder(s));
@@ -280,12 +280,12 @@ export class StudyScheduleService {
       deleted: false,
     };
 
-    // Filter by specific date
+    // Lọc theo ngày cụ thể
     if (filters?.date) {
       where.scheduled_date = new Date(filters.date);
     }
 
-    // Filter by week
+    // Lọc theo tuần
     if (filters?.week === 'current') {
       const now = new Date();
       where.scheduled_date = {
@@ -294,7 +294,7 @@ export class StudyScheduleService {
       };
     }
 
-    // Filter by month
+    // Lọc theo tháng
     if (filters?.month === 'current') {
       const now = new Date();
       where.scheduled_date = {
@@ -303,17 +303,17 @@ export class StudyScheduleService {
       };
     }
 
-    // Filter by status
+    // Lọc theo trạng thái
     if (filters?.status) {
       where.status = filters.status;
     }
 
-    // Filter by combo
+    // Lọc theo combo
     if (filters?.combo_id) {
       where.combo_id = filters.combo_id;
     }
 
-    // Filter by course
+    // Lọc theo khóa học
     if (filters?.course_id) {
       where.course_id = filters.course_id;
     }
@@ -425,7 +425,7 @@ export class StudyScheduleService {
       throw new NotFoundException('Study schedule not found');
     }
 
-    // Check if trying to update completed/missed schedule
+    // Kiểm tra nếu cố gắng cập nhật lịch học đã hoàn thành/bỏ lỡ
     if (
       [SCHEDULE_STATUS.COMPLETED, SCHEDULE_STATUS.MISSED].includes(
         existingSchedule.status as ScheduleStatusType,
@@ -435,7 +435,7 @@ export class StudyScheduleService {
       throw new BadRequestException('Cannot modify completed/missed schedule');
     }
 
-    // Calculate new duration if times updated
+    // Tính toán thời lượng mới nếu thời gian được cập nhật
     let duration = existingSchedule.duration;
     if (updateDto.start_time || updateDto.end_time) {
       const startTime = this.formatTimeToString(
@@ -451,7 +451,7 @@ export class StudyScheduleService {
       }
     }
 
-    // Check for schedule conflicts if date/time changed
+    // Kiểm tra xung đột lịch học nếu ngày/giờ thay đổi
     if (
       updateDto.scheduled_date ||
       updateDto.start_time ||
@@ -479,12 +479,12 @@ export class StudyScheduleService {
       }
     }
 
-    // Build update data object with only provided fields
+    // Xây dựng đối tượng dữ liệu cập nhật chỉ với các trường được cung cấp
     const updateData: Record<string, unknown> = {
       updated_at: new Date(),
     };
 
-    // Add optional fields only if provided
+    // Thêm các trường tùy chọn chỉ nếu được cung cấp
     if (updateDto.combo_id !== undefined) {
       updateData.combo_id = updateDto.combo_id;
     }
@@ -503,7 +503,7 @@ export class StudyScheduleService {
     if (updateDto.end_time) {
       updateData.end_time = this.parseTimeString(updateDto.end_time);
     }
-    // Always update duration if times changed
+    // Luôn cập nhật thời lượng nếu thời gian thay đổi
     if (updateDto.start_time || updateDto.end_time) {
       updateData.duration = duration;
     }
@@ -529,7 +529,7 @@ export class StudyScheduleService {
       include: this.getScheduleIncludes(),
     });
 
-    // Update reminder if time/date changed
+    // Cập nhật nhắc nhở nếu thời gian/ngày thay đổi
     if (
       updateDto.scheduled_date ||
       updateDto.start_time ||
@@ -627,12 +627,12 @@ export class StudyScheduleService {
       include: this.getScheduleIncludes(),
     });
 
-    // Update enrollment progress check course id not null
+    // Cập nhật tiến độ ghi danh kiểm tra course id không null
     if (!schedule.course_id) {
       throw new BadRequestException('Invalid course associated with schedule');
     }
 
-    // Update combo progress if applicable
+    // Cập nhật tiến độ combo nếu có thể áp dụng
     if (schedule.combo_id) {
       await this.updateComboProgress(userId, schedule.combo_id);
     }
@@ -669,7 +669,7 @@ export class StudyScheduleService {
       },
     });
 
-    // Cancel reminder
+    // Hủy nhắc nhở
     await this.prisma.study_reminders.updateMany({
       where: {
         schedule_id: scheduleId,
@@ -837,7 +837,7 @@ export class StudyScheduleService {
       0,
     );
 
-    // Most studied skill
+    // Kỹ năng được học nhiều nhất
     const skillCounts: { [key: string]: number } = {};
     completed.forEach((s) => {
       const skill = s.courses?.skill_focus || 'general';
@@ -847,7 +847,7 @@ export class StudyScheduleService {
       (a, b) => skillCounts[b] - skillCounts[a],
     )[0];
 
-    // Combo progress
+    // Tiến độ combo
     const comboProgressMap = new Map<string, ComboProgressData>();
     schedules.forEach((s) => {
       if (s.combo_id && s.combo_courses) {
@@ -978,7 +978,7 @@ export class StudyScheduleService {
     comboId?: string,
   ) {
     if (comboId) {
-      // Check combo enrollment
+      // Kiểm tra ghi danh combo
       const comboEnrollment = await this.prisma.combo_enrollments.findFirst({
         where: {
           user_id: userId,
@@ -994,7 +994,7 @@ export class StudyScheduleService {
         throw new NotFoundException('Combo not found or not enrolled');
       }
 
-      // Check if course belongs to combo
+      // Kiểm tra xem khóa học có thuộc combo không
       const courseIds = comboEnrollment.combo_courses?.course_ids as string[];
       if (!courseIds.includes(courseId)) {
         throw new BadRequestException('Course does not belong to this combo');
@@ -1003,7 +1003,7 @@ export class StudyScheduleService {
       return comboEnrollment;
     }
 
-    // Check individual course enrollment
+    // Kiểm tra ghi danh khóa học riêng lẻ
     const enrollment = await this.prisma.enrollments.findFirst({
       where: {
         user_id: userId,
@@ -1049,7 +1049,7 @@ export class StudyScheduleService {
       `${format(new Date(schedule.scheduled_date), 'yyyy-MM-dd')}T${startTime}`,
     );
 
-    // check if reminder time not null
+    // kiểm tra xem thời gian nhắc nhở không null
     if (!schedule.reminder_minutes_before) {
       return;
     }
@@ -1093,8 +1093,8 @@ export class StudyScheduleService {
 
     const courseIds = comboEnrollment.combo_courses?.course_ids as string[];
 
-    // Count completed courses
-    // A course is completed when all its lessons are completed
+    // Đếm số khóa học đã hoàn thành
+    // Một khóa học được coi là hoàn thành khi tất cả các bài học của nó được hoàn thành
     const comboCourseEnrollments = await this.prisma.enrollments.findMany({
       where: {
         user_id: userId,
@@ -1121,8 +1121,8 @@ export class StudyScheduleService {
       },
     });
 
-    // Calculate overall progress as average of all course progress percentages
-    // This gives a more accurate representation than just counting completed courses
+    // Tính toán tiến độ tổng thể là trung bình của tất cả các phần trăm tiến độ khóa học
+    // Điều này mang lại một biểu diễn chính xác hơn so với chỉ đếm số khóa học đã hoàn thành
     let totalProgress = 0;
 
     for (const courseEnrollment of comboCourseEnrollments) {
@@ -1143,14 +1143,14 @@ export class StudyScheduleService {
         },
       });
 
-      // Calculate course progress percentage
+      // Tính toán phần trăm tiến độ khóa học
       const courseProgress =
         totalLessons > 0 ? (completedLessons / totalLessons) * 100 : 0;
 
       totalProgress += courseProgress;
     }
 
-    // Overall progress is the average of all course progress percentages
+    // Tiến độ tổng thể là trung bình của tất cả các phần trăm tiến độ khóa học
     const overallProgress =
       comboCourseEnrollments.length > 0
         ? totalProgress / comboCourseEnrollments.length
@@ -1252,7 +1252,7 @@ export class StudyScheduleService {
       created_at: schedule.created_at,
       updated_at: schedule.updated_at,
 
-      // Related data - properly mapped
+      // Dữ liệu liên quan - được ánh xạ đúng cách
       combo: schedule.combo_courses
         ? {
             id: schedule.combo_courses.id,
@@ -1277,7 +1277,7 @@ export class StudyScheduleService {
           }
         : undefined,
 
-      // Map reminders array (take first one or undefined)
+      // Ánh xạ mảng reminders (lấy cái đầu tiên hoặc undefined)
       reminders:
         schedule.study_reminders?.length > 0
           ? schedule.study_reminders.map((reminder) => ({

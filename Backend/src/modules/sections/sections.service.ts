@@ -18,7 +18,7 @@ export class SectionsService {
   ) {}
 
   async create(createSectionDto: CreateSectionDto, courseId: string) {
-    // Verify course exists
+    // Xác minh khóa học tồn tại
     const course = await this.prisma.courses.findFirst({
       where: { id: courseId, deleted: false },
     });
@@ -27,7 +27,7 @@ export class SectionsService {
       throw new NotFoundException('Course not found');
     }
 
-    // Get next ordering if not provided
+    // Lấy thứ tự tiếp theo nếu không được cung cấp
     if (createSectionDto.ordering === undefined) {
       const lastSection = await this.prisma.sections.findFirst({
         where: { course_id: courseId, deleted: false },
@@ -102,7 +102,7 @@ export class SectionsService {
   async reorder(courseId: string, reorderDto: ReorderSectionsDto) {
     const { sections } = reorderDto;
 
-    // Verify all sections belong to the course
+    // Xác minh tất cả các phần thuộc khóa học
     const existingSections = await this.prisma.sections.findMany({
       where: {
         id: { in: sections.map((s) => s.id) },
@@ -117,7 +117,7 @@ export class SectionsService {
       );
     }
 
-    // Update ordering in transaction
+    // Cập nhật thứ tự trong transaction
     await this.prisma.$transaction(
       sections.map((section) =>
         this.prisma.sections.update({
@@ -144,7 +144,7 @@ export class SectionsService {
       throw new NotFoundException('Section not found');
     }
 
-    // Soft delete section and its lessons
+    // Xóa mềm phần và các bài học của nó
     await this.prisma.$transaction([
       this.prisma.lessons.updateMany({
         where: { section_id: id },
@@ -155,7 +155,7 @@ export class SectionsService {
         data: { deleted: true, updated_at: new Date() },
       }),
 
-      // Optionally, reorder remaining sections in the course
+      // Tùy chọn, sắp xếp lại các phần còn lại trong khóa học
       this.prisma.sections.updateMany({
         where: {
           course_id: section.course_id,
@@ -181,7 +181,7 @@ export class SectionsService {
     query: PaginationQueryDto,
     rawQuery: Record<string, any>,
   ) {
-    // Verify course exists
+    // Xác minh khóa học tồn tại
     const course = await this.prisma.courses.findFirst({
       where: { id: courseId, deleted: false },
     });
@@ -214,7 +214,7 @@ export class SectionsService {
   }
 
   async getSectionProgress(userId: string, sectionId: string) {
-    // Verify section exists
+    // Xác minh phần tồn tại
     const section = await this.prisma.sections.findFirst({
       where: { id: sectionId, deleted: false },
     });
@@ -223,7 +223,7 @@ export class SectionsService {
       throw new NotFoundException('Section not found');
     }
 
-    // Get section progress
+    // Lấy tiến độ phần
     const sectionProgress = await this.prisma.section_progress.findFirst({
       where: {
         user_id: userId,
@@ -232,7 +232,7 @@ export class SectionsService {
       },
     });
 
-    // Count total lessons in section
+    // Đếm tổng số bài học trong phần
     const totalLessons = await this.prisma.lessons.count({
       where: {
         section_id: sectionId,
@@ -240,7 +240,7 @@ export class SectionsService {
       },
     });
 
-    // Count completed lessons if no progress record exists
+    // Đếm các bài học đã hoàn thành nếu không có bản ghi tiến độ
     const completedLessons = sectionProgress
       ? sectionProgress.completed_lessons || 0
       : await this.prisma.user_progress.count({
@@ -272,7 +272,7 @@ export class SectionsService {
   }
 
   async getCourseProgress(userId: string, courseId: string) {
-    // Verify course exists
+    // Xác minh khóa học tồn tại
     const course = await this.prisma.courses.findFirst({
       where: { id: courseId, deleted: false },
     });
@@ -281,7 +281,7 @@ export class SectionsService {
       throw new NotFoundException('Course not found');
     }
 
-    // Get enrollment
+    // Lấy thông tin đăng ký
     const enrollment = await this.prisma.enrollments.findFirst({
       where: {
         user_id: userId,
@@ -295,7 +295,7 @@ export class SectionsService {
       throw new NotFoundException('User is not enrolled in this course');
     }
 
-    // Get all sections with lessons
+    // Lấy tất cả các phần với các bài học
     const sections = await this.prisma.sections.findMany({
       where: {
         course_id: courseId,
@@ -315,7 +315,7 @@ export class SectionsService {
       0,
     );
 
-    // Count completed lessons
+    // Đếm các bài học đã hoàn thành
     const completedLessons = await this.prisma.user_progress.count({
       where: {
         user_id: userId,
@@ -331,8 +331,8 @@ export class SectionsService {
         ? (completedLessons / totalLessons) * 100
         : 0;
 
-    // Course is completed when all lessons are completed
-    // This is the most reliable indicator since lesson count can change
+    // Khóa học hoàn thành khi tất cả bài học được hoàn thành
+    // Đây là chỉ số đáng tin cậy nhất vì số lượng bài học có thể thay đổi
     const isCompleted = totalLessons > 0 && completedLessons === totalLessons;
 
     return {

@@ -1,4 +1,4 @@
-import { IsString, IsNotEmpty, IsOptional, IsEnum } from 'class-validator';
+import { IsEnum, IsNotEmpty, IsOptional, IsString } from 'class-validator';
 
 export enum WritingTaskType {
   TASK_1 = 'task_1',
@@ -42,7 +42,7 @@ export class WritingGradeResponse {
   strengths: string[];
   weaknesses: string[];
 
-  // Detailed metrics for Task 1 & Task 2
+  // Các chỉ số chi tiết cho Task 1 & Task 2
   detailedMetrics?: {
     task1?: {
       score: number;
@@ -112,9 +112,9 @@ export class WritingGradeResponse {
     };
   };
 
-  // Sample upgraded essay
+  // Bài luận mẫu nâng cấp
   upgradedEssay?: string;
 
-  // Sample answer
+  // Câu trả lời mẫu
   sampleAnswer?: string;
 }

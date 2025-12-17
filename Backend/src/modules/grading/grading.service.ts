@@ -103,7 +103,7 @@ export class GradingService {
       overall_band: 0,
     };
 
-    // Grade reading section
+    // Chấm điểm phần reading
     if (readingQuestions && readingQuestions.length > 0) {
       result.reading_result = this.gradeSection(
         readingQuestions,
@@ -114,7 +114,7 @@ export class GradingService {
       result.overall_total += result.reading_result.total_count;
     }
 
-    // Grade listening section
+    // Chấm điểm phần listening
     if (listeningQuestions && listeningQuestions.length > 0) {
       result.listening_result = this.gradeSection(
         listeningQuestions,
@@ -125,7 +125,7 @@ export class GradingService {
       result.overall_total += result.listening_result.total_count;
     }
 
-    // Calculate overall band score
+    // Tính điểm band tổng thể
     const readingBand = result.reading_result?.band_score || 0;
     const listeningBand = result.listening_result?.band_score || 0;
     const bandsCount =

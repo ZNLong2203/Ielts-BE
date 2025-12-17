@@ -50,11 +50,11 @@ export class VideoProcessor extends WorkerHost {
         isAudio,
       );
 
-      // Create temp directories
+      // Tạo các thư mục tạm
       await fs.promises.mkdir(tempDir, { recursive: true });
       await fs.promises.mkdir(hlsDir, { recursive: true });
 
-      // Download video from MinIO
+      // Tải video từ MinIO
       await this.downloadVideoFromMinIO(
         bucketName,
         originalObjectName,
@@ -71,7 +71,7 @@ export class VideoProcessor extends WorkerHost {
         isAudio,
       );
 
-      // Convert to HLS
+      // Chuyển đổi sang HLS
       await this.convertToHLS(tempFilePath, hlsDir, fileName, isAudio);
 
       await this.updateProgress(
@@ -84,7 +84,7 @@ export class VideoProcessor extends WorkerHost {
         isAudio,
       );
 
-      // Upload HLS files
+      // Tải lên các tệp HLS
       const baseName = path.parse(fileName).name;
       const hlsObjectPrefix = `${folder}/hls/${baseName}`;
       await this.uploadHLSFiles(
@@ -114,7 +114,7 @@ export class VideoProcessor extends WorkerHost {
           where: { video_url: fileName },
         });
 
-        // Update lesson duration if cached value exists
+        // Cập nhật thời lượng bài học nếu giá trị cached tồn tại
         if (lesson && cached) {
           await this.prismaService.lessons.update({
             where: { id: lesson.id },
@@ -127,7 +127,7 @@ export class VideoProcessor extends WorkerHost {
             `Updated lesson ${lesson.id} with video duration: ${cached}s`,
           );
 
-          // Remove cached duration after updating
+          // Xóa cached duration sau khi cập nhật
           await this.redisService.del(`video:${fileName}:duration`);
         }
       }
@@ -200,11 +200,11 @@ export class VideoProcessor extends WorkerHost {
       isAudio ? 'segment_%04d.aac' : 'segment_%04d.ts',
     );
 
-    // Handle async setup BEFORE Promise constructor
+    // Xử lý thiết lập async TRƯỚC Promise constructor
     try {
       const ffmpegInstance = await this.dockerFFmpegConfig.getFFmpegInstance();
 
-      // Convert paths to container paths
+      // Chuyển đổi đường dẫn sang đường dẫn container
       const containerInputPath =
         this.dockerFFmpegConfig.convertToContainerPath(inputPath);
       const containerOutputPlaylist =
@@ -212,11 +212,11 @@ export class VideoProcessor extends WorkerHost {
       const containerSegmentPattern =
         this.dockerFFmpegConfig.convertToContainerPath(segmentPattern);
 
-      // Now use synchronous Promise constructor
+      // Bây giờ sử dụng Promise constructor đồng bộ
       return new Promise((resolve, reject) => {
         const ff = ffmpegInstance(containerInputPath);
         if (isAudio) {
-          // Audio-only HLS config
+          // Cấu hình HLS chỉ cho audio
           ff.outputOptions([
             '-vn',
             '-acodec aac',
@@ -411,7 +411,7 @@ export class VideoProcessor extends WorkerHost {
         `${isAudio ? 'audio' : 'video'}:${fileName}:progress`,
       );
 
-      // Handle startTime properly - convert string to Date if needed
+      // Xử lý startTime đúng cách - chuyển đổi chuỗi thành Date nếu cần
       let startTime = new Date();
       if (current?.startTime) {
         startTime =
@@ -425,12 +425,12 @@ export class VideoProcessor extends WorkerHost {
         stage: 'converting',
         progress: 0,
         message: '',
-        startTime, // Use properly converted Date
+        startTime, // Sử dụng Date đã chuyển đổi đúng cách
         ...current,
         ...updates,
       };
 
-      // Calculate estimated completion only if we have valid progress and startTime
+      // Tính toán thời gian hoàn thành ước tính chỉ khi có tiến trình và startTime hợp lệ
       if (
         updated.progress > 0 &&
         updated.stage === 'converting' &&
@@ -449,7 +449,7 @@ export class VideoProcessor extends WorkerHost {
           this.logger.warn(
             `Failed to calculate estimated completion: ${dateError}`,
           );
-          // Don't fail the whole update for this
+          // Không làm thất bại toàn bộ cập nhật cho việc này
         }
       }
 
@@ -464,7 +464,7 @@ export class VideoProcessor extends WorkerHost {
       );
     } catch (error) {
       this.logger.error(`Failed to update progress for ${fileName}:`, error);
-      // Don't throw error - just log it to avoid crashing the job
+      // Không throw lỗi - chỉ ghi log để tránh job bị crash
     }
   }
 
@@ -474,12 +474,12 @@ export class VideoProcessor extends WorkerHost {
 
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
       try {
-        // Add delay before cleanup to allow file handles to release
+        // Thêm delay trước khi dọn dẹp để cho phép file handles được giải phóng
         if (attempt === 1) {
           await new Promise((resolve) => setTimeout(resolve, 1000));
         }
 
-        // Check if directory exists
+        // Kiểm tra thư mục tồn tại
         const exists = await fs.promises
           .access(tempDir)
           .then(() => true)
@@ -489,7 +489,7 @@ export class VideoProcessor extends WorkerHost {
           return;
         }
 
-        // Try standard recursive deletion with enhanced options
+        // Thử xóa đệ quy tiêu chuẩn với các tùy chọn nâng cao
         await fs.promises.rm(tempDir, {
           recursive: true,
           force: true,
@@ -506,12 +506,12 @@ export class VideoProcessor extends WorkerHost {
         );
 
         if (attempt < maxRetries) {
-          // Wait before retry
+          // Chờ trước khi thử lại
           await new Promise((resolve) =>
             setTimeout(resolve, retryDelay * attempt),
           );
         } else {
-          // Last resort: Force cleanup using system command
+          // Giải pháp cuối cùng: Buộc dọn dẹp bằng lệnh hệ thống
           try {
             this.forceCleanupDirectory(tempDir);
             this.logger.log(`Force cleanup successful: ${tempDir}`);
@@ -521,7 +521,7 @@ export class VideoProcessor extends WorkerHost {
               `All cleanup methods failed for ${tempDir}:`,
               forceError,
             );
-            // Don't throw - allow job to complete
+            // Không throw lỗi - cho phép job hoàn thành
           }
         }
       }
@@ -529,18 +529,18 @@ export class VideoProcessor extends WorkerHost {
   }
 
   /**
-   * Force cleanup using system commands
+   * Buộc dọn dẹp sử dụng lệnh hệ thống
    */
   private forceCleanupDirectory(dirPath: string) {
     try {
       if (process.platform === 'win32') {
-        // Windows: Use rmdir with force flags
+        // Windows: Sử dụng rmdir với các cờ force
         execSync(`rmdir /s /q "${dirPath}"`, {
           stdio: 'ignore',
           timeout: 10000, // 10 second timeout
         });
       } else {
-        // Unix/Linux: Use rm -rf
+        // Unix/Linux: Sử dụng rm -rf
         execSync(`rm -rf "${dirPath}"`, {
           stdio: 'ignore',
           timeout: 10000,

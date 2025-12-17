@@ -6,7 +6,7 @@ export enum Action {
   Delete = 'delete',
   ReadAll = 'read_all',
 
-  // Specific actions
+  // Các hành động cụ thể
   UpdateProfile = 'update_profile',
   UpdateStatus = 'update_status',
   UpdateAvailability = 'update_availability',
@@ -14,13 +14,13 @@ export enum Action {
   SubmitReview = 'submit_review',
   ProcessPayment = 'process_payment',
 
-  // Specificc for teacher
+  // Cụ thể cho giáo viên
   UpdateCertification = 'update_certification',
 
-  // Specific for course
+  // Cụ thể cho khóa học
   Feature = 'feature',
   Publish = 'publish',
 
-  // Specific for coupon
+  // Cụ thể cho coupon
   ApplyCoupon = 'apply_coupon',
 }

@@ -38,7 +38,7 @@ export class TeacherDashboardService {
     monthStart.setDate(1);
     monthStart.setHours(0, 0, 0, 0);
 
-    // Get current data for teacher (blogs and grading)
+    // Lấy dữ liệu hiện tại cho giáo viên (blogs và chấm điểm)
     const [
       totalBlogs,
       publishedBlogs,
@@ -47,11 +47,11 @@ export class TeacherDashboardService {
       weeklyGraded,
       monthlyGraded,
     ] = await Promise.all([
-      // Total blogs
+      // Tổng số blog
       this.prisma.blogs.count({
         where: { author_id: teacherId, deleted: false },
       }),
-      // Published blogs
+      // Các blog đã xuất bản
       this.prisma.blogs.count({
         where: {
           author_id: teacherId,
@@ -59,7 +59,7 @@ export class TeacherDashboardService {
           deleted: false,
         },
       }),
-      // Blogs this week
+      // Blogs tuần này
       this.prisma.blogs.count({
         where: {
           author_id: teacherId,
@@ -67,7 +67,7 @@ export class TeacherDashboardService {
           deleted: false,
         },
       }),
-      // Pending grading (writing + speaking submissions)
+      // Chấm điểm đang chờ (bài nộp writing + speaking)
       this.prisma.user_submissions.count({
         where: {
           exercises: {
@@ -77,7 +77,7 @@ export class TeacherDashboardService {
           deleted: false,
         },
       }),
-      // Graded this week
+      // Đã chấm điểm tuần này
       this.prisma.user_submissions.count({
         where: {
           exercises: {
@@ -88,7 +88,7 @@ export class TeacherDashboardService {
           deleted: false,
         },
       }),
-      // Graded this month
+      // Đã chấm điểm tháng này
       this.prisma.user_submissions.count({
         where: {
           exercises: {
@@ -101,7 +101,7 @@ export class TeacherDashboardService {
       }),
     ]);
 
-    // Get previous week data for growth comparison
+    // Lấy dữ liệu tuần trước để so sánh tăng trưởng
     const [previousWeekBlogs, previousWeekGraded] = await Promise.all([
       this.prisma.blogs.count({
         where: {

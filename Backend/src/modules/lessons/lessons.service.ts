@@ -28,7 +28,7 @@ export class LessonsService {
   ) {}
 
   async create(createLessonDto: CreateLessonDto, sectionId: string) {
-    // Verify section exists
+    // Xác minh phần tồn tại
     const section = await this.prisma.sections.findFirst({
       where: { id: sectionId, deleted: false },
     });
@@ -37,7 +37,7 @@ export class LessonsService {
       throw new NotFoundException('Section not found');
     }
 
-    // Get next ordering if not provided
+    // Lấy thứ tự tiếp theo nếu không được cung cấp
     if (createLessonDto.ordering === undefined) {
       const lastLesson = await this.prisma.lessons.findFirst({
         where: { section_id: sectionId, deleted: false },
@@ -122,7 +122,7 @@ export class LessonsService {
   async reorder(sectionId: string, reorderDto: ReorderLessonsDto) {
     const { lessons } = reorderDto;
 
-    // Verify all lessons belong to the course
+    // Xác minh tất cả các bài học thuộc khóa học
     const existingLessons = await this.prisma.lessons.findMany({
       where: {
         id: { in: lessons.map((l) => l.id) },
@@ -137,7 +137,7 @@ export class LessonsService {
       );
     }
 
-    // Update ordering in transaction
+    // Cập nhật thứ tự trong transaction
     await this.prisma.$transaction(
       lessons.map((lesson) =>
         this.prisma.lessons.update({
@@ -164,14 +164,14 @@ export class LessonsService {
       throw new NotFoundException('Lesson not found');
     }
 
-    // Soft delete lesson
+    // Xóa mềm bài học
     await this.prisma.$transaction([
       this.prisma.lessons.update({
         where: { id },
         data: { deleted: true, updated_at: new Date() },
       }),
 
-      // Adjust ordering of remaining lessons in the section
+      // Điều chỉnh thứ tự của các bài học còn lại trong phần
       this.prisma.lessons.updateMany({
         where: {
           section_id: lesson.section_id,
@@ -209,14 +209,14 @@ export class LessonsService {
       }
       const video_name = lesson.video_url;
 
-      // Upload video using VideoService
+      // Tải video lên sử dụng VideoService
       const result = await this.videoService.uploadVideo(
         file.buffer,
         file.originalname,
         file.mimetype,
       );
 
-      // Update lesson with video URL
+      // Cập nhật bài học với URL video
       await this.prisma.lessons.update({
         where: { id },
         data: {
@@ -225,7 +225,7 @@ export class LessonsService {
         },
       });
 
-      // delete old video if exists
+      // xóa video cũ nếu tồn tại
       if (video_name) {
         await this.videoService.clearVideoData(video_name);
       }
@@ -270,7 +270,7 @@ export class LessonsService {
       const originalInfo =
         await this.videoService.getOriginalVideoInfo(fileName);
 
-      // Helper function để safely get timestamp
+      // Hàm hỗ trợ để lấy timestamp một cách an toàn
       const getTimestamp = (dateValue: any): number | null => {
         if (!dateValue) return null;
 
@@ -286,7 +286,7 @@ export class LessonsService {
         return null;
       };
 
-      // Calculate elapsed and remaining time safely
+      // Tính thời gian đã trôi qua và thời gian còn lại một cách an toàn
       let elapsedTime: number | null = null;
       let remainingTime: number | null = null;
 
@@ -377,7 +377,7 @@ export class LessonsService {
     query: PaginationQueryDto,
     rawQuery: Record<string, any>,
   ) {
-    // Verify section exists
+    // Xác minh phần tồn tại
     const section = await this.prisma.sections.findFirst({
       where: { id: sectionId, deleted: false },
     });
@@ -420,7 +420,7 @@ export class LessonsService {
     courseId: string,
     sectionId: string,
   ) {
-    // Verify lesson exists
+    // Xác minh bài học tồn tại
     const lesson = await this.prisma.lessons.findFirst({
       where: { id: lessonId, deleted: false },
     });
@@ -429,7 +429,7 @@ export class LessonsService {
       throw new NotFoundException('Lesson not found');
     }
 
-    // Verify course and section exist
+    // Xác minh khóa học và phần tồn tại
     const course = await this.prisma.courses.findFirst({
       where: { id: courseId, deleted: false },
     });
@@ -448,7 +448,7 @@ export class LessonsService {
       );
     }
 
-    // Check if user is enrolled in the course
+    // Kiểm tra xem người dùng có đăng ký khóa học không
     const enrollment = await this.prisma.enrollments.findFirst({
       where: {
         user_id: userId,
@@ -491,7 +491,7 @@ export class LessonsService {
       });
 
       // 2. Update section_progress
-      // Count total lessons in section
+      // Đếm tổng số bài học trong phần
       const totalLessons = await tx.lessons.count({
         where: {
           section_id: sectionId,
@@ -499,7 +499,7 @@ export class LessonsService {
         },
       });
 
-      // Count completed lessons in section for this user
+      // Đếm các bài học đã hoàn thành trong phần cho người dùng này
       const completedLessons = await tx.user_progress.count({
         where: {
           user_id: userId,
@@ -540,7 +540,7 @@ export class LessonsService {
       });
 
       // 3. Update enrollment progress
-      // Count total lessons in course
+      // Đếm tổng số bài học trong khóa học
       const courseSections = await tx.sections.findMany({
         where: {
           course_id: courseId,
@@ -560,7 +560,7 @@ export class LessonsService {
         0,
       );
 
-      // Count completed lessons in course for this user
+      // Đếm các bài học đã hoàn thành trong khóa học cho người dùng này
       const completedCourseLessons = await tx.user_progress.count({
         where: {
           user_id: userId,
@@ -586,7 +586,7 @@ export class LessonsService {
       });
 
       // 4. Update combo progress if course is part of a combo
-      // Find all combo enrollments that contain this course
+      // Tìm tất cả các đăng ký combo chứa khóa học này
       const comboEnrollments = await tx.combo_enrollments.findMany({
         where: {
           user_id: userId,
@@ -598,7 +598,7 @@ export class LessonsService {
         },
       });
 
-      // Update progress for each combo that contains this course
+      // Cập nhật tiến độ cho mỗi combo chứa khóa học này
       for (const comboEnrollment of comboEnrollments) {
         const courseIds = comboEnrollment.combo_courses?.course_ids as string[];
 

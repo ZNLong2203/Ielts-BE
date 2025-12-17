@@ -3,38 +3,38 @@
 /* eslint-disable @typescript-eslint/no-unsafe-call */
 /* eslint-disable @typescript-eslint/no-unsafe-return */
 import {
-  Injectable,
-  NotFoundException,
   BadRequestException,
   ConflictException,
+  Injectable,
   Logger,
+  NotFoundException,
 } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { GeminiService } from '../../integrations/gemini/gemini.service';
 import { PrismaService } from '../../prisma/prisma.service';
+import { SECTION_TYPE } from '../mock-tests/constants';
+import { EXERCISE_TYPE, SKILL_TYPE } from '../reading/types/reading.types';
+import { CreateWritingMockTestExerciseDto } from './dto/create-writing-mock-test.dto';
 import { CreateWritingDto } from './dto/create-writing.dto';
-import { UpdateWritingDto } from './dto/update-writing.dto';
-import {
-  SubmitWritingDto,
-  WritingSubmissionResponse,
-} from './dto/submit-writing.dto';
 import {
   GradeWritingSubmissionDto,
   WritingGradeResponse,
 } from './dto/grade-writing-submission.dto';
-import { QueryWritingDto } from './dto/query-writing.dto';
 import {
-  GradeWritingDto,
   WritingGradeResponse as GeminiWritingGradeResponse,
+  GradeWritingDto,
 } from './dto/grade-writing.dto';
+import { QueryWritingDto } from './dto/query-writing.dto';
 import {
   SaveWritingAssessmentDto,
   WritingAssessmentResponse,
 } from './dto/save-writing-assessment.dto';
-import { CreateWritingMockTestExerciseDto } from './dto/create-writing-mock-test.dto';
+import {
+  SubmitWritingDto,
+  WritingSubmissionResponse,
+} from './dto/submit-writing.dto';
 import { UpdateWritingMockTestExerciseDto } from './dto/update-writing-mock-test.dto';
-import { SECTION_TYPE } from '../mock-tests/constants';
-import { EXERCISE_TYPE, SKILL_TYPE } from '../reading/types/reading.types';
+import { UpdateWritingDto } from './dto/update-writing.dto';
 
 export interface WritingContent {
   taskType?: string;
@@ -178,7 +178,7 @@ export class WritingService {
       };
     }
 
-    // Remove undefined values
+    // Loại bỏ các giá trị undefined
     Object.keys(updateData).forEach(
       (key) => updateData[key] === undefined && delete updateData[key],
     );
@@ -207,7 +207,7 @@ export class WritingService {
   ): Promise<WritingSubmissionResponse> {
     const writing = await this.findOne(submitDto.exerciseId);
 
-    // Check if user has exceeded max attempts
+    // Kiểm tra xem người dùng đã vượt quá số lần thử tối đa chưa
     const existingSubmissions = await this.prisma.prisma.user_submissions.count(
       {
         where: {
@@ -223,7 +223,7 @@ export class WritingService {
       );
     }
 
-    // Create submission
+    // Tạo bài nộp
     const submission = await this.prisma.prisma.user_submissions.create({
       data: {
         user_id: userId,
@@ -325,18 +325,18 @@ export class WritingService {
   }
 
   /**
-   * Remove null bytes (0x00) from strings to prevent PostgreSQL encoding errors
+   * Loại bỏ các byte null (0x00) khỏi chuỗi để tránh lỗi encoding PostgreSQL
    */
   private cleanString(value: string | null | undefined): string | null {
     if (!value || typeof value !== 'string') {
       return value || null;
     }
-    // Remove null bytes (0x00) from string
+    // Loại bỏ byte null (0x00) khỏi chuỗi
     return value.replace(/\0/g, '');
   }
 
   /**
-   * Clean null bytes from array of strings
+   * Loại bỏ các byte null khỏi mảng chuỗi
    */
   private cleanStringArray(
     value: string[] | null | undefined,
@@ -348,7 +348,7 @@ export class WritingService {
   }
 
   /**
-   * Clean null bytes from object recursively
+   * Loại bỏ các byte null khỏi đối tượng một cách đệ quy
    */
   private cleanObject(value: any): any {
     if (value === null || value === undefined) {
@@ -372,12 +372,12 @@ export class WritingService {
     return value;
   }
 
-  // Save writing assessment
+  // Lưu đánh giá bài viết
   async saveWritingAssessment(
     userId: string,
     saveDto: SaveWritingAssessmentDto,
   ): Promise<WritingAssessmentResponse> {
-    // Clean all string fields to remove null bytes
+    // Làm sạch tất cả các trường chuỗi để loại bỏ các byte null
     const cleanedData = {
       user_id: userId,
       exercise_id: saveDto.exerciseId || null,
@@ -439,7 +439,7 @@ export class WritingService {
     };
   }
 
-  // Get writing assessments by user
+  // Lấy danh sách đánh giá bài viết theo người dùng
   async getWritingAssessmentsByUser(
     userId: string,
     exerciseId?: string,
@@ -492,7 +492,7 @@ export class WritingService {
     }));
   }
 
-  // Get writing assessment by ID
+  // Lấy đánh giá bài viết theo ID
   async getWritingAssessmentById(
     id: string,
   ): Promise<WritingAssessmentResponse | null> {
@@ -536,10 +536,10 @@ export class WritingService {
   }
 
   /**
-   * Create Writing Exercise in test section (for mock tests)
+   * Tạo bài tập Writing trong phần thi (cho các bài thi thử)
    */
   async createExerciseForMockTest(createDto: CreateWritingMockTestExerciseDto) {
-    // Validate test_section exists and is writing type
+    // Kiểm tra test_section tồn tại và là loại writing
     const testSection = await this.prisma.prisma.test_sections.findFirst({
       where: {
         id: createDto.test_section_id,
@@ -561,7 +561,7 @@ export class WritingService {
       throw new NotFoundException('Writing test section not found');
     }
 
-    // Check if exercise with same title exists in this test section
+    // Kiểm tra xem bài tập với tiêu đề giống nhau có tồn tại không
     const existingExercise = await this.prisma.prisma.exercises.findFirst({
       where: {
         test_section_id: createDto.test_section_id,
@@ -576,7 +576,7 @@ export class WritingService {
       );
     }
 
-    // Create exercise with minimal content (for backward compatibility)
+    // Tạo bài tập với nội dung tối thiểu (cho tính tương thích ngược)
     const exerciseContent: WritingContent = {
       taskType: createDto.task_type,
       questionType: createDto.question_type,
@@ -587,25 +587,25 @@ export class WritingService {
     };
 
     const exercise = await this.prisma.prisma.$transaction(async (tx) => {
-      // Create exercise
+      // Tạo bài tập
       const createdExercise = await tx.exercises.create({
         data: {
           test_section_id: createDto.test_section_id,
-          lesson_id: null, // Mock test exercise doesn't belong to lesson
+          lesson_id: null, // Bài tập Mock test không thuộc về lesson nào
           title: createDto.title,
           instruction: createDto.instruction || '',
           content: exerciseContent as unknown as Prisma.JsonObject,
           exercise_type: EXERCISE_TYPE.MOCK_TEST,
           skill_type: SKILL_TYPE.WRITING,
           time_limit: createDto.time_limit || 20,
-          max_attempts: 1, // Mock tests typically allow 1 attempt
+          max_attempts: 1, // Các bài thi thử thường cho phép 1 lần thử
           passing_score: createDto.passing_score || 70,
           ordering: createDto.ordering || 0,
           is_active: true,
         },
       });
 
-      // Create question group with question_text as group_instruction
+      // Tạo nhóm câu hỏi với question_text làm group_instruction
       const questionGroup = await tx.question_groups.create({
         data: {
           exercise_id: createdExercise.id,
@@ -619,7 +619,7 @@ export class WritingService {
         },
       });
 
-      // Create a question for the writing task
+      // Tạo câu hỏi cho bài tập viết
       await tx.questions.create({
         data: {
           exercise_id: createdExercise.id,
@@ -627,12 +627,12 @@ export class WritingService {
           question_text: createDto.question_text || '',
           question_type: createDto.question_type || 'essay',
           image_url: createDto.question_image || null,
-          points: 0, // Writing questions don't have points
+          points: 0, // Câu hỏi Writing không có điểm
           ordering: 1,
         },
       });
 
-      // Return exercise with includes
+      // Trả về bài tập với các thông tin liên kết
       return await tx.exercises.findUniqueOrThrow({
         where: { id: createdExercise.id },
         include: {
@@ -665,10 +665,10 @@ export class WritingService {
   }
 
   /**
-   * Get Writing Exercises by test section (for mock tests)
+   * Lấy danh sách bài tập Writing theo phần thi (cho các bài thi thử)
    */
   async getExercisesByTestSectionForMockTest(testSectionId: string) {
-    // Validate test section exists
+    // Kiểm tra phần thi tồn tại
     const testSection = await this.prisma.prisma.test_sections.findFirst({
       where: {
         id: testSectionId,
@@ -723,7 +723,7 @@ export class WritingService {
   }
 
   /**
-   * Get Writing Exercise by ID with complete details (for mock tests)
+   * Lấy bài tập Writing theo ID với thông tin đầy đủ (cho các bài thi thử)
    */
   async getExerciseByIdForMockTest(id: string) {
     const exercise = await this.prisma.prisma.exercises.findFirst({
@@ -751,7 +751,7 @@ export class WritingService {
       throw new NotFoundException('Writing exercise not found');
     }
 
-    // Get question groups with questions
+    // Lấy các nhóm câu hỏi với các câu hỏi
     const questionGroups = await this.prisma.prisma.question_groups.findMany({
       where: {
         exercise_id: id,
@@ -776,7 +776,7 @@ export class WritingService {
   }
 
   /**
-   * Update Writing Exercise (for mock tests)
+   * Cập nhật bài tập Writing (cho các bài thi thử)
    */
   async updateExerciseForMockTest(
     id: string,
@@ -794,7 +794,7 @@ export class WritingService {
       throw new NotFoundException('Writing exercise not found');
     }
 
-    // Check for title conflict if title is being updated
+    // Kiểm tra xung đột tiêu đề nếu tiêu đề đang được cập nhật
     if (updateDto.title && updateDto.title !== existingExercise.title) {
       const conflictingExercise = await this.prisma.prisma.exercises.findFirst({
         where: {
@@ -825,7 +825,7 @@ export class WritingService {
     };
 
     const exercise = await this.prisma.prisma.$transaction(async (tx) => {
-      // Update exercise
+      // Cập nhật bài tập
       const updatedExercise = await tx.exercises.update({
         where: { id },
         data: {
@@ -839,7 +839,7 @@ export class WritingService {
         },
       });
 
-      // Update or create question group and question
+      // Cập nhật hoặc tạo nhóm câu hỏi và câu hỏi
       const questionGroup = await tx.question_groups.findFirst({
         where: {
           exercise_id: id,
@@ -857,7 +857,7 @@ export class WritingService {
         updateDto.question_image || existingContent.questionImage;
 
       if (questionGroup) {
-        // Update existing question group
+        // Cập nhật nhóm câu hỏi hiện tại
         await tx.question_groups.update({
           where: { id: questionGroup.id },
           data: {
@@ -869,7 +869,7 @@ export class WritingService {
           },
         });
 
-        // Update existing question
+        // Cập nhật câu hỏi hiện tại
         const existingQuestion = await tx.questions.findFirst({
           where: {
             question_group_id: questionGroup.id,
@@ -889,7 +889,7 @@ export class WritingService {
           });
         }
       } else {
-        // Create new question group and question if they don't exist
+        // Tạo nhóm câu hỏi và câu hỏi mới nếu chúng không tồn tại
         const newQuestionGroup = await tx.question_groups.create({
           data: {
             exercise_id: id,
@@ -916,7 +916,7 @@ export class WritingService {
         });
       }
 
-      // Return exercise with includes
+      // Trả về bài tập với các thông tin liên kết
       return await tx.exercises.findUniqueOrThrow({
         where: { id },
         include: {
@@ -950,7 +950,7 @@ export class WritingService {
   }
 
   /**
-   * Delete Writing Exercise (soft delete) (for mock tests)
+   * Xóa bài tập Writing (xóa mềm) (cho các bài thi thử)
    */
   async deleteExerciseForMockTest(id: string): Promise<void> {
     const exercise = await this.prisma.prisma.exercises.findFirst({
@@ -977,7 +977,7 @@ export class WritingService {
   }
 
   /**
-   * Get all mock tests with writing sections
+   * Lấy tất cả các bài thi thử với các phần writing
    */
   async getMockTestsWithSections() {
     const mockTests = await this.prisma.prisma.mock_tests.findMany({

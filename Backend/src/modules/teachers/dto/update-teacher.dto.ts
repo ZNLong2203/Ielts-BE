@@ -91,7 +91,7 @@ export class UpdateAvailabilityDto {
   @Transform(
     ({ value }): Record<string, Array<{ start: string; end: string }>> => {
       if (typeof value === 'string') {
-        // Cast explicit type to JSON.parse result
+        // Chuyển đổi kiểu tường minh cho kết quả JSON.parse
         return JSON.parse(value) as Record<
           string,
           Array<{ start: string; end: string }>

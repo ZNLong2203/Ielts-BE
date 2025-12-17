@@ -1,32 +1,32 @@
 import {
-  Injectable,
+  ConflictException,
   HttpException,
   HttpStatus,
-  NotFoundException,
-  ConflictException,
+  Injectable,
   Logger,
+  NotFoundException,
 } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
+import { FileType } from 'src/common/constants/file';
 import { GeminiService } from '../../integrations/gemini/gemini.service';
 import { WhisperService } from '../../integrations/whisper/whisper.service';
-import { PronunciationAnalysisService } from './pronunciation-analysis.service';
+import { PrismaService } from '../../prisma/prisma.service';
 import { FilesService } from '../files/files.service';
-import { FileType } from 'src/common/constants/file';
+import { UploadResult } from '../files/minio.service';
+import { SECTION_TYPE } from '../mock-tests/constants';
+import { EXERCISE_TYPE, SKILL_TYPE } from '../reading/types/reading.types';
+import {
+  CreateSpeakingMockTestExerciseDto,
+  SpeakingPartType,
+} from './dto/create-speaking-mock-test.dto';
 import {
   GradeSpeakingDto,
   SpeakingGradeResponse,
   TranscribeAndGradeDto,
   TranscribeAndGradeResponse,
 } from './dto/grade-speaking.dto';
-import { UploadResult } from '../files/minio.service';
-import {
-  CreateSpeakingMockTestExerciseDto,
-  SpeakingPartType,
-} from './dto/create-speaking-mock-test.dto';
 import { UpdateSpeakingMockTestExerciseDto } from './dto/update-speaking-mock-test.dto';
-import { SECTION_TYPE } from '../mock-tests/constants';
-import { EXERCISE_TYPE, SKILL_TYPE } from '../reading/types/reading.types';
-import { PrismaService } from '../../prisma/prisma.service';
+import { PronunciationAnalysisService } from './pronunciation-analysis.service';
 
 export interface SpeakingContent {
   partType?: string;
@@ -63,7 +63,7 @@ export class SpeakingService {
     mimetype: string,
   ): Promise<{ uploadResult: UploadResult; transcription: string }> {
     try {
-      // Upload audio to MinIO
+      // Tải âm thanh lên MinIO
       const uploadResult = await this.filesService.uploadFile(
         audioBuffer,
         originalName,
@@ -71,7 +71,7 @@ export class SpeakingService {
         mimetype,
       );
 
-      // Transcribe using Whisper
+      // Phiên âm sử dụng Whisper
       const transcription = await this.whisperService.transcribeAudio(
         audioBuffer,
         originalName,
@@ -94,7 +94,7 @@ export class SpeakingService {
     try {
       console.log('Starting transcribeAndGrade for file:', dto.fileName);
 
-      // Ensure audioBuffer is a Buffer
+      // Đảm bảo audioBuffer là một Buffer
       const audioBuffer: Buffer = Buffer.isBuffer(dto.audioBuffer)
         ? dto.audioBuffer
         : Buffer.from(dto.audioBuffer as ArrayBuffer);
@@ -107,18 +107,18 @@ export class SpeakingService {
       );
       console.log('Transcription completed:', transcription.substring(0, 100));
 
-      // Get audio duration for pronunciation analysis
+      // Lấy thời lượng âm thanh cho phân tích phát âm
       let audioDuration: number | undefined;
       try {
         audioDuration = await this.getAudioDuration(audioBuffer, dto.fileName);
       } catch (error) {
-        // If duration extraction fails, continue without it
+        // Nếu trích xuất thời lượng thất bại, tiếp tục mà không có nó
         const errorMessage =
           error instanceof Error ? error.message : 'Unknown error';
         console.warn('Could not extract audio duration:', errorMessage);
       }
 
-      // Analyze pronunciation and stress patterns from audio
+      // Phân tích phát âm và mẫu trọng âm từ âm thanh
       let pronunciationAnalysis: {
         transcription: string;
         words: Array<{
@@ -146,7 +146,7 @@ export class SpeakingService {
             dto.fileName, // Pass file name
           );
       } catch (pronunciationError) {
-        // If pronunciation analysis fails, log and continue with basic analysis
+        // Nếu phân tích phát âm thất bại, ghi log và tiếp tục với phân tích cơ bản
         const errorMessage =
           pronunciationError instanceof Error
             ? pronunciationError.message
@@ -154,7 +154,7 @@ export class SpeakingService {
         console.warn(
           `Pronunciation analysis failed, using fallback: ${errorMessage}`,
         );
-        // Use fallback text-based analysis
+        // Sử dụng phân tích dựa trên văn bản dự phòng
         pronunciationAnalysis =
           await this.pronunciationAnalysisService.analyzePronunciation(
             transcription,
@@ -162,7 +162,7 @@ export class SpeakingService {
           );
       }
 
-      // Grade the transcribed text with pronunciation analysis
+      // Chấm điểm văn bản đã phiien âm với phân tích phát âm
       console.log('Preparing grading request...');
       const gradeDto: GradeSpeakingDto = {
         studentAnswer: transcription,
@@ -206,7 +206,7 @@ export class SpeakingService {
         console.error('Error stack:', errorStack);
       }
 
-      // Check for specific error types
+      // Kiểm tra các loại lỗi cụ thể
       if (
         errorMessage.includes('network') ||
         errorMessage.includes('ECONNREFUSED') ||
@@ -242,8 +242,8 @@ export class SpeakingService {
     audioBuffer: Buffer,
     fileName: string,
   ): Promise<number | undefined> {
-    // Only try WAV decoder for WAV files
-    // Skip ffprobe entirely as it causes JSON parsing errors when not available
+    // Chỉ thử bộ giải mã WAV cho các tệp WAV
+    // Bỏ qua hoàn toàn ffprobe vì nó gây lỗi phân tích JSON khi không khả dụng
     if (fileName.toLowerCase().endsWith('.wav')) {
       try {
         // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
@@ -256,7 +256,7 @@ export class SpeakingService {
           return decoded.duration;
         }
       } catch (error) {
-        // If WAV decoding fails, return undefined
+        // Nếu giải mã WAV thất bại, trả về undefined
         const errorMessage =
           error instanceof Error ? error.message : 'Unknown error';
         console.warn('Failed to decode WAV file:', errorMessage);
@@ -272,7 +272,7 @@ export class SpeakingService {
   async createExerciseForMockTest(
     createDto: CreateSpeakingMockTestExerciseDto,
   ) {
-    // Validate test_section exists and is speaking type
+    // Xác thực test_section tồn tại và là loại speaking
     const testSection = await this.prisma.prisma.test_sections.findFirst({
       where: {
         id: createDto.test_section_id,
@@ -294,7 +294,7 @@ export class SpeakingService {
       throw new NotFoundException('Speaking test section not found');
     }
 
-    // Check if exercise with same title exists in this test section
+    // Kiểm tra xem bài tập với tiêu đề giống nhau có tồn tại không
     const existingExercise = await this.prisma.prisma.exercises.findFirst({
       where: {
         test_section_id: createDto.test_section_id,
@@ -309,7 +309,7 @@ export class SpeakingService {
       );
     }
 
-    // Create exercise with minimal content (for backward compatibility)
+    // Tạo bài tập với nội dung tối thiểu (để tương thích ngược)
     const exerciseContent: SpeakingContent = {
       partType: createDto.part_type,
       questions: createDto.questions,
@@ -317,25 +317,25 @@ export class SpeakingService {
     };
 
     const exercise = await this.prisma.prisma.$transaction(async (tx) => {
-      // Create exercise
+      // Tạo bài tập
       const createdExercise = await tx.exercises.create({
         data: {
           test_section_id: createDto.test_section_id,
-          lesson_id: null, // Mock test exercise doesn't belong to lesson
+          lesson_id: null, // Bài tập mock test không thuộc bài học
           title: createDto.title,
           instruction: createDto.instruction || '',
           content: exerciseContent as unknown as Prisma.JsonObject,
           exercise_type: EXERCISE_TYPE.MOCK_TEST,
           skill_type: SKILL_TYPE.SPEAKING,
           time_limit: createDto.time_limit || 5,
-          max_attempts: 1, // Mock tests typically allow 1 attempt
+          max_attempts: 1, // Bài kiểm tra mock thường cho phép 1 lần thử
           passing_score: createDto.passing_score || 70,
           ordering: createDto.ordering || 0,
           is_active: true,
         },
       });
 
-      // Create question groups and questions for each question in the DTO
+      // Tạo nhóm câu hỏi và các câu hỏi cho từng câu hỏi trong DTO
       if (createDto.questions && createDto.questions.length > 0) {
         for (let i = 0; i < createDto.questions.length; i++) {
           const questionDto = createDto.questions[i];
@@ -368,14 +368,14 @@ export class SpeakingService {
               question_text: questionDto.question_text || '',
               question_type: 'speaking',
               audio_url: questionDto.audio_url || null,
-              points: 0, // Speaking questions don't have points
+              points: 0, // Các câu hỏi speaking không có điểm
               ordering: i + 1,
             },
           });
         }
       }
 
-      // Return exercise with includes
+      // Trả về bài tập với các thông tin liên kết
       const exerciseWithIncludes = await tx.exercises.findFirst({
         where: { id: createdExercise.id },
         include: {
@@ -417,7 +417,7 @@ export class SpeakingService {
    * Get Speaking Exercises by test section (for mock tests)
    */
   async getExercisesByTestSectionForMockTest(testSectionId: string) {
-    // Validate test section exists
+    // Xác thực test_section tồn tại
     const testSection = await this.prisma.prisma.test_sections.findFirst({
       where: {
         id: testSectionId,
@@ -500,7 +500,7 @@ export class SpeakingService {
       throw new NotFoundException('Speaking exercise not found');
     }
 
-    // Get question groups with questions
+    // Lấy nhóm câu hỏi với các câu hỏi
     const questionGroups = await this.prisma.prisma.question_groups.findMany({
       where: {
         exercise_id: id,
@@ -543,7 +543,7 @@ export class SpeakingService {
       throw new NotFoundException('Speaking exercise not found');
     }
 
-    // Check for title conflict if title is being updated
+    // Kiểm tra xung đột tiêu đề nếu tiêu đề đang được cập nhật
     if (updateDto.title && updateDto.title !== existingExercise.title) {
       const conflictingExercise = await this.prisma.prisma.exercises.findFirst({
         where: {
@@ -573,7 +573,7 @@ export class SpeakingService {
     };
 
     const exercise = await this.prisma.prisma.$transaction(async (tx) => {
-      // Update exercise
+      // Cập nhật bài tập
       await tx.exercises.update({
         where: { id },
         data: {
@@ -587,7 +587,7 @@ export class SpeakingService {
         },
       });
 
-      // Get existing question groups
+      // Lấy các nhóm câu hỏi hiện tại
       const existingQuestionGroups = await tx.question_groups.findMany({
         where: {
           exercise_id: id,
@@ -606,7 +606,7 @@ export class SpeakingService {
       const partType =
         updateDto.part_type || existingContent.partType || 'part_1';
 
-      // Update or create question groups and questions
+      // Cập nhật hoặc tạo nhóm câu hỏi và các câu hỏi
       for (let i = 0; i < questionsToUpdate.length; i++) {
         const questionDto = questionsToUpdate[i];
         const partLabel =
@@ -619,7 +619,7 @@ export class SpeakingService {
                 : `Part ${i + 1}`;
 
         if (i < existingQuestionGroups.length) {
-          // Update existing question group
+          // Cập nhật nhóm câu hỏi hiện tại
           const existingGroup = existingQuestionGroups[i];
           await tx.question_groups.update({
             where: { id: existingGroup.id },
@@ -631,7 +631,7 @@ export class SpeakingService {
             },
           });
 
-          // Update existing question
+          // Cập nhật câu hỏi hiện tại
           if (existingGroup.questions.length > 0) {
             await tx.questions.update({
               where: { id: existingGroup.questions[0].id },
@@ -643,7 +643,7 @@ export class SpeakingService {
             });
           }
         } else {
-          // Create new question group and question
+          // Tạo nhóm câu hỏi và câu hỏi mới
           const newQuestionGroup = await tx.question_groups.create({
             data: {
               exercise_id: id,
@@ -671,7 +671,7 @@ export class SpeakingService {
         }
       }
 
-      // Soft delete extra question groups if questions array is shorter
+      // Xóa mềm các nhóm câu hỏi dư thừa nếu mảng câu hỏi ngắn hơn
       if (existingQuestionGroups.length > questionsToUpdate.length) {
         const groupsToDelete = existingQuestionGroups.slice(
           questionsToUpdate.length,
@@ -690,7 +690,7 @@ export class SpeakingService {
         }
       }
 
-      // Return exercise with includes
+      // Trả về bài tập với các thông tin liên kết
       const exerciseWithIncludes = await tx.exercises.findFirst({
         where: { id },
         include: {

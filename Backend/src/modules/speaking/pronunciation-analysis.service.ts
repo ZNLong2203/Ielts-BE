@@ -1,10 +1,10 @@
+import * as ffmpegInstaller from '@ffmpeg-installer/ffmpeg';
 import { Injectable, Logger } from '@nestjs/common';
 import { spawn } from 'child_process';
-import * as fs from 'fs';
-import * as path from 'path';
-import * as os from 'os';
 import * as ffmpeg from 'fluent-ffmpeg';
-import * as ffmpegInstaller from '@ffmpeg-installer/ffmpeg';
+import * as fs from 'fs';
+import * as os from 'os';
+import * as path from 'path';
 
 export interface WordAnalysis {
   word: string;
@@ -103,7 +103,7 @@ export class PronunciationAnalysisService {
       };
     }
 
-    // Check if audio buffer is too small (likely empty/silent)
+    // Kiểm tra xem bộ đệm âm thanh có quá nhỏ không (có thể trống/im lặng)
     if (audioBuffer && audioBuffer.length < 1000) {
       this.logger.warn('Audio buffer is very small, likely empty or silent');
     }
@@ -124,7 +124,7 @@ export class PronunciationAnalysisService {
 
     const words = this.extractWords(transcription);
 
-    // If no words extracted, return default analysis
+    // Nếu không trích xuất được từ nào, trả về phân tích mặc định
     if (words.length === 0) {
       this.logger.warn('No words extracted from transcription');
       return {
@@ -509,7 +509,7 @@ export class PronunciationAnalysisService {
         stderr.push(data.toString());
       });
 
-      // Add timeout to prevent hanging
+      // Thêm timeout để ngăn chặn treo
       const timeout = 60000; // 60 seconds
       const timeoutId = setTimeout(() => {
         pythonProcess.kill('SIGTERM');
@@ -551,13 +551,13 @@ export class PronunciationAnalysisService {
         this.logger.warn(`Python script stderr: ${stderrStr}`);
       }
 
-      // Validate stdout before parsing
+      // Xác thực stdout trước khi phân tích
       if (!stdoutStr || stdoutStr.trim().length === 0) {
         this.logger.error('Python script returned empty output');
         throw new Error('Python script returned empty output');
       }
 
-      // Parse JSON result
+      // Phân tích kết quả JSON
       let result: {
         error?: string;
         transcription?: string;

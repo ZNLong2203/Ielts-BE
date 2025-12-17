@@ -263,7 +263,7 @@ export class RegisterTeacherDto extends PickType(CreateUserDto, [
   @IsString()
   city?: string;
 
-  // Teacher-specific fields
+  // Các trường dành riêng cho giáo viên
   @ApiProperty({
     example: 'Master of Arts in English',
     description: 'Qualification of the teacher',

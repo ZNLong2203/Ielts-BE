@@ -13,18 +13,18 @@ export const canUpdateTeacherProfile: PolicyHandlerCallback = async (
 ): Promise<boolean> => {
   const teacherId = request.params.id;
 
-  // If no ID, check generic permission
+  // Nếu không có ID, kiểm tra quyền chung
   if (!teacherId) {
     return ability.can(Action.UpdateProfile, Teacher);
   }
 
-  // Create teacher subject with ID from params
+  // Tạo teacher subject với ID từ params
   const teacherSubject = new Teacher({
     id: teacherId,
     userId: teacherId,
   });
 
-  // Check if user can update this teacher's profile
+  // Kiểm tra xem người dùng có thể cập nhật hồ sơ giáo viên này không
   return ability.can(Action.UpdateProfile, teacherSubject);
 };
 
@@ -47,17 +47,17 @@ export const canUpdateTeacherCertification: PolicyHandlerCallback = async (
 ): Promise<boolean> => {
   const teacherId = request.params.id;
 
-  // If no ID, check generic permission
+  // Nếu không có ID, kiểm tra quyền chung
   if (!teacherId) {
     return ability.can(Action.UpdateCertification, Teacher);
   }
 
-  // Create teacher subject with ID from params
+  // Tạo teacher subject với ID từ params
   const teacherSubject = new Teacher({
     id: teacherId,
     userId: teacherId,
   });
 
-  // Check if user can update certification
+  // Kiểm tra xem người dùng có thể cập nhật chứng chỉ không
   return ability.can(Action.UpdateCertification, teacherSubject);
 };

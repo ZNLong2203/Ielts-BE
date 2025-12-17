@@ -142,7 +142,7 @@ export class CoursesService {
   }
 
   async create(dto: CreateCourseDto, userId: string) {
-    // Check if admin exists
+    // Kiểm tra xem admin có tồn tại không
     const admin = await this.prisma.users.findFirst({
       where: { id: userId, deleted: false },
     });
@@ -151,7 +151,7 @@ export class CoursesService {
       throw new BadRequestException('Admin profile not found');
     }
 
-    // Check if category exists if provided
+    // Kiểm tra xem danh mục có tồn tại không nếu được cung cấp
     if (dto.category_id) {
       const category = await this.prisma.course_categories.findFirst({
         where: { id: dto.category_id, deleted: false, is_active: true },
@@ -172,7 +172,7 @@ export class CoursesService {
         estimated_duration: dto.estimated_duration,
         price: dto.price || 0,
         discount_price: dto.discount_price,
-        is_featured: false, // Default to false, only admin can feature
+        is_featured: false, // Mặc định là false, chỉ admin mới có thể đặt nổi bật
         requirements: dto.requirements,
         what_you_learn: dto.what_you_learn,
         course_outline: dto.course_outline,
@@ -271,7 +271,7 @@ export class CoursesService {
       throw new NotFoundException('Course not found');
     }
 
-    // Format response
+    // Định dạng phản hồi
     return {
       id: course.id,
       title: course.title,
@@ -367,14 +367,14 @@ export class CoursesService {
   async uploadThumbnail(id: string, file: UploadedFileType) {
     const course = await this.findById(id);
 
-    // Upload to storage
+    // Tải lên bộ lưu trữ
     const fileData = await this.filesService.uploadFile(
       file.buffer,
       file.originalname,
       FileType.COURSE_THUMBNAIL,
     );
 
-    // Update course thumbnail
+    // Cập nhật hình thu nhỏ khóa học
     return this.prisma.courses.update({
       where: { id },
       data: {
@@ -523,7 +523,7 @@ export class CoursesService {
       throw new BadRequestException('At least one course must be selected');
     }
 
-    // Check if all courses exist
+    // Kiểm tra xem tất cả các khóa học có tồn tại không
     const courses = await this.prisma.courses.findMany({
       where: {
         id: { in: courseIds },
@@ -552,9 +552,9 @@ export class CoursesService {
   async updateComboCourse(id: string, dto: UpdateComboCourseDto) {
     const comboCourse = await this.findComboCourseById(id);
 
-    // Check if course IDs are provided
+    // Kiểm tra xem ID khóa học có được cung cấp không
     if (dto.course_ids && dto.course_ids.length > 0) {
-      // Check if all courses exist
+      // Kiểm tra xem tất cả các khóa học có tồn tại không
       const courses = await this.prisma.courses.findMany({
         where: {
           id: { in: dto.course_ids },
@@ -630,14 +630,14 @@ export class CoursesService {
       },
     });
 
-    // Find the best combination of combo courses to cover the level range
+    // Tìm sự kết hợp tốt nhất của combo khóa học để bao phủ phạm vi cấp độ
     const result = this.findOptimalComboCombination(
       allComboCourses,
       currentLevel,
       targetLevel,
     );
 
-    // Enhance combo courses with course details
+    // Bổ sung thông tin chi tiết khóa học cho combo khóa học
     const enhancedComboCourses = await Promise.all(
       result.comboCourses.map(async (combo) => {
         const courses = await this.prisma.courses.findMany({
@@ -672,7 +672,7 @@ export class CoursesService {
       }),
     );
 
-    // Return the result with pricing information
+    // Trả về kết quả với thông tin giá
     return {
       comboCourses: enhancedComboCourses,
       totalOriginalPrice: result.totalOriginalPrice,
@@ -688,7 +688,7 @@ export class CoursesService {
     currentLevel: number,
     targetLevel: number,
   ) {
-    // Parse all combo courses to extract level ranges
+    // Phân tích tất cả combo khóa học để trích xuất phạm vi cấp độ
     const parsedCombos = allComboCourses
       .map((combo) => {
         const nameMatch = combo.name.match(/(\d+\.?\d*)\s*-\s*(\d+\.?\d*)/);
@@ -703,15 +703,15 @@ export class CoursesService {
       })
       .filter((combo) => combo !== null);
 
-    // Find combos that can help cover the target range
+    // Tìm các combo có thể giúp bao phủ phạm vi mục tiêu
     const suitableCombos = parsedCombos.filter((combo: any) => {
-      // Combo should start at or before user's current level
-      // and end at or after user's target level
+      // Combo nên bắt đầu ở hoặc trước cấp độ hiện tại của người dùng
+      // và kết thúc ở hoặc sau cấp độ mục tiêu của người dùng
       return combo.startLevel <= currentLevel && combo.endLevel >= targetLevel;
     });
 
     if (suitableCombos.length === 0) {
-      // If no single combo covers the entire range, find the best combination
+      // Nếu không có combo nào bao phủ toàn bộ phạm vi, tìm sự kết hợp tốt nhất
       return this.findBestComboCombination(
         parsedCombos,
         currentLevel,
@@ -719,7 +719,7 @@ export class CoursesService {
       );
     }
 
-    // If we have suitable combos, return the one with the best value (lowest price per level)
+    // Nếu có combo phù hợp, trả về combo có giá trị tốt nhất (giá thấp nhất trên mỗi cấp độ)
     const bestCombo = suitableCombos.reduce((best: any, current: any) => {
       const bestValue =
         Number(best.combo_price) / (best.endLevel - best.startLevel);
@@ -743,12 +743,12 @@ export class CoursesService {
     currentLevel: number,
     targetLevel: number,
   ) {
-    // Sort combos by start level
+    // Sắp xếp combo theo cấp độ bắt đầu
     const sortedCombos = parsedCombos.sort(
       (a, b) => a.startLevel - b.startLevel,
     );
 
-    // Find the minimum set of combos that cover the range
+    // Tìm tập hợp tối thiểu các combo bao phủ phạm vi
     const selectedCombos: any[] = [];
     let currentCoverage = currentLevel;
     let totalOriginalPrice = 0;
@@ -756,7 +756,7 @@ export class CoursesService {
     const includedLevels: string[] = [];
 
     for (const combo of sortedCombos) {
-      // Check if this combo can help extend our coverage
+      // Kiểm tra xem combo này có thể giúp mở rộng phạm vi của chúng ta không
       if (
         combo.startLevel <= currentCoverage &&
         combo.endLevel > currentCoverage
@@ -767,7 +767,7 @@ export class CoursesService {
         includedLevels.push(`${combo.startLevel} - ${combo.endLevel}`);
         currentCoverage = combo.endLevel;
 
-        // If we've reached or exceeded the target, we're done
+        // Nếu chúng ta đã đạt hoặc vượt quá mục tiêu, chúng ta đã hoàn thành
         if (currentCoverage >= targetLevel) {
           break;
         }

@@ -55,7 +55,7 @@ export class OrdersService {
 
     if (!combo) throw new NotFoundException('Combo not found');
 
-    // check combo with this user has already purchased
+    // kiểm tra combo với người dùng này đã mua chưa
     const hasPurchased = await this.prisma.orders.findFirst({
       where: {
         user_id: userId,
@@ -86,7 +86,7 @@ export class OrdersService {
     // 3) amounts
     const totalAmount = this.toNumber(combo.original_price); // original_price
     const comboPrice = this.toNumber(combo.combo_price); // price to pay for combo before coupon
-    // combo internal discount
+    // giảm giá nội bộ của combo
     const internalComboDiscount = Math.max(0, totalAmount - comboPrice);
 
     // 4) coupon validation and compute coupon discount (applied on comboPrice)
@@ -105,7 +105,7 @@ export class OrdersService {
       if (couponRecord.valid_until && now > couponRecord.valid_until)
         throw new BadRequestException('Coupon expired');
 
-      // check usage_limit
+      // kiểm tra usage_limit
       if (
         couponRecord.usage_limit &&
         couponRecord.used_count &&
@@ -114,7 +114,7 @@ export class OrdersService {
         throw new BadRequestException('Coupon usage limit reached');
       }
 
-      // if coupon_type == 'combo' and applicable_combos not empty => check comboId present
+      // nếu coupon_type == 'combo' và applicable_combos không rỗng => kiểm tra comboId có mặt
       if (
         couponRecord.coupon_type === 'combo' &&
         couponRecord.applicable_combos &&
@@ -126,7 +126,7 @@ export class OrdersService {
           throw new BadRequestException('Coupon not applicable for this combo');
       }
 
-      // minimum_amount check (compare with comboPrice usually)
+      // kiểm tra minimum_amount (so sánh với comboPrice thường)
       if (
         couponRecord.minimum_amount &&
         comboPrice < Number(couponRecord.minimum_amount)
@@ -136,7 +136,7 @@ export class OrdersService {
         );
       }
 
-      // compute coupon discount
+      // tính toán giảm giá coupon
       if (couponRecord.discount_type === 'percentage') {
         couponDiscount =
           (comboPrice * Number(couponRecord.discount_value)) / 100;
@@ -149,7 +149,7 @@ export class OrdersService {
       ) {
         couponDiscount = Number(couponRecord.maximum_discount);
       }
-      // ensure not exceed comboPrice
+      // đảm bảo không vượt quá comboPrice
       if (couponDiscount > comboPrice) couponDiscount = comboPrice;
       couponDiscount = Math.round(couponDiscount * 100) / 100;
     }
@@ -162,7 +162,7 @@ export class OrdersService {
     const orderId = uuidv4();
     const orderCode = `ORD-${Date.now()}`;
 
-    // prepare items payload
+    // chuẩn bị dữ liệu items
     const itemsPayload = courses.map((c) => ({
       id: uuidv4(),
       order_id: orderId,
@@ -175,9 +175,9 @@ export class OrdersService {
       discount_amount: 0,
     }));
 
-    // transaction: create order and items and coupon usage and increment coupon.used_count
+    // transaction: tạo đơn hàng và các mục và sử dụng coupon và tăng used_count của coupon
     await this.prisma.$transaction(async (tx) => {
-      // create order (use raw insert or prisma model)
+      // tạo đơn hàng (sử dụng raw insert hoặc prisma model)
       await tx.orders.create({
         data: {
           id: orderId,
@@ -193,7 +193,7 @@ export class OrdersService {
         },
       });
 
-      // insert items
+      // chèn các mục
       for (const it of itemsPayload) {
         await tx.order_items.create({
           data: {
@@ -221,7 +221,7 @@ export class OrdersService {
             discount_amount: new Prisma.Decimal(couponDiscount),
           },
         });
-        // increment used_count
+        // tăng used_count
         await tx.coupons.update({
           where: { id: couponRecord.id },
           data: { used_count: { increment: 1 } },
@@ -293,7 +293,7 @@ export class OrdersService {
     if (order.status === OrderStatus.COMPLETED)
       throw new ConflictException('Cannot cancel completed order');
 
-    // try cancel pending payments
+    // thử hủy các thanh toán đang chờ xử lý
     const pendingPayment = order.payments?.find(
       (p) => p.status === PaymentStatus.PENDING,
     );
@@ -314,7 +314,7 @@ export class OrdersService {
     });
     if (!order) throw new NotFoundException('Order not found');
 
-    // simple guard
+    // bảo vệ đơn giản
     if (
       order.status === OrderStatus.COMPLETED &&
       dto.status !== OrderStatus.COMPLETED
@@ -359,7 +359,7 @@ export class OrdersService {
     };
 
     const res = await this.paymentService.createPayment(paymentDto);
-    // update order payment_method and payment_status
+    // cập nhật payment_method và payment_status của đơn hàng
     await this.prisma.orders.update({
       where: { id: orderId },
       data: {
@@ -370,7 +370,7 @@ export class OrdersService {
     return res;
   }
 
-  // Called by Payment module (webhook) to mark order paid
+  // Được gọi bởi module Payment (webhook) để đánh dấu đơn hàng đã thanh toán
   async markOrderPaid(orderId: string) {
     await this.prisma.orders.update({
       where: { id: orderId },

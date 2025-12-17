@@ -117,7 +117,7 @@ export class VideoController {
       const originalInfo =
         await this.videoService.getOriginalVideoInfo(fileName);
 
-      //  Helper function để safely get timestamp
+      // Hàm hỗ trợ để lấy timestamp an toàn
       const getTimestamp = (dateValue: any): number | null => {
         if (!dateValue) return null;
 
@@ -133,7 +133,7 @@ export class VideoController {
         return null;
       };
 
-      //  Calculate elapsed and remaining time safely
+      // Tính toán thời gian đã trôi qua và thời gian còn lại an toàn
       let elapsedTime: number | null = null;
       let remainingTime: number | null = null;
 

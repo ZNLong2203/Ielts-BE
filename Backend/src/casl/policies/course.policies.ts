@@ -23,21 +23,21 @@ export const canUpdateCourse: PolicyHandlerCallback = async (
 ): Promise<boolean> => {
   const courseId = request.params.id;
 
-  // If no ID provided, check generic permission
+  // Nếu không có ID, kiểm tra quyền chung
   if (!courseId) {
     return ability.can(Action.Update, Course);
   }
 
-  // Get teacher ID from request body if provided
+  // Lấy teacher ID từ request body nếu có
   const teacherId = request.body?.teacher_id;
 
-  // Create course subject for permission check
+  // Tạo course subject để kiểm tra quyền
   const courseSubject = new Course({
     id: courseId,
     teacherId: teacherId,
   });
 
-  // Check if user can update this course
+  // Kiểm tra xem người dùng có thể cập nhật khóa học này không
   return ability.can(Action.Update, courseSubject);
 };
 
