@@ -73,6 +73,8 @@ export class UtilsService {
 
   /**
    * Handles the value parsing for different types.
+   * Transforms strings to boolean, number, Date, or arrays of these types.
+   * E.g., "true" -> true, "123" -> 123, "2023-01-01" -> Date, "1,2,3" -> [1, 2, 3]
    * @param val - The value to be parsed.
    * @returns The parsed value as a primitive type or an array of primitives.
    */
@@ -95,6 +97,7 @@ export class UtilsService {
 
   /**
    * Parses a nested object structure and handles its values.
+   * E.g., { age: "30", profile: { createdAt: "2023-01-01" } } -> { age: 30, profile: { createdAt: new Date("2023-01-01") } }
    * @param obj - The object to be parsed.
    * @returns A new object with parsed values.
    */
@@ -122,6 +125,7 @@ export class UtilsService {
 
   /**
    * Assigns a value to a deeply nested property in an object.
+   * E.g., assignDeep(obj, ['profile', 'age'], 30) -> obj.profile.age = 30
    * @param target - The target object to assign the value to.
    * @param path - The array of keys representing the property path.
    * @param value - The value to assign.
@@ -193,41 +197,84 @@ export class UtilsService {
    * - ?OR[1][phone][startsWith]=123: matches the second condition phone starting with "123"
    */
   buildWhereFromQuery(query: Record<string, unknown>): Record<string, unknown> {
+    // input:
+    // {
+    //   page: "1",
+    //   limit: "10",
+    //   "status[in]": "active,inactive",
+    //   age: {
+    //     gte: '18',
+    //     lt: '30',
+    //   },
+    //   "profile.address.city[contains]": "Ha",
+    //   OR: {
+    //     0: { "email[contains]": "gmail" },
+    //     1: { "age[lt]": "30" }
+    //   }
+    // };
     const where: Record<string, unknown> = {};
     const { page, limit, sort, search, all, ...filters } = query;
 
+    // filters = {
+    //   'status[in]': 'active,inactive',
+    //   age: {
+    //     gte: '18',
+    //     lt: '30',
+    //   },
+    //   'profile.address.city[contains]': 'Ha',
+    //   OR: {
+    //     0: { 'email[contains]': 'gmail' },
+    //     1: { 'age[lt]': '30' },
+    //   },
+    // };
     for (const key in filters) {
+      // Key: 'status[in]', 'age', 'profile.address.city[contains]', 'OR'
+      // Value: 'active,inactive', 'Ha', {0:...,1:...}
       const value = filters[key];
 
-      // Xử lý các toán tử logic: AND, OR, NOT
+      // Xử lý các toán tử logic: AND, OR, NOT với giá trị là object
+      // OR: {
+      //     0: { 'email[contains]': 'gmail' },
+      //     1: { 'age[lt]': '30' },
+      //   },
       if (
         ['AND', 'OR', 'NOT'].includes(key) &&
         typeof value === 'object' &&
         value !== null
       ) {
+        // coditionList = [ { email: { contains: 'gmail' } }, { age: { lt: 30 } } ]
         const conditionList = Object.values(value).map((item) =>
           typeof item === 'object' && item !== null
             ? this.parseNestedObject(item as Record<string, unknown>)
             : {},
         );
+        // where: { OR: [ { email: { contains: 'gmail' } }, { age: { lt: 30 } } ] }
         where[key] = conditionList;
         continue;
       }
 
+      // Key: 'profile.address.city[contains]'
+      // => segments = ['profile','address','city[contains]']
       const segments = key.split('.');
       const lastSegment = segments[segments.length - 1];
 
       // Kiểm tra cú pháp field[operator]
+      // match không hợp lệ trả về: age, age[], age[gtte], age[123], etc.
+      // match hợp lệ trả về: city[contains] => ['city[contains]', 'city', 'contains']
       const match = lastSegment.match(/^(\w+)\[([a-zA-Z]+)\]$/);
       if (match) {
         const [, field, operator] = match;
         if (!this.VALID_OPERATORS.includes(operator)) {
           throw new Error(`Invalid operator: ${operator}`);
         }
+
+        // ['profile','address','city[contains]'] => ['profile','address','city']
         segments[segments.length - 1] = field;
         const parsed = this.handleValue(value as string);
 
-        // Duyệt hoặc khởi tạo cấu trúc lồng
+        // Duyệt hoặc khởi tạo cấu trúc lồng tất cả các segment trừ segment cuối
+        // current = {}
+        // segments = ['profile','address','city']
         let current = where;
         for (let i = 0; i < segments.length - 1; i++) {
           const seg = segments[i];
@@ -240,7 +287,9 @@ export class UtilsService {
           }
           current = current[seg] as Record<string, unknown>;
         }
+        // => where = { profile: { address: { } } }  | current = where['profile']['address']
 
+        // ['profile','address','city'] => fieldName = 'city'
         const fieldName = segments[segments.length - 1];
 
         if (
@@ -251,9 +300,12 @@ export class UtilsService {
           current[fieldName] = {};
         }
 
+        // => where['profile']['address']['city'][contains] = 'Ha'
         (current[fieldName] as Record<string, any>)[operator] = parsed;
       }
-      // Xử lý giá trị đối tượng như: age: { gte: 10 }
+      // target = where
+      // segments = ["age"]
+      // value = { gte: 18, lt: 30 }
       else if (
         typeof value === 'object' &&
         value !== null &&
