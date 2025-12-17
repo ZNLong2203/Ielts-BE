@@ -5,13 +5,15 @@ import {
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
+import { Prisma } from '@prisma/client';
 import { Request, Response } from 'express';
 import * as ms from 'ms';
 import { StringValue } from 'ms';
-import { USER_STATUS } from 'src/common/constants';
+import { AUTH_PROVIDER, USER_ROLE, USER_STATUS } from 'src/common/constants';
 import { UploadedFileType } from 'src/interface/file-type.interface';
 import { IJwtPayload } from 'src/interface/jwt-payload.interface';
 import { IUser } from 'src/interface/users.interface';
+import { IGoogleUser } from 'src/modules/auth/interfaces/auth.interface';
 import { MailService } from 'src/modules/mail/mail.service';
 import { UpdateStudentDto } from 'src/modules/students/dto/update-student.dto';
 import { StudentsService } from 'src/modules/students/students.service';
@@ -111,6 +113,32 @@ export class AuthService {
     return match ? user : null;
   }
 
+  async validateGoogleStudent(googleUser: IGoogleUser) {
+    const { email, firstName, lastName, picture } = googleUser;
+    let user = await this.usersService.findByEmail(email);
+
+    // If user doesn't exist, create a new one
+    if (!user) {
+      const fullName = `${firstName} ${lastName}`;
+      const password = '';
+
+      // Create user via UsersService
+      const newUserData: Prisma.usersCreateInput = {
+        email: email,
+        password,
+        full_name: fullName,
+        role: USER_ROLE.STUDENT,
+        email_verified: true,
+        status: USER_STATUS.ACTIVE, // Auto-activate Google users
+        auth_provider: AUTH_PROVIDER.GOOGLE,
+        avatar: picture,
+      };
+
+      user = await this.usersService.createGoogleStudent(newUserData);
+    }
+    return user;
+  }
+
   async login(user: IUser, res: Response) {
     const payload = {
       sub: 'Token Login',
@@ -128,6 +156,23 @@ export class AuthService {
       throw new UnauthorizedException('User account is inactive');
     }
     return this.createBothTokens(payload, payload, user, res, user.id);
+  }
+
+  async googleStudentLogin(googleUser: IUser, res: Response) {
+    try {
+      const data = await this.login(googleUser, res);
+      // Redirect to frontend with access_token in URL params
+      const frontendUrl = this.configService.get<string>('FRONTEND_URL');
+      const { access_token, user } = data;
+
+      const redirectUrl = `${frontendUrl || 'http://localhost:3000'}?login_success=true&access_token=${access_token}`;
+      return res.redirect(redirectUrl);
+    } catch (error) {
+      const frontendUrl = this.configService.get<string>('FRONTEND_URL');
+      return res.redirect(
+        `${frontendUrl || 'http://localhost:3000'}/auth/login?error=google_auth_failed`,
+      );
+    }
   }
 
   async refresh(req: Request, res: Response) {
@@ -192,6 +237,13 @@ export class AuthService {
     const userProfile = await this.usersService.findById(user.id);
     if (!userProfile) {
       throw new BadRequestException('User not found');
+    }
+
+    // Check if user uses Google authentication
+    if (userProfile.auth_provider === AUTH_PROVIDER.GOOGLE) {
+      throw new BadRequestException(
+        'Cannot change password for Google-authenticated accounts. Please use Google to manage your password.',
+      );
     }
 
     const isValid = this.usersService.isValidPassword(
@@ -276,6 +328,7 @@ export class AuthService {
     res.cookie('refresh_token', refresh_token, {
       httpOnly: true,
       maxAge: ms(time as StringValue),
+      secure: this.configService.get('NODE_ENV') === 'production', // Chỉ HTTPS trong production
     });
 
     return {

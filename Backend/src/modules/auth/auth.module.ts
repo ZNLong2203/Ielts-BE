@@ -4,6 +4,7 @@ import { JwtModule } from '@nestjs/jwt';
 import { PassportModule } from '@nestjs/passport';
 import * as ms from 'ms';
 import { StringValue } from 'ms';
+import { GoogleStrategy } from 'src/modules/auth/strategies/google.strategy';
 import { JwtStrategy } from 'src/modules/auth/strategies/jwt.strategy';
 import { LocalStrategy } from 'src/modules/auth/strategies/local.strategy';
 import { MailModule } from 'src/modules/mail/mail.module';
@@ -39,7 +40,7 @@ import { AuthService } from './auth.service';
     }),
   ],
   controllers: [AuthController],
-  providers: [AuthService, LocalStrategy, JwtStrategy],
+  providers: [AuthService, LocalStrategy, JwtStrategy, GoogleStrategy],
   exports: [AuthService],
 })
 export class AuthModule {}

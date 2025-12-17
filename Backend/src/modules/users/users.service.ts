@@ -2,6 +2,7 @@ import { BadRequestException, Injectable } from '@nestjs/common';
 import { Prisma, users } from '@prisma/client';
 import * as bcrypt from 'bcryptjs';
 import {
+  AUTH_PROVIDER,
   FileType,
   TEACHER_STATUS,
   USER_ROLE,
@@ -75,6 +76,7 @@ export class UsersService {
           email_verified: false,
           role: USER_ROLE.STUDENT,
           status: USER_STATUS.INACTIVE,
+          auth_provider: AUTH_PROVIDER.LOCAL,
         };
         if (dto.date_of_birth) {
           userData.date_of_birth = dto.date_of_birth;
@@ -461,5 +463,36 @@ export class UsersService {
 
     // Cập nhật avatar URL trong cơ sở dữ liệu
     return await this.updateUser(id, { avatar: fileData.url });
+  }
+
+  async createGoogleStudent(userData: Prisma.usersCreateInput) {
+    try {
+      const result = await this.prisma.$transaction(async (tx) => {
+        // Create user
+        const user = await tx.users.create({
+          data: userData,
+        });
+
+        // Create student profile if role is STUDENT
+        if (userData.role === USER_ROLE.STUDENT) {
+          await tx.students.create({
+            data: {
+              users: {
+                connect: {
+                  id: user.id,
+                },
+              },
+              learning_goals: [],
+            },
+          });
+        }
+
+        return user;
+      });
+
+      return result;
+    } catch (error) {
+      throw new BadRequestException('Failed to create Google user');
+    }
   }
 }

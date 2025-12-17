@@ -37,6 +37,7 @@ import {
 } from 'src/decorator/customize';
 import { UploadedFileType } from 'src/interface/file-type.interface';
 import { IUser } from 'src/interface/users.interface';
+import { GoogleAuthGuard } from 'src/modules/auth/guards/google-auth.guard';
 import { LocalAuthGuard } from 'src/modules/auth/guards/local-auth.guard';
 import { UpdateStudentDto } from 'src/modules/students/dto/update-student.dto';
 import { UpdateTeacherDto } from 'src/modules/teachers/dto/update-teacher.dto';
@@ -51,7 +52,6 @@ import {
 } from 'src/modules/users/dto/update-user.dto';
 import { RegisterStudentDto } from '../../modules/users/dto/create-user.dto';
 import { AuthService } from './auth.service';
-import { canUpdateTeacherCertification } from 'src/casl/policies/teacher.policies';
 
 @ApiExtraModels(RegisterStudentDto, RegisterTeacherDto)
 @ApiTags('Authentication')
@@ -165,6 +165,28 @@ export class AuthController {
     @Res({ passthrough: true }) res: Response,
   ) {
     return this.authService.login(req.user, res);
+  }
+
+  @ApiOperation({
+    summary: 'Google OAuth Login (for student)',
+    description: 'Initiate Google OAuth authentication flow.',
+  })
+  @Public()
+  @Get('google')
+  @UseGuards(GoogleAuthGuard)
+  async googleAuth() {
+    // Guard auto redirects to Google
+  }
+
+  @ApiOperation({
+    summary: 'Google OAuth Callback (for student)',
+    description: 'Handle Google OAuth callback and authenticate user.',
+  })
+  @Public()
+  @Get('google/callback')
+  @UseGuards(GoogleAuthGuard)
+  async googleAuthCallback(@CurrentUser() user: IUser, @Res() res: Response) {
+    return this.authService.googleStudentLogin(user, res);
   }
 
   @ApiOperation({
