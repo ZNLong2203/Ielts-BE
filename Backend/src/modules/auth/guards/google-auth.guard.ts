@@ -11,7 +11,7 @@ export class GoogleAuthGuard extends AuthGuard('google') {
   handleRequest(err, user, info, context: ExecutionContext) {
     const req = context.switchToHttp().getRequest<Request>();
 
-    // 👇 User bấm HỦY
+    // User bấm HỦY
     if (req.query?.error === 'access_denied') {
       return null;
     }
