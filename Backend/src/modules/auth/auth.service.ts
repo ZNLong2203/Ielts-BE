@@ -119,7 +119,7 @@ export class AuthService {
 
     // Nếu người dùng không tồn tại, tạo mới
     if (!user) {
-      const fullName = `${firstName} ${lastName}`;
+      const fullName = `${firstName || ''} ${lastName || ''}`.trim();
       const password = '';
 
       // Tạo người dùng thông qua UsersService
@@ -158,12 +158,18 @@ export class AuthService {
     return this.createBothTokens(payload, payload, user, res, user.id);
   }
 
-  async googleStudentLogin(googleUser: IUser, res: Response) {
+  async googleStudentLogin(req: Request & { user: IUser }, res: Response) {
     try {
+      if (req.query?.error === 'access_denied' || !req.user) {
+        return res.redirect(
+          `${process.env.FRONTEND_URL}/auth/login?error=google_auth_failed`,
+        );
+      }
+      const googleUser: IUser = req.user;
       const data = await this.login(googleUser, res);
       // Chuyển hướng đến frontend với access_token trong URL params
       const frontendUrl = this.configService.get<string>('FRONTEND_URL');
-      const { access_token, user } = data;
+      const { access_token } = data;
 
       const redirectUrl = `${frontendUrl || 'http://localhost:3000'}?login_success=true&access_token=${access_token}`;
       return res.redirect(redirectUrl);

@@ -1,20 +1,26 @@
-import { ExecutionContext, Injectable } from '@nestjs/common';
+import {
+  ExecutionContext,
+  Injectable,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
-import { Request, Response } from 'express';
+import { Request } from 'express';
 
 @Injectable()
 export class GoogleAuthGuard extends AuthGuard('google') {
-  async canActivate(context: ExecutionContext): Promise<boolean> {
-    const request = context.switchToHttp().getRequest<Request>();
-    const response = context.switchToHttp().getResponse<Response>();
+  handleRequest(err, user, info, context: ExecutionContext) {
+    const req = context.switchToHttp().getRequest<Request>();
 
-    try {
-      return (await super.canActivate(context)) as boolean;
-    } catch (err) {
-      // Nếu user cancel hoặc có lỗi, redirect FE
-      const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
-      response.redirect(`${frontendUrl}/auth/login?error=google_auth_failed`);
-      return false;
+    // 👇 User bấm HỦY
+    if (req.query?.error === 'access_denied') {
+      return null;
     }
+
+    // Lỗi OAuth khác
+    if (err || !user) {
+      throw err || new UnauthorizedException();
+    }
+
+    return user;
   }
 }

@@ -185,8 +185,11 @@ export class AuthController {
   @Public()
   @Get('google/callback')
   @UseGuards(GoogleAuthGuard)
-  async googleAuthCallback(@CurrentUser() user: IUser, @Res() res: Response) {
-    return this.authService.googleStudentLogin(user, res);
+  async googleAuthCallback(
+    @Req() req: Request & { user: IUser },
+    @Res() res: Response,
+  ) {
+    return this.authService.googleStudentLogin(req, res);
   }
 
   @ApiOperation({
