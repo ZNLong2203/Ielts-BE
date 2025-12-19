@@ -1084,8 +1084,8 @@ export class StudyScheduleService {
       } else {
         this.logger.warn(
           `Reminder not created for schedule ${schedule.id}: reminder time (${format(reminderTime, 'yyyy-MM-dd HH:mm')}) is in the past. ` +
-          `Scheduled time: ${format(scheduledDateTime, 'yyyy-MM-dd HH:mm')}, ` +
-          `Reminder minutes before: ${schedule.reminder_minutes_before}`,
+            `Scheduled time: ${format(scheduledDateTime, 'yyyy-MM-dd HH:mm')}, ` +
+            `Reminder minutes before: ${schedule.reminder_minutes_before}`,
         );
       }
     } catch (error) {

@@ -8,6 +8,7 @@ import { ConfigService } from '@nestjs/config';
 import { Prisma } from '@prisma/client';
 import { Response } from 'express';
 import { OrderStatus } from 'src/modules/orders/dto/update-order.dto';
+import { MailService } from 'src/modules/mail/mail.service';
 import {
   PaymentMethod,
   PaymentStatus,
@@ -17,6 +18,7 @@ import {
   PaymentRecord,
 } from 'src/modules/payments/interfaces/payment.interface';
 import { PrismaService } from 'src/prisma/prisma.service';
+import { RedisService } from 'src/redis/redis.service';
 import Stripe from 'stripe';
 import {
   CreatePaymentDto,
@@ -27,11 +29,14 @@ import { StripeProvider } from './providers/stripe.provider';
 @Injectable()
 export class PaymentsService {
   private readonly logger = new Logger('PaymentService');
+  private readonly EMAIL_QUEUE_NAME = 'email:payment-success';
 
   constructor(
     private readonly config: ConfigService,
     private readonly stripeProvider: StripeProvider,
     private readonly prisma: PrismaService,
+    private readonly redisService: RedisService,
+    private readonly mailService: MailService,
   ) {}
 
   async createPayment(
@@ -197,6 +202,9 @@ export class PaymentsService {
       );
     });
 
+    // Queue email job after successful payment
+    await this.queuePaymentSuccessEmail(orderId);
+
     // Chuyển hướng đến URL thành công
     const frontendUrl =
       this.config.get<string>('FRONTEND_URL') || 'http://localhost:8000';
@@ -305,6 +313,8 @@ export class PaymentsService {
     const currentGatewayResponse =
       (payment.gateway_response as Record<string, unknown>) ?? {};
 
+    let orderId: string | null = null;
+
     // sử dụng transaction
     await this.prisma.$transaction(async (tx) => {
       const payment = await tx.payments.update({
@@ -320,6 +330,8 @@ export class PaymentsService {
         },
       });
 
+      orderId = payment.order_id;
+
       // cập nhật trạng thái đơn hàng
       // đặt trạng thái đơn hàng dựa trên trạng thái thanh toán
       const orderStatus =
@@ -333,7 +345,21 @@ export class PaymentsService {
           payment_status: status,
         },
       });
+
+      // Create enrollments if payment completed
+      if (status === PaymentStatus.COMPLETED && payment.order_id) {
+        await this.createComboEnrollmentPaymentRecord(
+          tx,
+          payment.order_id,
+          PaymentStatus.COMPLETED,
+        );
+      }
     });
+
+    // Queue email job if payment completed
+    if (status === PaymentStatus.COMPLETED && orderId) {
+      await this.queuePaymentSuccessEmail(orderId);
+    }
   }
 
   async cancelPayment(paymentId: string) {
@@ -428,5 +454,126 @@ export class PaymentsService {
     await tx.enrollments.createMany({
       data: enrollmentRecords,
     });
+  }
+
+  private async queuePaymentSuccessEmail(orderId: string): Promise<void> {
+    try {
+      // Fetch order with user and combo information
+      const order = await this.prisma.orders.findUnique({
+        where: { id: orderId },
+        include: {
+          users: {
+            select: {
+              id: true,
+              email: true,
+              full_name: true,
+            },
+          },
+          order_items: {
+            where: { combo_id: { not: null } },
+            select: {
+              combo_id: true,
+              combo_name: true,
+            },
+            distinct: ['combo_id'],
+          },
+        },
+      });
+
+      if (!order || !order.users) {
+        this.logger.warn(
+          `Cannot queue email: Order ${orderId} or user not found`,
+        );
+        return;
+      }
+
+      // Get unique combos from order items
+      const comboIds = Array.from(
+        new Set(
+          order.order_items
+            .map((item) => item.combo_id)
+            .filter((id): id is string => id !== null),
+        ),
+      );
+
+      if (comboIds.length === 0) {
+        this.logger.warn(
+          `Cannot queue email: No combos found in order ${orderId}`,
+        );
+        return;
+      }
+
+      // Fetch combo details
+      const combos = await this.prisma.combo_courses.findMany({
+        where: { id: { in: comboIds } },
+        select: {
+          id: true,
+          name: true,
+        },
+      });
+
+      if (combos.length === 0) {
+        this.logger.warn(
+          `Cannot queue email: Combos not found for order ${orderId}`,
+        );
+        return;
+      }
+
+      // Parse startLevel and endLevel from combo name (e.g., "3.5 - 5.0")
+      const parsedCombos = combos
+        .map((combo) => {
+          const nameMatch = combo.name.match(/(\d+\.?\d*)\s*-\s*(\d+\.?\d*)/);
+          if (nameMatch) {
+            return {
+              id: combo.id,
+              name: combo.name,
+              startLevel: parseFloat(nameMatch[1]),
+              endLevel: parseFloat(nameMatch[2]),
+            };
+          }
+          return {
+            id: combo.id,
+            name: combo.name,
+            startLevel: 0,
+            endLevel: 0,
+          };
+        })
+        .filter((combo) => combo !== null);
+
+      // Prepare email job data
+      const emailJobData = {
+        orderId: order.id,
+        orderCode: order.order_code,
+        userEmail: order.users.email,
+        userName: order.users.full_name || 'Student',
+        finalAmount: Number(order.final_amount),
+        discountAmount: order.discount_amount
+          ? Number(order.discount_amount)
+          : undefined,
+        currency: 'VND',
+        paymentMethod: order.payment_method || 'Stripe',
+        paymentDate: new Date().toLocaleString('en-US', {
+          year: 'numeric',
+          month: 'long',
+          day: 'numeric',
+          hour: '2-digit',
+          minute: '2-digit',
+        }),
+        combos: parsedCombos,
+      };
+
+      // Push job to Redis queue
+      await this.redisService.pushJob(this.EMAIL_QUEUE_NAME, emailJobData);
+
+      this.logger.log(
+        `Payment success email job queued for order ${orderId} (${order.order_code})`,
+      );
+    } catch (error) {
+      const e = error as Error;
+      this.logger.error(
+        `Failed to queue payment success email for order ${orderId}: ${e.message}`,
+        e.stack,
+      );
+    }
   }
 }

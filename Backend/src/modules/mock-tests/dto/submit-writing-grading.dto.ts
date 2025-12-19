@@ -63,7 +63,8 @@ export class SubmitWritingGradingDto {
 
   @ApiPropertyOptional({
     description: 'Detailed feedback for Task 1',
-    example: 'Your Task 1 response demonstrates good understanding of the data...',
+    example:
+      'Your Task 1 response demonstrates good understanding of the data...',
   })
   @IsOptional()
   @IsString()
@@ -144,4 +145,3 @@ export class SubmitWritingGradingDto {
   @IsString()
   general_feedback?: string;
 }
-

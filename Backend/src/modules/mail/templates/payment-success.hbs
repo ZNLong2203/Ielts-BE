@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Payment Successful - IELTS Platform</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+      line-height: 1.6;
+      color: #1a1a1a;
+      max-width: 600px;
+      margin: 0 auto;
+      padding: 20px;
+      background-color: #f5f5f5;
+    }
+    .container {
+      background-color: #ffffff;
+      border-radius: 0;
+      padding: 0;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.12);
+    }
+    .header {
+      background-color: #2c3e50;
+      color: #ffffff;
+      padding: 40px 30px;
+      text-align: center;
+      border-bottom: 4px solid #3498db;
+    }
+    .header h1 {
+      color: #ffffff;
+      margin: 0;
+      font-size: 28px;
+      font-weight: 600;
+      letter-spacing: -0.5px;
+    }
+    .content {
+      padding: 40px 30px;
+    }
+    .greeting {
+      font-size: 16px;
+      margin-bottom: 30px;
+      color: #1a1a1a;
+    }
+    .greeting p {
+      margin: 8px 0;
+    }
+    .section {
+      margin-bottom: 30px;
+    }
+    .section-title {
+      font-size: 18px;
+      font-weight: 600;
+      color: #2c3e50;
+      margin: 0 0 20px 0;
+      padding-bottom: 12px;
+      border-bottom: 2px solid #e8e8e8;
+    }
+    .info-grid {
+      display: table;
+      width: 100%;
+    }
+    .info-item {
+      display: table-row;
+      border-bottom: 1px solid #f0f0f0;
+    }
+    .info-item:last-child {
+      border-bottom: none;
+    }
+    .info-label {
+      font-weight: 600;
+      color: #666;
+      display: table-cell;
+      padding: 12px 0;
+      width: 40%;
+      vertical-align: top;
+    }
+    .info-value {
+      color: #1a1a1a;
+      display: table-cell;
+      padding: 12px 0;
+      vertical-align: top;
+    }
+    .amount-highlight {
+      color: #27ae60;
+      font-weight: 600;
+      font-size: 16px;
+    }
+    .combo-list {
+      margin: 0;
+      padding: 0;
+    }
+    .combo-item {
+      margin: 12px 0;
+      padding: 16px;
+      background-color: #f8f9fa;
+      border: 1px solid #e8e8e8;
+      border-left: 4px solid #3498db;
+      border-radius: 0;
+    }
+    .combo-name {
+      font-weight: 600;
+      color: #2c3e50;
+      font-size: 16px;
+      margin-bottom: 6px;
+    }
+    .combo-level {
+      color: #666;
+      font-size: 14px;
+    }
+    .button-container {
+      text-align: center;
+      margin: 40px 0 30px 0;
+    }
+    .button {
+      display: inline-block;
+      padding: 14px 36px;
+      background-color: #2c3e50;
+      color: #ffffff;
+      text-decoration: none;
+      border-radius: 0;
+      font-weight: 600;
+      font-size: 16px;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+    }
+    .button:hover {
+      background-color: #34495e;
+    }
+    .note {
+      color: #666;
+      font-size: 14px;
+      line-height: 1.6;
+      margin-top: 30px;
+    }
+    .footer {
+      background-color: #f8f9fa;
+      padding: 30px;
+      text-align: center;
+      border-top: 1px solid #e8e8e8;
+      color: #666;
+      font-size: 14px;
+    }
+    .footer p {
+      margin: 8px 0;
+    }
+    .footer-links {
+      margin: 15px 0;
+    }
+    .footer-links a {
+      color: #3498db;
+      text-decoration: none;
+      margin: 0 10px;
+    }
+    .footer-links a:hover {
+      text-decoration: underline;
+    }
+    .footer-disclaimer {
+      margin-top: 20px;
+      font-size: 12px;
+      color: #999;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>Payment Successful</h1>
+    </div>
+    
+    <div class="content">
+      <div class="greeting">
+        <p>Hello {{userName}},</p>
+        <p>Thank you for your purchase. Your payment has been successfully processed and your order is now confirmed.</p>
+      </div>
+
+      <div class="section">
+        <h3 class="section-title">Order Information</h3>
+        <div class="info-grid">
+          <div class="info-item">
+            <span class="info-label">Order Code</span>
+            <span class="info-value">{{orderCode}}</span>
+          </div>
+          <div class="info-item">
+            <span class="info-label">Payment Amount</span>
+            <span class="info-value amount-highlight">{{finalAmount}} {{currency}}</span>
+          </div>
+          {{#if discountAmount}}
+          <div class="info-item">
+            <span class="info-label">Discount</span>
+            <span class="info-value">-{{discountAmount}} {{currency}}</span>
+          </div>
+          {{/if}}
+          <div class="info-item">
+            <span class="info-label">Payment Method</span>
+            <span class="info-value">{{paymentMethod}}</span>
+          </div>
+          <div class="info-item">
+            <span class="info-label">Payment Date</span>
+            <span class="info-value">{{paymentDate}}</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="section">
+        <h3 class="section-title">Purchased Combo Courses</h3>
+        <div class="combo-list">
+          {{#each combos}}
+          <div class="combo-item">
+            <div class="combo-name">{{this.name}}</div>
+            <div class="combo-level">Level: {{this.startLevel}} - {{this.endLevel}}</div>
+          </div>
+          {{/each}}
+        </div>
+      </div>
+
+      <div class="button-container">
+        <a href="{{dashboardUrl}}/my-courses" class="button">Access Your Courses</a>
+      </div>
+
+      <p class="note">
+        You can now access all courses included in your purchased combo(s). Start learning and achieve your IELTS goals!
+      </p>
+    </div>
+
+    <div class="footer">
+      <p><strong>Thank you for choosing our IELTS platform!</strong></p>
+      <div class="footer-links">
+        <a href="{{dashboardUrl}}">Visit Dashboard</a>
+        <a href="{{dashboardUrl}}/my-courses">My Courses</a>
+      </div>
+      <p class="footer-disclaimer">
+        This is an automated email. Please do not reply to this message.
+      </p>
+    </div>
+  </div>
+</body>
+</html>
+

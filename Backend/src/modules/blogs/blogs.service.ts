@@ -591,7 +591,7 @@ export class BlogsService {
     }
   }
 
-  // TEACHER BLOG METHODS 
+  // TEACHER BLOG METHODS
   async createTeacherBlog(
     createBlogDto: CreateBlogDto,
     teacherId: string,

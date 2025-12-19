@@ -361,7 +361,8 @@ export class MockTestsController {
   @Get('writing/pending')
   @ApiOperation({
     summary: 'Get pending writing submissions for teacher grading',
-    description: 'Retrieves all writing section results that are pending teacher grading',
+    description:
+      'Retrieves all writing section results that are pending teacher grading',
   })
   @ApiQuery({ name: 'page', required: false, type: Number })
   @ApiQuery({ name: 'limit', required: false, type: Number })
@@ -388,7 +389,8 @@ export class MockTestsController {
   @Get('writing/graded')
   @ApiOperation({
     summary: 'Get graded writing submissions',
-    description: 'Retrieves all writing section results that have been graded by teachers',
+    description:
+      'Retrieves all writing section results that have been graded by teachers',
   })
   @ApiQuery({ name: 'page', required: false, type: Number })
   @ApiQuery({ name: 'limit', required: false, type: Number })
@@ -415,7 +417,8 @@ export class MockTestsController {
   @Get('writing/:sectionResultId')
   @ApiOperation({
     summary: 'Get writing submission details for grading',
-    description: 'Retrieves detailed information about a specific writing submission for teacher grading',
+    description:
+      'Retrieves detailed information about a specific writing submission for teacher grading',
   })
   @ApiParam({ name: 'sectionResultId', description: 'Section result UUID' })
   @ApiResponse({
@@ -445,7 +448,8 @@ export class MockTestsController {
   @Post('writing/:sectionResultId/grade')
   @ApiOperation({
     summary: 'Submit teacher grading for writing submission',
-    description: 'Allows teacher to submit scores and feedback for a writing submission',
+    description:
+      'Allows teacher to submit scores and feedback for a writing submission',
   })
   @ApiParam({ name: 'sectionResultId', description: 'Section result UUID' })
   @ApiResponse({

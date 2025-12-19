@@ -43,11 +43,7 @@ export class OrdersService {
     const { comboId, comboIds, couponId, paymentMethod, notes } = dto;
 
     const comboIdList =
-      comboIds && comboIds.length > 0
-        ? comboIds
-        : comboId
-        ? [comboId]
-        : [];
+      comboIds && comboIds.length > 0 ? comboIds : comboId ? [comboId] : [];
 
     if (comboIdList.length === 0) {
       throw new BadRequestException('comboId or comboIds is required');
@@ -66,9 +62,7 @@ export class OrdersService {
     const foundIds = new Set(combos.map((c) => c.id));
     const missing = comboIdList.filter((id) => !foundIds.has(id));
     if (missing.length > 0) {
-      throw new NotFoundException(
-        `Combo(s) not found: ${missing.join(', ')}`,
-      );
+      throw new NotFoundException(`Combo(s) not found: ${missing.join(', ')}`);
     }
 
     // check combos with this user have already purchased
@@ -91,9 +85,7 @@ export class OrdersService {
     }
 
     // 2) collect all course_ids across combos
-    const allCourseIds: string[] = combos.flatMap(
-      (c) => c.course_ids ?? [],
-    );
+    const allCourseIds: string[] = combos.flatMap((c) => c.course_ids ?? []);
     if (allCourseIds.length === 0) {
       throw new BadRequestException('Selected combos have no courses');
     }

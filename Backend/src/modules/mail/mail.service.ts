@@ -122,4 +122,58 @@ export class MailService {
       throw error;
     }
   }
+
+  async sendPaymentSuccessEmail(data: {
+    to: string;
+    userName: string;
+    orderCode: string;
+    finalAmount: number;
+    discountAmount?: number;
+    currency: string;
+    paymentMethod: string;
+    paymentDate: string;
+    combos: Array<{
+      id: string;
+      name: string;
+      startLevel: number;
+      endLevel: number;
+    }>;
+  }) {
+    try {
+      const formatPrice = (amount: number): string => {
+        return new Intl.NumberFormat('vi-VN', {
+          style: 'currency',
+          currency: 'VND',
+        }).format(amount);
+      };
+
+      await this.mailerService.sendMail({
+        to: data.to,
+        subject: `Payment Successful - Order ${data.orderCode}`,
+        template: 'payment-success',
+        context: {
+          userName: data.userName,
+          orderCode: data.orderCode,
+          finalAmount: formatPrice(data.finalAmount),
+          discountAmount: data.discountAmount
+            ? formatPrice(data.discountAmount)
+            : null,
+          currency: data.currency,
+          paymentMethod: data.paymentMethod,
+          paymentDate: data.paymentDate,
+          combos: data.combos,
+          dashboardUrl: this.dashboardUrl,
+          formatPrice: formatPrice,
+        },
+      });
+
+      this.logger.log(`Payment success email sent to ${data.to}`);
+    } catch (error) {
+      const e = error as Error;
+      this.logger.error(
+        `Failed to send payment success email to ${data.to}: ${e.message}`,
+      );
+      throw error;
+    }
+  }
 }

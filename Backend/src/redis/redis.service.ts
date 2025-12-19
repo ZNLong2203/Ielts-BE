@@ -68,6 +68,62 @@ export class RedisService {
     }
   }
 
+  /**
+   * Push a job to Redis queue (using list)
+   * @param queueName Queue name (e.g., 'email:payment-success')
+   * @param jobData Job data to be processed
+   */
+  async pushJob(queueName: string, jobData: unknown): Promise<void> {
+    try {
+      const jobPayload = JSON.stringify({
+        data: jobData,
+        timestamp: Date.now(),
+      });
+      await this.redis.lpush(queueName, jobPayload);
+      this.logger.debug(`Job pushed to queue ${queueName}`);
+    } catch (error) {
+      this.logger.error(`Error pushing job to queue ${queueName}:`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * Pop a job from Redis queue (blocking)
+   * @param queueName Queue name
+   * @param timeoutSeconds Timeout in seconds (default: 5)
+   * @returns Job data or null if timeout
+   */
+  async popJob(
+    queueName: string,
+    timeoutSeconds = 5,
+  ): Promise<{ data: unknown; timestamp: number } | null> {
+    try {
+      const result = await this.redis.brpop(queueName, timeoutSeconds);
+      if (!result || result.length < 2) {
+        return null;
+      }
+      const jobPayload = result[1];
+      return JSON.parse(jobPayload) as { data: unknown; timestamp: number };
+    } catch (error) {
+      this.logger.error(`Error popping job from queue ${queueName}:`, error);
+      return null;
+    }
+  }
+
+  /**
+   * Get queue length
+   * @param queueName Queue name
+   * @returns Number of jobs in queue
+   */
+  async getQueueLength(queueName: string): Promise<number> {
+    try {
+      return await this.redis.llen(queueName);
+    } catch (error) {
+      this.logger.error(`Error getting queue length for ${queueName}:`, error);
+      return 0;
+    }
+  }
+
   onModuleDestroy() {
     this.redis.quit().catch((err) => {
       this.logger.error('Error quitting Redis client:', err);
