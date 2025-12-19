@@ -45,12 +45,22 @@ async def query_ollama(prompt: str) -> str:
         # Ollama may return streaming format even with stream=False
         # Parse the response text line by line to handle both formats
         response_text = ""
+        thinking_text = ""
         text_content = resp.text.strip()
+        from_response_field = False
         
         # Try to parse as single JSON first
         try:
             data = resp.json()
             response_text = data.get("response", "")
+            # Track if we got data from response field
+            if response_text:
+                from_response_field = True
+            else:
+                # Only use thinking if response is empty
+                thinking_text = data.get("thinking", "")
+                if thinking_text:
+                    response_text = thinking_text
         except (ValueError, httpx.DecodeError):
             # If single JSON fails, parse streaming format
             # Accumulate all response chunks until done=True
@@ -63,6 +73,13 @@ async def query_ollama(prompt: str) -> str:
                     chunk_response = chunk.get("response", "")
                     if chunk_response:
                         response_text += chunk_response
+                        from_response_field = True
+                    # Only check thinking if we don't have response yet
+                    elif not from_response_field:
+                        chunk_thinking = chunk.get("thinking", "")
+                        if chunk_thinking:
+                            thinking_text += chunk_thinking
+                            response_text += chunk_thinking
                     if chunk.get("done", False):
                         break
                 except json.JSONDecodeError:
@@ -80,19 +97,37 @@ async def query_ollama(prompt: str) -> str:
                             data = json.loads(line)
                             response_text = data.get("response", "")
                             if response_text:
+                                from_response_field = True
                                 break
+                            # Only check thinking if response is empty
+                            if not from_response_field:
+                                thinking_text = data.get("thinking", "")
+                                if thinking_text:
+                                    response_text = thinking_text
+                                    break
                         except json.JSONDecodeError:
                             continue
             except Exception:
                 pass
         
-        cleaned_response = re.sub(r'<think>.*?</think>', '', response_text, flags=re.DOTALL | re.IGNORECASE)
-        cleaned_response = re.sub(r'<thinking>.*?</thinking>', '', cleaned_response, flags=re.DOTALL | re.IGNORECASE)
+        # Clean up response
+        if from_response_field:
+            cleaned_response = re.sub(r'<think>.*?</think>', '', response_text, flags=re.DOTALL | re.IGNORECASE)
+            cleaned_response = re.sub(r'<thinking>.*?</thinking>', '', cleaned_response, flags=re.DOTALL | re.IGNORECASE)
+        else:
+            cleaned_response = re.sub(r'<think>.*?</think>', '', response_text, flags=re.DOTALL | re.IGNORECASE)
         
         cleaned_response = cleaned_response.strip()
         cleaned_response = re.sub(r'\n\s*\n+', '\n\n', cleaned_response)
         
         if not cleaned_response:
+            logger.warning(f"Empty response from Ollama. Original response_text length: {len(response_text)}, content preview: {response_text[:200]}")
+            try:
+                debug_data = resp.json()
+                logger.debug(f"Response JSON keys: {list(debug_data.keys())}")
+                logger.debug(f"Has 'response' field: {'response' in debug_data}, Has 'thinking' field: {'thinking' in debug_data}")
+            except:
+                pass
             cleaned_response = "I'm here to help you with IELTS preparation. Please ask me a specific question."
         
         return cleaned_response

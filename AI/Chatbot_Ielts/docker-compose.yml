@@ -40,8 +40,8 @@ services:
     image: minio/minio:latest
     container_name: milvus-minio
     environment:
-      MINIO_ACCESS_KEY: minioadmin
-      MINIO_SECRET_KEY: minioadmin
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin
     ports:
       - "9001:9001"
       - "9000:9000"
@@ -80,19 +80,19 @@ services:
       timeout: 20s
       retries: 3
 
-  attu:
-    image: zilliz/attu:v2.3.3
-    container_name: milvus-attu
-    platform: linux/amd64  
-    environment:
-      - MILVUS_URL=milvus:19530
-    ports:
-      - "3001:3000"
-    depends_on:
-      - "milvus"
-    networks:
-      - ai-test
-    restart: unless-stopped
+  # attu:
+  #   image: zilliz/attu:v2.3.3
+  #   container_name: milvus-attu
+  #   platform: linux/amd64  
+  #   environment:
+  #     - MILVUS_URL=milvus:19530
+  #   ports:
+  #     - "3001:3000"
+  #   depends_on:
+  #     - "milvus"
+  #   networks:
+  #     - ai-test
+  #   restart: unless-stopped
 
   ielts-ai:
     build:

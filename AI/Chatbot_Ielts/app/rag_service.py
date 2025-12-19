@@ -10,7 +10,7 @@ logger = logging.getLogger(__name__)
 class RAGService:
     """Service for RAG-based question answering"""
     
-    def __init__(self, top_k: int = 5, score_threshold: float = 0.6):
+    def __init__(self, top_k: int = 5, score_threshold: float = 0.5):
         """
         Initialize RAG service
         
@@ -25,15 +25,6 @@ class RAGService:
             embedding_dimension=self.embedding_service.get_embedding_dimension()
         )
         self.conversation_service = get_conversation_service()
-        # Skip retrieval for greetings/very short queries to avoid noisy context
-        self.min_query_tokens_for_rag = 3
-
-    def _should_use_rag(self, query: str, use_rag: bool) -> bool:
-        """Decide whether to perform retrieval based on query length and flag"""
-        if not use_rag:
-            return False
-        tokens = query.strip().split()
-        return len(tokens) >= self.min_query_tokens_for_rag
     
     def retrieve_context(self, query: str) -> List[Dict]:
         """
@@ -129,9 +120,7 @@ class RAGService:
                 conversation_history
             )
         
-        should_use_rag = self._should_use_rag(query, use_rag)
-
-        if not should_use_rag:
+        if not use_rag:
             if summarized_history:
                 prompt = self.conversation_service.format_conversation_for_prompt(
                     conversation_history=summarized_history,
@@ -145,14 +134,15 @@ Instructions:
 - Pay attention to the conversation history. If the user refers to "that topic", "the topic above", "đề đó", or similar references, they are referring to topics/questions mentioned in the previous conversation.
 - Provide a helpful and accurate response based on the context."""
             else:
-                enhanced_prompt = query
+                # Add proper system prompt when no history
+                enhanced_prompt = f"""You are an IELTS preparation assistant. Help students with reading, writing, listening, and speaking skills. Answer the following question clearly and provide helpful guidance:
+
+{query}"""
             return await query_ollama(enhanced_prompt)
         
         try:
             # Retrieve relevant context
-            retrieved_docs = []
-            if should_use_rag:
-                retrieved_docs = self.retrieve_context(query)
+            retrieved_docs = self.retrieve_context(query)
             
             # Format and optionally summarize context
             context = ""
@@ -178,9 +168,7 @@ Instructions:
             if context:
                 instructions.append("- Use the relevant study materials provided above to answer accurately.")
                 instructions.append("- If using information from study materials, cite the source (e.g., Document X).")
-                instructions.append("- If the query is just a greeting or unrelated small talk, ignore the study materials and answer briefly.")
             
-            instructions.append("- Respond in English unless the user writes Vietnamese; avoid mixing languages unless explicitly asked.")
             instructions.append("- Provide a comprehensive and helpful answer.")
             
             instructions_text = "\n".join(instructions) if instructions else ""
@@ -198,8 +186,8 @@ Instructions:
             return answer
         except Exception as e:
             logger.error(f"Error in RAG generation: {e}")
-            # Fallback to direct generation
-            return await query_ollama(query)
+            # Fallback to direct generation with proper prompt
+            return await query_ollama(f"You are an IELTS preparation assistant. Help students with reading, writing, listening, and speaking skills. Answer the following question clearly and provide helpful guidance:\n\n{query}")
 
 # Global instance
 _rag_service: Optional[RAGService] = None
@@ -210,4 +198,3 @@ def get_rag_service() -> RAGService:
     if _rag_service is None:
         _rag_service = RAGService()
     return _rag_service
-

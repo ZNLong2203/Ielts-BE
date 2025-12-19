@@ -111,7 +111,7 @@ async def chat_endpoint(req: ChatRequest):
                     )
                     response = await query_ollama(f"You are an IELTS assistant. Continue the conversation:\n\n{prompt}")
                 else:
-                    response = await query_ollama(translated_text)
+                    response = await query_ollama(f"You are an IELTS preparation assistant. Help students with reading, writing, listening, and speaking skills. Answer the following question clearly and provide helpful guidance:\n\n{translated_text}")
         else:
             # Direct generation with optional conversation history
             if req.conversation_history:
@@ -124,7 +124,7 @@ async def chat_endpoint(req: ChatRequest):
                 )
                 response = await query_ollama(f"You are an IELTS assistant. Continue the conversation:\n\n{prompt}")
             else:
-                response = await query_ollama(translated_text)
+                response = await query_ollama(f"You are an IELTS preparation assistant. Help students with reading, writing, listening, and speaking skills. Answer the following question clearly and provide helpful guidance:\n\n{translated_text}")
         
         return ChatResponse(response=response, sources=sources)
         
@@ -288,7 +288,7 @@ async def search_documents(req: DocumentSearchRequest):
         results = milvus_client.search(
             query_embedding=query_embedding,
             top_k=req.top_k,
-            score_threshold=0.6
+            score_threshold=0.5
         )
         
         return DocumentSearchResponse(query=req.query, results=results)
