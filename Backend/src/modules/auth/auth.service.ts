@@ -234,8 +234,11 @@ export class AuthService {
     if (!userProfile) {
       throw new BadRequestException('User not found');
     }
-    const { password, id, ...userInfo } = userProfile;
-    return userInfo;
+    const { password, ...userInfo } = userProfile;
+    return {
+      ...userInfo,
+      userId: userProfile.id,
+    };
   }
 
   // Thay đổi mật khẩu
