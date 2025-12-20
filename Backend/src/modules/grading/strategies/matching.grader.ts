@@ -28,11 +28,13 @@ export class MatchingGrader implements Grader {
     // userAnswer is a string of uuid answer
     const userAnswerUuid = userAnswer as string;
 
-    // Check if all options are correctly matched
+    // Find the correct option for this question
     const correctOptions = question.question_options.filter(
       (opt) => opt.is_correct,
     );
-    const isCorrect = correctOptions.every(
+    // For matching questions, there should be exactly one correct option
+    // Check if user's answer matches the correct matching_option_id
+    const isCorrect = correctOptions.some(
       (opt) => opt.matching_option_id === userAnswerUuid,
     );
 
