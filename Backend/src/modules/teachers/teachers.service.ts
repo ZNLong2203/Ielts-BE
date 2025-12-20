@@ -53,6 +53,7 @@ export class TeachersService {
         created_at: true,
         teachers: {
           select: {
+            id: true,
             experience_years: true,
             ielts_band_score: true,
           },
