@@ -11,16 +11,11 @@ class EmbeddingService:
     """Service for generating embeddings using sentence-transformers"""
     
     def __init__(self, model_name: str = None):
-        # Default to bge-m3 for stronger multilingual retrieval
         self.model_name = model_name or os.getenv("EMBEDDING_MODEL_NAME", "BAAI/bge-m3")
         self.model: Optional[SentenceTransformer] = None
-        # bge-m3 outputs 1024-dim dense embeddings
         self.embedding_dimension = 1024
-        # Allow choosing lighter dtype; fallback to safer dtype if not supported
-        # Options: fp16, bf16, fp32
         self.dtype_str = os.getenv("EMBEDDING_MODEL_DTYPE", "bf16").lower()
-        self.device = os.getenv("EMBEDDING_DEVICE", None)  # e.g., "cuda", "cpu", or None for auto
-        # Batch size for encode (tune for memory/speed)
+        self.device = os.getenv("EMBEDDING_DEVICE", None)  
         self.batch_size = int(os.getenv("EMBEDDING_BATCH_SIZE", "16"))
         
     def load_model(self):
@@ -44,7 +39,6 @@ class EmbeddingService:
                     logger.info("CPU detected with fp16 requested; switching to bf16 for better compatibility/perf")
                     dtype = torch.bfloat16
 
-                # Some CPUs have limited support for float16; fallback to float32 if loading fails
                 try:
                     self.model = SentenceTransformer(
                         self.model_name,
