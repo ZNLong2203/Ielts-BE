@@ -162,6 +162,15 @@ export class CoursesService {
       }
     }
 
+    if (dto.teacher_id) {
+      const teacher = await this.prisma.teachers.findFirst({
+        where: { id: dto.teacher_id, deleted: false },
+      });
+      if (!teacher) {
+        throw new BadRequestException('Teacher not found');
+      }
+    }
+
     return this.prisma.courses.create({
       data: {
         category_id: dto.category_id,
@@ -172,7 +181,8 @@ export class CoursesService {
         estimated_duration: dto.estimated_duration,
         price: dto.price || 0,
         discount_price: dto.discount_price,
-        is_featured: false, // Mặc định là false, chỉ admin mới có thể đặt nổi bật
+        is_featured: dto.is_featured || false,
+        teacher_id: dto.teacher_id,
         requirements: dto.requirements,
         what_you_learn: dto.what_you_learn,
         course_outline: dto.course_outline,
@@ -316,10 +326,13 @@ export class CoursesService {
   async update(id: string, dto: UpdateCourseDto) {
     await this.findById(id); // Check if exists
 
+    // Clean DTO to remove undefined values
+    const updatedData = this.utilsService.cleanDto(dto);
+
     // Check if category exists if provided
-    if (dto.category_id) {
+    if (updatedData.category_id) {
       const category = await this.prisma.course_categories.findFirst({
-        where: { id: dto.category_id, deleted: false, is_active: true },
+        where: { id: updatedData.category_id, deleted: false, is_active: true },
       });
 
       if (!category) {
@@ -327,9 +340,15 @@ export class CoursesService {
       }
     }
 
-    // Clean DTO to remove undefined values
-    const updatedData: Prisma.coursesUpdateInput =
-      this.utilsService.cleanDto(dto);
+    // check teacher_id exists if provided
+    if (updatedData.teacher_id) {
+      const teacher = await this.prisma.teachers.findFirst({
+        where: { id: updatedData.teacher_id, deleted: false },
+      });
+      if (!teacher) {
+        throw new BadRequestException('Teacher not found');
+      }
+    }
 
     return this.prisma.courses.update({
       where: { id },
