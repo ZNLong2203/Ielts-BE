@@ -683,6 +683,13 @@ export class BlogsService {
             },
           },
           category_id: true,
+          blog_categories: {
+            select: {
+              id: true,
+              name: true,
+              slug: true,
+            },
+          },
           title: true,
           content: true,
           image: true,
@@ -1164,6 +1171,50 @@ export class BlogsService {
           );
         }
       }
+    } catch (error) {
+      if (error instanceof Error) {
+        throw new Error(error.message);
+      }
+      throw new Error(MESSAGE.ERROR.UNEXPECTED_ERROR);
+    }
+  }
+
+  async toggleLikeBlog(blogId: string, _userId?: string): Promise<blogs> {
+    try {
+      const blog = await this.prismaService.blogs.findFirst({
+        where: {
+          id: blogId,
+          deleted: false,
+        },
+      });
+
+      if (!blog) {
+        throw new Error(MESSAGE.BLOG.BLOG_NOT_FOUND);
+      }
+
+      const currentLikeCount = blog.like_count || 0;
+      const newLikeCount = Math.max(0, currentLikeCount + 1);
+
+      const updatedBlog = await this.prismaService.blogs.update({
+        where: { id: blogId },
+        data: {
+          like_count: newLikeCount,
+        },
+      });
+
+      // Clear cache
+      await this.redisService.del(`blog:${blogId}`);
+      await this.redisService.del(`publishedBlog:${blogId}`);
+      if (blog.status === 'published') {
+        await this.redisService.del('publishedBlogs');
+        if (blog.category_id) {
+          await this.redisService.del(
+            `publishedBlogsByCategory:${blog.category_id}`,
+          );
+        }
+      }
+
+      return updatedBlog;
     } catch (error) {
       if (error instanceof Error) {
         throw new Error(error.message);

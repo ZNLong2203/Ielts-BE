@@ -1077,4 +1077,29 @@ export class BlogsController {
   async deleteBlogByAdmin(@Param('id') id: string) {
     return this.blogsService.deleteBlogByAdmin(id);
   }
+
+  @Public()
+  @SkipCheckPermission()
+  @Post('/:id/like')
+  @ApiOperation({
+    summary: 'Like or unlike a blog',
+    description:
+      'Toggle like status for a blog post. Returns updated like count.',
+  })
+  @ApiParam({
+    name: 'id',
+    description: 'Blog ID',
+    type: 'string',
+    format: 'uuid',
+    example: '123e4567-e89b-12d3-a456-426614174000',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Blog liked/unliked successfully',
+    type: ApiResponseDto,
+  })
+  @MessageResponse(MESSAGE.BLOG.BLOG_UPDATED)
+  async toggleLikeBlog(@Param('id') id: string, @CurrentUser() user?: IUser) {
+    return this.blogsService.toggleLikeBlog(id, user?.id);
+  }
 }

@@ -323,6 +323,159 @@ export class CoursesService {
     };
   }
 
+  /**
+   * Get all enrollments (students) of a course with their progress statistics.
+   * This is intended for admin/teacher dashboards to monitor learner progress.
+   */
+  async getCourseStudentProgress(courseId: string, query: PaginationQueryDto) {
+    // Ensure course exists
+    const course = await this.prisma.courses.findFirst({
+      where: { id: courseId, deleted: false },
+      select: {
+        id: true,
+        title: true,
+        thumbnail: true,
+        skill_focus: true,
+        difficulty_level: true,
+      },
+    });
+
+    if (!course) {
+      throw new NotFoundException('Course not found');
+    }
+
+    // Compute total lessons of the course (used for progress percentage)
+    const sections = await this.prisma.sections.findMany({
+      where: {
+        course_id: courseId,
+        deleted: false,
+      },
+      include: {
+        lessons: {
+          where: {
+            deleted: false,
+          },
+        },
+      },
+    });
+
+    const totalLessons = sections.reduce(
+      (acc, section) => acc + section.lessons.length,
+      0,
+    );
+
+    // Basic pagination handling
+    const page = query.page && query.page > 0 ? query.page : 1;
+    const limit = query.limit && query.limit > 0 ? query.limit : 10;
+    const skip = (page - 1) * limit;
+
+    const whereCondition: Prisma.enrollmentsWhereInput = {
+      course_id: courseId,
+      deleted: false,
+    };
+
+    // Fetch enrollments and total count
+    const [enrollments, total] = await Promise.all([
+      this.prisma.enrollments.findMany({
+        where: whereCondition,
+        orderBy: { enrollment_date: 'desc' },
+        skip,
+        take: limit,
+        include: {
+          users: {
+            select: {
+              id: true,
+              full_name: true,
+              email: true,
+              avatar: true,
+            },
+          },
+        },
+      }),
+      this.prisma.enrollments.count({
+        where: whereCondition,
+      }),
+    ]);
+
+    const userIds = enrollments
+      .map((enrollment) => enrollment.user_id)
+      .filter((id): id is string => !!id);
+
+    // Fetch all progress records for these users in this course
+    const userProgressList = userIds.length
+      ? await this.prisma.user_progress.findMany({
+          where: {
+            course_id: courseId,
+            user_id: { in: userIds },
+            deleted: false,
+          },
+          orderBy: {
+            updated_at: 'desc',
+          },
+        })
+      : [];
+
+    const students = enrollments.map((enrollment) => {
+      const progresses = userProgressList.filter(
+        (p) => p.user_id === enrollment.user_id,
+      );
+
+      const completedLessons = progresses.filter(
+        (p) => p.status === 'completed',
+      ).length;
+
+      const progressPercentage =
+        totalLessons > 0 ? (completedLessons / totalLessons) * 100 : 0;
+
+      const isCompleted = totalLessons > 0 && completedLessons === totalLessons;
+
+      const lastActivity = progresses.reduce<Date | null>((latest, p) => {
+        const candidate = p.completion_date ?? (p as any).updated_at ?? null;
+        if (!candidate) return latest;
+        if (!latest || candidate > latest) return candidate;
+        return latest;
+      }, null);
+
+      let status: 'not_started' | 'in_progress' | 'completed' = 'not_started';
+      if (isCompleted) {
+        status = 'completed';
+      } else if (completedLessons > 0) {
+        status = 'in_progress';
+      }
+
+      return {
+        enrollment_id: enrollment.id,
+        enrolled_at: enrollment.enrollment_date,
+        is_active: enrollment.is_active,
+        user: {
+          id: enrollment.users?.id,
+          full_name: enrollment.users?.full_name,
+          email: enrollment.users?.email,
+          avatar: enrollment.users?.avatar,
+        },
+        progress_percentage: Number(progressPercentage.toFixed(1)),
+        total_lessons: totalLessons,
+        completed_lessons: completedLessons,
+        status,
+        last_activity: lastActivity,
+      };
+    });
+
+    const pages = limit > 0 ? Math.ceil(total / limit) : 1;
+
+    return {
+      course,
+      meta: {
+        current: page,
+        pageSize: limit,
+        pages,
+        total,
+        currentSize: students.length,
+      },
+      students,
+    };
+  }
+
   async update(id: string, dto: UpdateCourseDto) {
     await this.findById(id); // Check if exists
 
@@ -421,11 +574,15 @@ export class CoursesService {
       select: {
         id: true,
         title: true,
+        description: true,
         thumbnail: true,
+        skill_focus: true,
+        difficulty_level: true,
         price: true,
         discount_price: true,
         rating: true,
         enrollment_count: true,
+        tags: true,
         created_at: true,
         updated_at: true,
       },

@@ -366,4 +366,19 @@ export class CoursesController {
   ) {
     return this.coursesService.uploadThumbnail(id, file);
   }
+
+  @Get(':id/students-progress')
+  @ApiOperation({
+    summary: 'Get course students with progress',
+    description:
+      'Retrieve all enrollments of a course with learner progress statistics (for admin dashboards).',
+  })
+  @SkipCheckPermission()
+  @MessageResponse(MESSAGE.COURSE.COURSE_FETCHED)
+  async getCourseStudentsProgress(
+    @Param('id') id: string,
+    @Query() query: PaginationQueryDto,
+  ) {
+    return this.coursesService.getCourseStudentProgress(id, query);
+  }
 }
