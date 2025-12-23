@@ -369,16 +369,17 @@ export class AdminDashboardService {
         deleted: false,
         published_at: { not: null },
       },
-      orderBy: [{ enrollment_count: 'desc' }, { rating: 'desc' }],
-      take: limit,
       select: {
         id: true,
         title: true,
         thumbnail: true,
-        enrollment_count: true,
-        enrollments: true,
         rating: true,
         price: true,
+        enrollments: {
+          where: {
+            deleted: false,
+          },
+        },
         order_items: {
           where: {
             orders: {
@@ -392,20 +393,23 @@ export class AdminDashboardService {
       },
     });
 
-    return courses.map((course) => ({
-      id: course.id,
-      title: course.title,
-      thumbnail: course.thumbnail || undefined,
-      enrollments: course.enrollments.reduce(
-        (total, enrollment) => total + 1,
-        0,
-      ),
-      rating: Number(course.rating) || 0,
-      revenue: course.order_items.reduce(
-        (total, item) => total + Number(item.price),
-        0,
-      ),
-    }));
+    // Sắp xếp theo số lượng enrollments và lấy top courses
+    const sortedCourses = courses
+      .map((course) => ({
+        id: course.id,
+        title: course.title,
+        thumbnail: course.thumbnail || undefined,
+        enrollments: course.enrollments.length,
+        rating: Number(course.rating) || 0,
+        revenue: course.order_items.reduce(
+          (total, item) => total + Number(item.price),
+          0,
+        ),
+      }))
+      .sort((a, b) => b.enrollments - a.enrollments)
+      .slice(0, limit);
+
+    return sortedCourses;
   }
 
   private async getTotalRevenue(beforeDate?: Date): Promise<number> {
