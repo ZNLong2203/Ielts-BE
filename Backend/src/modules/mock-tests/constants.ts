@@ -32,3 +32,11 @@ export const MOCK_TEST_RESULT_STATUS = {
 
 export type MockTestResultStatus =
   (typeof MOCK_TEST_RESULT_STATUS)[keyof typeof MOCK_TEST_RESULT_STATUS];
+
+export const MOCK_TEST_STATUS = {
+  PUBLIC: 'public',
+  PRIVATE: 'private',
+};
+
+export type MockTestStatus =
+  (typeof MOCK_TEST_STATUS)[keyof typeof MOCK_TEST_STATUS];

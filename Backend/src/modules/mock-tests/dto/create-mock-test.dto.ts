@@ -17,6 +17,8 @@ import {
   ValidatorConstraintInterface,
 } from 'class-validator';
 import {
+  MOCK_TEST_STATUS,
+  MockTestStatus,
   SECTION_TYPE,
   SectionType,
   TEST_TYPE,
@@ -119,6 +121,15 @@ export class CreateMockTestDto {
   @Min(1)
   @Max(600)
   duration?: number;
+
+  @ApiPropertyOptional({
+    description: 'Status of mock test (private or public)',
+    example: MOCK_TEST_STATUS.PUBLIC,
+    enum: MOCK_TEST_STATUS,
+  })
+  @IsOptional()
+  @IsEnum(MOCK_TEST_STATUS)
+  status?: MockTestStatus;
 
   @ApiPropertyOptional({
     description: 'Test difficulty level',

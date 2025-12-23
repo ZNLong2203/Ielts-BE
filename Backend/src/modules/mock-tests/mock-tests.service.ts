@@ -269,6 +269,7 @@ export class MockTestsService {
           instructions: updateDto.instructions,
           difficulty_level: updateDto.difficulty_level,
           duration: updateDto.duration || existingTest.duration,
+          status: updateDto.status,
           updated_at: new Date(),
         },
       });
