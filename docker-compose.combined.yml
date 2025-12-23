@@ -40,8 +40,8 @@ services:
       - minio-data:/data
       - ./storage:/export
     environment:
-      MINIO_ACCESS_KEY: admin
-      MINIO_SECRET_KEY: admin123
+      MINIO_ROOT_USER: admin
+      MINIO_ROOT_PASSWORD: admin123
       MINIO_CONSOLE_ADDRESS: ":9001"
     command: server /data --console-address ":9001"
     healthcheck:
@@ -101,7 +101,11 @@ services:
       - ETCD_SNAPSHOT_COUNT=50000
     volumes:
       - etcd-data:/etcd
-    command: etcd -advertise-client-urls=http://127.0.0.1:2379 -listen-client-urls http://0.0.0.0:2379 --data-dir /etcd
+    command: >
+      etcd
+      --advertise-client-urls=http://etcd:2379
+      --listen-client-urls=http://0.0.0.0:2379
+      --data-dir /etcd
     networks:
       - ielts-network
     healthcheck:
@@ -118,8 +122,8 @@ services:
     environment:
       ETCD_ENDPOINTS: etcd:2379
       MINIO_ADDRESS: minio:9000
-      MINIO_ACCESS_KEY: admin
-      MINIO_SECRET_KEY: admin123
+      MINIO_ACCESS_KEY_ID: admin
+      MINIO_SECRET_ACCESS_KEY: admin123
     volumes:
       - milvus-data:/var/lib/milvus
     ports:

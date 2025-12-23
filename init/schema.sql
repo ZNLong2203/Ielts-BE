@@ -204,6 +204,7 @@ CREATE TABLE mock_tests (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     title VARCHAR(255) NOT NULL,
     description TEXT,
+    status VARCHAR(20) DEFAULT 'private',
     test_type VARCHAR(20), -- reading, writing, listening, speaking, full_test
     duration INTEGER, -- in minutes
     total_questions INTEGER,
