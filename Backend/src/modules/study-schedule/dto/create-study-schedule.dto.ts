@@ -116,29 +116,6 @@ export class CompleteScheduleDto {
   @Min(0)
   @Max(100)
   completion_percentage: number;
-
-  @ApiProperty({
-    description: 'Productivity rating (1-5)',
-    example: 4,
-    minimum: 1,
-    maximum: 5,
-    required: false,
-  })
-  @IsInt()
-  @IsOptional()
-  @Min(1)
-  @Max(5)
-  productivity_rating?: number;
-
-  @ApiProperty({
-    description: 'Session notes after completion',
-    example:
-      'Completed all exercises. Need more practice with listening part 3.',
-    required: false,
-  })
-  @IsString()
-  @IsOptional()
-  session_notes?: string;
 }
 
 class TimeSlotDto {

@@ -103,7 +103,6 @@ export class StudyScheduleCronService {
             where: { id: reminder.id },
             data: {
               status: REMINDER_STATUS.SENT,
-              sent_at: new Date(),
             },
           });
 
@@ -217,9 +216,6 @@ export class StudyScheduleCronService {
       const result = await this.prisma.study_reminders.updateMany({
         where: {
           status: { in: [REMINDER_STATUS.SENT, REMINDER_STATUS.FAILED] },
-          sent_at: {
-            lt: thirtyDaysAgo,
-          },
           deleted: false,
         },
         data: {

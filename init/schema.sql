@@ -568,33 +568,21 @@ CREATE TABLE coupon_usage (
 CREATE TABLE study_schedules (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id UUID REFERENCES users(id) ON DELETE CASCADE,
-    
-    -- Link to combo or individual course
     combo_id UUID REFERENCES combo_courses(id) ON DELETE SET NULL,
     course_id UUID REFERENCES courses(id) ON DELETE CASCADE,
     lesson_id UUID REFERENCES lessons(id) ON DELETE SET NULL,
-    
     -- When to study
     scheduled_date DATE NOT NULL,
     start_time TIME NOT NULL,
     end_time TIME NOT NULL,
-    duration INTEGER, -- in minutes (auto-calculated)
-    
+    duration INTEGER, -- in minutes (auto-calculated)    
     -- Study plan
     study_goal TEXT,
     notes TEXT,
-    
     -- Status tracking
     status VARCHAR(20) DEFAULT 'scheduled', -- scheduled, completed, missed, cancelled
-    actual_start_time TIMESTAMP,
-    actual_end_time TIMESTAMP,
-    actual_duration INTEGER,
-    
     -- Performance
     completion_percentage DECIMAL(5,2) DEFAULT 0,
-    productivity_rating INTEGER, -- 1-5
-    session_notes TEXT,
-    
     -- Reminder
     reminder_enabled BOOLEAN DEFAULT TRUE,
     reminder_minutes_before INTEGER DEFAULT 30,
@@ -609,18 +597,11 @@ CREATE TABLE study_reminders (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id UUID REFERENCES users(id) ON DELETE CASCADE,
     schedule_id UUID REFERENCES study_schedules(id) ON DELETE CASCADE,
-    
     title VARCHAR(255) NOT NULL,
     message TEXT NOT NULL,
-    
     scheduled_time TIMESTAMP NOT NULL,
-    sent_at TIMESTAMP,
-    
     status VARCHAR(20) DEFAULT 'pending', -- pending, sent, failed
-    
     is_read BOOLEAN DEFAULT FALSE,
-    read_at TIMESTAMP,
-    
     deleted BOOLEAN DEFAULT FALSE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP

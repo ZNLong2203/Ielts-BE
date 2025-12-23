@@ -361,10 +361,8 @@ export class StudyScheduleService {
       (sum, s) => sum + (s.duration || 0),
       0,
     );
-    const totalActualMinutes = completed.reduce(
-      (sum, s) => sum + (s.actual_duration || 0),
-      0,
-    );
+
+    const totalActualMinutes = totalPlannedMinutes;
 
     return {
       week_start: weekStart,
@@ -578,7 +576,6 @@ export class StudyScheduleService {
     const updatedSchedule = await this.prisma.study_schedules.update({
       where: { id: scheduleId },
       data: {
-        actual_start_time: new Date(),
         updated_at: new Date(),
       },
       include: this.getScheduleIncludes(),
@@ -608,21 +605,12 @@ export class StudyScheduleService {
       throw new NotFoundException('Study schedule not found');
     }
 
-    const now = new Date();
-    const actualDuration = schedule.actual_start_time
-      ? differenceInMinutes(now, new Date(schedule.actual_start_time))
-      : schedule.duration;
-
     const completedSchedule = await this.prisma.study_schedules.update({
       where: { id: scheduleId },
       data: {
         status: SCHEDULE_STATUS.COMPLETED,
-        actual_end_time: now,
-        actual_duration: actualDuration,
         completion_percentage: completeDto.completion_percentage,
-        productivity_rating: completeDto.productivity_rating,
-        session_notes: completeDto.session_notes,
-        updated_at: now,
+        updated_at: new Date(),
       },
       include: this.getScheduleIncludes(),
     });
@@ -783,7 +771,6 @@ export class StudyScheduleService {
       where: { id: reminderId },
       data: {
         is_read: true,
-        read_at: new Date(),
       },
     });
 
@@ -833,7 +820,7 @@ export class StudyScheduleService {
     );
 
     const totalStudyMinutes = completed.reduce(
-      (sum, s) => sum + (s.actual_duration || 0),
+      (sum, s) => sum + (s.duration || 0),
       0,
     );
 
@@ -891,15 +878,6 @@ export class StudyScheduleService {
               ) / completed.length
             ).toFixed(1)
           : '0',
-      avg_productivity_rating:
-        completed.filter((s) => s.productivity_rating).length > 0
-          ? (
-              completed
-                .filter((s) => s.productivity_rating)
-                .reduce((sum, s) => sum + (s.productivity_rating || 0), 0) /
-              completed.filter((s) => s.productivity_rating).length
-            ).toFixed(1)
-          : null,
       most_studied_skill: mostStudiedSkill,
       combo_progress: comboProgress.length > 0 ? comboProgress : undefined,
     };
@@ -1260,12 +1238,7 @@ export class StudyScheduleService {
       study_goal: schedule.study_goal,
       notes: schedule.notes,
       status: schedule.status,
-      actual_start_time: schedule.actual_start_time,
-      actual_end_time: schedule.actual_end_time,
-      actual_duration: schedule.actual_duration,
       completion_percentage: Number(schedule.completion_percentage || 0),
-      productivity_rating: schedule.productivity_rating,
-      session_notes: schedule.session_notes,
       reminder_enabled: schedule.reminder_enabled,
       reminder_minutes_before: schedule.reminder_minutes_before,
       reminder_sent: schedule.reminder_sent,

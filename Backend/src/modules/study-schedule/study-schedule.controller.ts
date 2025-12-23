@@ -486,7 +486,7 @@ export class StudyScheduleController {
 
     const completed = schedules.filter((s) => s.status === 'completed');
     const totalHours = completed.reduce(
-      (sum, s) => sum + (s.actual_duration || 0) / 60,
+      (sum, s) => sum + (s.duration || 0) / 60,
       0,
     );
 

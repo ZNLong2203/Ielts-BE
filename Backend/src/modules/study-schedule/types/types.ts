@@ -30,12 +30,7 @@ export interface StudyScheduleDetails {
   study_goal?: string | null;
   notes?: string | null;
   status: string | null;
-  actual_start_time?: Date | null;
-  actual_end_time?: Date | null;
-  actual_duration?: number | null;
   completion_percentage: number;
-  productivity_rating?: number | null;
-  session_notes?: string | null;
   reminder_enabled: boolean | null;
   reminder_minutes_before: number | null;
   reminder_sent?: boolean | null;
@@ -86,7 +81,6 @@ export interface StudyAnalytics {
   cancelled_sessions: number;
   total_study_hours: string;
   avg_completion_percentage: string;
-  avg_productivity_rating: string | null;
   most_productive_day?: string;
   most_studied_skill?: string;
   combo_progress?: ComboProgress[];
