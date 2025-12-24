@@ -29,7 +29,7 @@ class RouterService:
         else:
             base_url = ollama_url.replace("/api", "")
         
-        from .ollama_client import MODEL_NAME
+        from ..llm.ollama_client import MODEL_NAME
         model_name = MODEL_NAME
         
         try:

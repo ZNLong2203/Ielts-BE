@@ -1,8 +1,8 @@
 import logging
 from typing import List, Dict, Optional
 from .embedding_service import get_embedding_service
-from .milvus_client import get_milvus_client
-from .ollama_client import query_ollama
+from ..clients.milvus_client import get_milvus_client
+from ..llm.llm_service import generate_with_fallback
 from .conversation_service import get_conversation_service
 
 logger = logging.getLogger(__name__)
@@ -91,7 +91,7 @@ Instructions:
                 enhanced_prompt = f"""You are an IELTS preparation assistant. Help students with reading, writing, listening, and speaking skills. Answer the following question clearly and provide helpful guidance:
 
 {query}"""
-            return await query_ollama(enhanced_prompt)
+            return await generate_with_fallback(enhanced_prompt)
         
         try:
             # Retrieve relevant context
@@ -134,13 +134,13 @@ Instructions:
 {instructions_text}"""
             
             # Generate answer
-            answer = await query_ollama(enhanced_prompt)
+            answer = await generate_with_fallback(enhanced_prompt)
             
             return answer
         except Exception as e:
             logger.error(f"Error in RAG generation: {e}")
             # Fallback to direct generation with proper prompt
-            return await query_ollama(f"You are an IELTS preparation assistant. Help students with reading, writing, listening, and speaking skills. Answer the following question clearly and provide helpful guidance:\n\n{query}")
+            return await generate_with_fallback(f"You are an IELTS preparation assistant. Help students with reading, writing, listening, and speaking skills. Answer the following question clearly and provide helpful guidance:\n\n{query}")
 
 _rag_service: Optional[RAGService] = None
 
