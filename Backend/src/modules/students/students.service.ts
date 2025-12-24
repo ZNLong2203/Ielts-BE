@@ -197,11 +197,12 @@ export class StudentsService {
 
         const combo = enrollment.combo_courses;
 
-        // Lấy tất cả các khóa học trong combo này
+        // Lấy tất cả các khóa học trong combo này (chỉ lấy featured courses)
         const courses = await this.prisma.courses.findMany({
           where: {
             id: { in: combo.course_ids },
             deleted: false,
+            is_featured: true,
           },
           include: {
             course_categories: {
@@ -357,6 +358,10 @@ export class StudentsService {
         user_id: userId,
         deleted: false,
         is_active: true,
+        courses: {
+          is_featured: true,
+          deleted: false,
+        },
       },
       include: {
         courses: {
