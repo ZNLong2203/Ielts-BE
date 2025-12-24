@@ -17,18 +17,13 @@ except Exception as e:
     _translator = None
 
 def is_vietnamese(text: str) -> bool:
-    """
-    Detect if text is Vietnamese with improved accuracy.
-    """
     if not text or len(text.strip()) < 3:
         return False
     
     try:
-        # Clean text before detection
         cleaned_text = text.strip()
         detected_lang = detect(cleaned_text)
         
-        # Check for Vietnamese characters
         vietnamese_chars = ['ă', 'â', 'đ', 'ê', 'ô', 'ơ', 'ư', 'á', 'à', 'ả', 'ã', 'ạ', 
                           'é', 'è', 'ẻ', 'ẽ', 'ẹ', 'í', 'ì', 'ỉ', 'ĩ', 'ị', 'ó', 'ò', 
                           'ỏ', 'õ', 'ọ', 'ú', 'ù', 'ủ', 'ũ', 'ụ', 'ý', 'ỳ', 'ỷ', 'ỹ', 'ỵ']
@@ -44,9 +39,6 @@ def is_vietnamese(text: str) -> bool:
         return any(word in text.lower() for word in vietnamese_words)
 
 async def translate_vi_to_en(text: str) -> str:
-    """
-    Translate Vietnamese text to English with improved handling.
-    """
     if not _translator:
         logger.error("Translator not available")
         return text
@@ -68,9 +60,6 @@ async def translate_vi_to_en(text: str) -> str:
         return text  
 
 def get_translation_info() -> dict:
-    """
-    Get information about the translation system.
-    """
     return {
         "model": "Helsinki-NLP/opus-mt-vi-en",
         "available": _translator is not None,

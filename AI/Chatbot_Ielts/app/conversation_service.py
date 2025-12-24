@@ -5,50 +5,21 @@ from .ollama_client import query_ollama
 
 logger = logging.getLogger(__name__)
 
-class ConversationService:
-    """Service for managing conversation history and summarization"""
-    
+class ConversationService:    
     def __init__(
         self,
         max_history_tokens: int = 800,
         summarize_threshold: int = 1200,
         max_context_length: int = 1500
     ):
-        """
-        Initialize conversation service
-        
-        Args:
-            max_history_tokens: Maximum tokens to keep in conversation history 
-            summarize_threshold: Token count threshold to trigger summarization
-            max_context_length: Maximum length for RAG context before summarizing
-        """
         self.max_history_tokens = max_history_tokens
         self.summarize_threshold = summarize_threshold
         self.max_context_length = max_context_length
     
     def estimate_tokens(self, text: str) -> int:
-        """
-        Rough token estimation (1 token ≈ 4 characters for English)
-        
-        Args:
-            text: Text to estimate
-            
-        Returns:
-            Estimated token count
-        """
         return len(text) // 4
     
     async def summarize_text(self, text: str, purpose: str = "conversation") -> str:
-        """
-        Summarize text using Ollama
-        
-        Args:
-            text: Text to summarize
-            purpose: Purpose of summarization (conversation, context, etc.)
-            
-        Returns:
-            Summarized text
-        """
         try:
             if purpose == "conversation":
                 prompt = f"""Summarize the following IELTS conversation history, preserving key information, questions asked, and important answers given. Keep it concise but informative:
@@ -78,15 +49,6 @@ Summary:"""
             return text[:self.max_context_length] + "..."
     
     async def summarize_conversation(self, messages: List[Dict[str, str]]) -> str:
-        """
-        Summarize conversation history
-        
-        Args:
-            messages: List of message dicts with 'role' and 'content'
-            
-        Returns:
-            Summarized conversation or original if short enough
-        """
         if not messages:
             return ""
         
@@ -132,15 +94,6 @@ Summary:"""
         return await self.summarize_text(conversation_text, purpose="conversation")
     
     async def summarize_rag_context(self, context: str) -> str:
-        """
-        Summarize RAG context if too long
-        
-        Args:
-            context: RAG context string
-            
-        Returns:
-            Original or summarized context
-        """
         if not context:
             return ""
         
@@ -157,17 +110,6 @@ Summary:"""
         current_query: str,
         rag_context: Optional[str] = None
     ) -> str:
-        """
-        Format conversation history and context for prompt
-        
-        Args:
-            conversation_history: Summarized conversation history
-            current_query: Current user query
-            rag_context: RAG context (optional)
-            
-        Returns:
-            Formatted prompt
-        """
         parts = []
         
         # Add conversation history if available
@@ -184,22 +126,12 @@ Summary:"""
         return "\n---\n".join(parts)
     
     def should_summarize_context(self, context: str) -> bool:
-        """
-        Check if context should be summarized
-        
-        Args:
-            context: Context string
-            
-        Returns:
-            True if should summarize
-        """
         return self.estimate_tokens(context) > self.max_context_length
 
 # Global instance
 _conversation_service: Optional[ConversationService] = None
 
 def get_conversation_service() -> ConversationService:
-    """Get or create the global conversation service instance"""
     global _conversation_service
     if _conversation_service is None:
         # Optimized defaults for local deployment

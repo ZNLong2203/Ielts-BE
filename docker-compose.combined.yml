@@ -56,14 +56,6 @@ services:
       - ielts-network
     restart: unless-stopped
 
-  # cloudflared:
-  #   image: cloudflare/cloudflared:latest
-  #   container_name: cloudflared-tunnel
-  #   command: tunnel --url http://host.docker.internal:3000
-  #   networks:
-  #     - ielts-network
-  #   restart: unless-stopped
-
   ffmpeg:
     build:
       context: ./ffmpeg
@@ -156,9 +148,15 @@ services:
       - OLLAMA_API_URL=http://ollama-ielts:11434/api/generate
       - MILVUS_HOST=milvus-standalone
       - MILVUS_PORT=19530
+      - POSTGRES_HOST=postgres
+      - POSTGRES_PORT=5432
+      - POSTGRES_DB=ielts
+      - RAG_DB_USER=rag_reader
+      - RAG_DB_PASSWORD=rag_password
     depends_on:
       - ollama
       - milvus
+      - postgres
     volumes:
       - ./AI/Chatbot_Ielts/uploads:/app/uploads
     networks:
