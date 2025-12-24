@@ -8,6 +8,9 @@ services:
       - postgres-data:/var/lib/postgresql
       - ./init/schema.sql:/docker-entrypoint-initdb.d/01-schema.sql
       - ./init/data.sql:/docker-entrypoint-initdb.d/02-data.sql
+      - ./init/rag-roles.sql:/docker-entrypoint-initdb.d/03-rag-roles.sql
+      - ./init/rag-views.sql:/docker-entrypoint-initdb.d/04-rag-views.sql
+      - ./init/rag-grants.sql:/docker-entrypoint-initdb.d/05-rag-grants.sql
     environment:
       - POSTGRES_PASSWORD=postgres
       - POSTGRES_DB=ielts
