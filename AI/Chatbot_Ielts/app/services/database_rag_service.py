@@ -2,7 +2,7 @@ import logging
 import os
 import asyncpg
 from typing import List, Dict, Optional
-from .ollama_client import query_ollama
+from ..llm.llm_service import generate_with_fallback
 from .conversation_service import get_conversation_service
 
 logger = logging.getLogger(__name__)
@@ -385,7 +385,7 @@ Instructions:
 - Include relevant details like prices, descriptions, and availability when appropriate
 - If asked about specific items, provide details from the database"""
         
-        answer = await query_ollama(enhanced_prompt)
+        answer = await generate_with_fallback(enhanced_prompt)
         return answer
 
 _database_rag_service = None

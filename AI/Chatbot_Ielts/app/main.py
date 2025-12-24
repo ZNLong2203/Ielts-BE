@@ -6,15 +6,15 @@ from .schemas import (
     DocumentSearchRequest, DocumentSearchResponse, CollectionStatsResponse,
     DocumentListResponse
 )
-from .translator import is_vietnamese, translate_vi_to_en, get_translation_info
-from .ollama_client import warmup_model, health_check_ollama
-from .rag_service import get_rag_service
-from .embedding_service import get_embedding_service
-from .milvus_client import get_milvus_client
-from .pdf_extractor import get_pdf_extractor
-from .gemini_fallback import generate_with_fallback
-from .router_service import get_router_service
-from .database_rag_service import get_database_rag_service
+from .utils.translator import is_vietnamese, translate_vi_to_en, get_translation_info
+from .llm.ollama_client import warmup_model, health_check_ollama
+from .services.rag_service import get_rag_service
+from .services.embedding_service import get_embedding_service
+from .clients.milvus_client import get_milvus_client
+from .utils.pdf_extractor import get_pdf_extractor
+from .llm.llm_service import generate_with_fallback
+from .services.router_service import get_router_service
+from .services.database_rag_service import get_database_rag_service
 import asyncio
 import logging
 import os
@@ -111,7 +111,7 @@ async def chat_endpoint(req: ChatRequest):
         # Prepare conversation context for router
         conversation_context = ""
         if req.conversation_history:
-            from .conversation_service import get_conversation_service
+            from .services.conversation_service import get_conversation_service
             conv_service = get_conversation_service()
             conversation_context = await conv_service.summarize_conversation(req.conversation_history)
 
@@ -140,7 +140,7 @@ async def chat_endpoint(req: ChatRequest):
                 logger.warning(f"Database RAG failed, falling back to base model: {e}")
                 # Fallback to base model (with Gemini as secondary)
                 if req.conversation_history:
-                    from .conversation_service import get_conversation_service
+                    from .services.conversation_service import get_conversation_service
                     conv_service = get_conversation_service()
                     summarized_history = await conv_service.summarize_conversation(req.conversation_history)
                     prompt = conv_service.format_conversation_for_prompt(
@@ -176,7 +176,7 @@ async def chat_endpoint(req: ChatRequest):
                 logger.warning(f"Vector DB RAG failed, falling back to base model: {e}")
                 # Fallback with conversation history (Gemini as secondary)
                 if req.conversation_history:
-                    from .conversation_service import get_conversation_service
+                    from .services.conversation_service import get_conversation_service
                     conv_service = get_conversation_service()
                     summarized_history = await conv_service.summarize_conversation(req.conversation_history)
                     prompt = conv_service.format_conversation_for_prompt(
@@ -197,7 +197,7 @@ async def chat_endpoint(req: ChatRequest):
             # Base model: Direct generation for general questions (with Gemini fallback)
             logger.info("Using base model for query")
             if req.conversation_history:
-                from .conversation_service import get_conversation_service
+                from .services.conversation_service import get_conversation_service
                 conv_service = get_conversation_service()
                 summarized_history = await conv_service.summarize_conversation(req.conversation_history)
                 prompt = conv_service.format_conversation_for_prompt(
@@ -385,7 +385,10 @@ async def search_documents(req: DocumentSearchRequest):
 @app.get("/rag/stats", response_model=CollectionStatsResponse)
 async def get_collection_stats():
     try:
-        milvus_client = get_milvus_client()
+        embedding_service = get_embedding_service()
+        milvus_client = get_milvus_client(
+            embedding_dimension=embedding_service.get_embedding_dimension()
+        )
         stats = milvus_client.get_collection_stats()
         return CollectionStatsResponse(**stats)
     except Exception as e:
@@ -395,7 +398,10 @@ async def get_collection_stats():
 @app.get("/rag/documents", response_model=DocumentListResponse)
 async def list_documents(limit: int = 100, offset: int = 0):
     try:
-        milvus_client = get_milvus_client()
+        embedding_service = get_embedding_service()
+        milvus_client = get_milvus_client(
+            embedding_dimension=embedding_service.get_embedding_dimension()
+        )
         documents = milvus_client.list_documents(limit=limit, offset=offset)
         stats = milvus_client.get_collection_stats()
         
@@ -412,7 +418,10 @@ async def list_documents(limit: int = 100, offset: int = 0):
 @app.delete("/rag/documents/{source_file}")
 async def delete_documents(source_file: str):
     try:
-        milvus_client = get_milvus_client()
+        embedding_service = get_embedding_service()
+        milvus_client = get_milvus_client(
+            embedding_dimension=embedding_service.get_embedding_dimension()
+        )
         milvus_client.delete_by_source_file(source_file)
         return {"message": f"Deleted all documents from {source_file}"}
     except Exception as e:

@@ -6,8 +6,6 @@ from fastapi import HTTPException
 
 import google.generativeai as genai
 
-from .ollama_client import query_ollama
-
 logger = logging.getLogger(__name__)
 
 API_KEY = os.getenv("GEMINI_API_KEY")
@@ -41,21 +39,4 @@ async def query_gemini(prompt: str) -> str:
     except Exception as e:
         logger.error(f"Error querying Gemini: {e}")
         raise HTTPException(status_code=500, detail=f"Gemini error: {str(e)}")
-
-
-async def generate_with_fallback(prompt: str) -> str:
-    try:
-        return await query_ollama(prompt)
-    except HTTPException as e:
-        if 400 <= e.status_code < 500 and e.status_code != 404:
-            raise
-
-        logger.warning(
-            f"Ollama failed with HTTP {e.status_code}: {e.detail}. "
-            "Falling back to Gemini."
-        )
-        return await query_gemini(prompt)
-    except Exception as e:
-        logger.warning(f"Ollama unexpected error: {e}. Falling back to Gemini.")
-        return await query_gemini(prompt)
 

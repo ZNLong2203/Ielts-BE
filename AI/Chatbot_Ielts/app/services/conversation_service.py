@@ -1,7 +1,7 @@
 import logging
 import os
 from typing import List, Dict, Optional, Tuple
-from .ollama_client import query_ollama
+from ..llm.llm_service import generate_with_fallback
 
 logger = logging.getLogger(__name__)
 
@@ -40,7 +40,7 @@ Summary:"""
 
 Summary:"""
             
-            summary = await query_ollama(prompt)
+            summary = await generate_with_fallback(prompt)
             logger.info(f"Summarized {len(text)} chars to {len(summary)} chars ({purpose})")
             return summary.strip()
         except Exception as e:
