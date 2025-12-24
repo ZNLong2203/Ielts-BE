@@ -7,17 +7,8 @@ from .conversation_service import get_conversation_service
 
 logger = logging.getLogger(__name__)
 
-class RAGService:
-    """Service for RAG-based question answering"""
-    
+class RAGService:    
     def __init__(self, top_k: int = 5, score_threshold: float = 0.5):
-        """
-        Initialize RAG service
-        
-        Args:
-            top_k: Number of relevant chunks to retrieve
-            score_threshold: Minimum similarity score for retrieval
-        """
         self.top_k = top_k
         self.score_threshold = score_threshold
         self.embedding_service = get_embedding_service()
@@ -27,15 +18,6 @@ class RAGService:
         self.conversation_service = get_conversation_service()
     
     def retrieve_context(self, query: str) -> List[Dict]:
-        """
-        Retrieve relevant context from vector database
-        
-        Args:
-            query: User query string
-            
-        Returns:
-            List of relevant document chunks
-        """
         try:
             # Generate query embedding
             query_embedding = self.embedding_service.encode_single(query)
@@ -54,15 +36,6 @@ class RAGService:
             return []
     
     def format_context(self, retrieved_docs: List[Dict]) -> str:
-        """
-        Format retrieved documents into context string
-        
-        Args:
-            retrieved_docs: List of retrieved document dictionaries
-            
-        Returns:
-            Formatted context string
-        """
         if not retrieved_docs:
             return ""
         
@@ -79,15 +52,6 @@ class RAGService:
         return "\n---\n".join(context_parts)
     
     async def format_and_summarize_context(self, retrieved_docs: List[Dict]) -> str:
-        """
-        Format and optionally summarize context if too long
-        
-        Args:
-            retrieved_docs: List of retrieved document dictionaries
-            
-        Returns:
-            Formatted and potentially summarized context string
-        """
         context = self.format_context(retrieved_docs)
         
         # Summarize if context is too long
@@ -102,17 +66,6 @@ class RAGService:
         use_rag: bool = True,
         conversation_history: Optional[List[Dict[str, str]]] = None
     ) -> str:
-        """
-        Generate answer using RAG with optional conversation history
-        
-        Args:
-            query: User query
-            use_rag: Whether to use RAG (True) or direct generation (False)
-            conversation_history: Previous conversation messages
-            
-        Returns:
-            Generated answer
-        """
         # Summarize conversation history if provided
         summarized_history = None
         if conversation_history:
@@ -189,11 +142,9 @@ Instructions:
             # Fallback to direct generation with proper prompt
             return await query_ollama(f"You are an IELTS preparation assistant. Help students with reading, writing, listening, and speaking skills. Answer the following question clearly and provide helpful guidance:\n\n{query}")
 
-# Global instance
 _rag_service: Optional[RAGService] = None
 
 def get_rag_service() -> RAGService:
-    """Get or create the global RAG service instance"""
     global _rag_service
     if _rag_service is None:
         _rag_service = RAGService()

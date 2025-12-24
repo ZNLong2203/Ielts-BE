@@ -108,14 +108,11 @@ class EmbeddingService:
         return embeddings[0].tolist()
     
     def get_embedding_dimension(self) -> int:
-        """Get the dimension of embeddings produced by this model"""
         return self.embedding_dimension
 
-# Global instance
 _embedding_service: Optional[EmbeddingService] = None
 
 def get_embedding_service() -> EmbeddingService:
-    """Get or create the global embedding service instance"""
     global _embedding_service
     if _embedding_service is None:
         _embedding_service = EmbeddingService()

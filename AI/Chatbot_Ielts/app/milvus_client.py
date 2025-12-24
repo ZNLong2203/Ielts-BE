@@ -14,9 +14,7 @@ import numpy as np
 
 logger = logging.getLogger(__name__)
 
-class MilvusClient:
-    """Client for interacting with Milvus vector database"""
-    
+class MilvusClient:    
     def __init__(
         self,
         host: str = None,
@@ -32,7 +30,6 @@ class MilvusClient:
         self._connected = False
     
     def connect(self):
-        """Connect to Milvus server"""
         if self._connected:
             return
         
@@ -50,7 +47,6 @@ class MilvusClient:
             raise
     
     def create_collection_if_not_exists(self):
-        """Create collection if it doesn't exist"""
         self.connect()
         
         if utility.has_collection(self.collection_name):
@@ -266,7 +262,6 @@ class MilvusClient:
             return 0  # Return 0 instead of raising
     
     def get_collection_stats(self) -> Dict:
-        """Get statistics about the collection"""
         if self.collection is None:
             self.create_collection_if_not_exists()
         
@@ -327,11 +322,9 @@ class MilvusClient:
             logger.error(f"Error listing documents: {e}")
             return []
 
-# Global instance
 _milvus_client: Optional[MilvusClient] = None
 
 def get_milvus_client(embedding_dimension: int = 1024) -> MilvusClient:
-    """Get or create the global Milvus client instance"""
     global _milvus_client
     if _milvus_client is None:
         _milvus_client = MilvusClient(embedding_dimension=embedding_dimension)
