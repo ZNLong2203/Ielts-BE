@@ -152,11 +152,11 @@ INSERT INTO section_progress (id, user_id, section_id, course_id, completed_less
 ('560e8400-e29b-41d4-a716-446655440006', '550e8400-e29b-41d4-a716-446655440006', 'c50e8400-e29b-41d4-a716-446655440007', '950e8400-e29b-41d4-a716-446655440004', 0, 1, 0.00, NOW() - INTERVAL '5 days', NULL);
 
 -- Insert IELTS Mock Tests (4 complete tests: Reading, Listening, Writing, Speaking)
-INSERT INTO mock_tests (id, title, description, test_type, duration, total_questions, difficulty_level, target_band_score, instructions, created_by) VALUES
-('160e8400-e29b-41d4-a716-446655440010', 'IELTS Academic Reading Test', 'Complete Academic Reading test with 3 passages and 40 questions covering all question types', 'reading', 60, 40, 'intermediate', 6.5, 'You have 60 minutes to read three passages and answer 40 questions. Read each passage carefully and answer all questions. Transfer your answers to the answer sheet.', '550e8400-e29b-41d4-a716-446655440002'),
-('160e8400-e29b-41d4-a716-446655440011', 'IELTS Academic Listening Test', 'Complete Academic Listening test with 4 sections and 40 questions', 'listening', 30, 40, 'intermediate', 6.5, 'You will hear four recordings. Listen carefully as you will hear each recording only once. Answer all 40 questions. You have 30 minutes to complete the test.', '550e8400-e29b-41d4-a716-446655440002'),
-('160e8400-e29b-41d4-a716-446655440012', 'IELTS Academic Writing Test', 'Complete Academic Writing test with Task 1 and Task 2', 'writing', 60, 2, 'intermediate', 6.5, 'Complete both writing tasks. Task 1: Write at least 150 words describing the visual information. Task 2: Write at least 250 words responding to the essay question. You have 60 minutes total.', '550e8400-e29b-41d4-a716-446655440002'),
-('160e8400-e29b-41d4-a716-446655440013', 'IELTS Academic Speaking Test', 'Complete Academic Speaking test with all three parts', 'speaking', 15, 3, 'intermediate', 6.5, 'This is a complete IELTS Speaking test. Part 1: Answer personal questions. Part 2: Speak for 2 minutes on a given topic. Part 3: Discuss abstract topics. Speak naturally and clearly.', '550e8400-e29b-41d4-a716-446655440002');
+INSERT INTO mock_tests (id, title, description, test_type, duration, total_questions, difficulty_level, target_band_score, instructions, status, created_by) VALUES
+('160e8400-e29b-41d4-a716-446655440010', 'IELTS Academic Reading Test', 'Complete Academic Reading test with 3 passages and 40 questions covering all question types', 'reading', 60, 40, 'intermediate', 6.5, 'You have 60 minutes to read three passages and answer 40 questions. Read each passage carefully and answer all questions. Transfer your answers to the answer sheet.', 'public', '550e8400-e29b-41d4-a716-446655440002'),
+('160e8400-e29b-41d4-a716-446655440011', 'IELTS Academic Listening Test', 'Complete Academic Listening test with 4 sections and 40 questions', 'listening', 30, 40, 'intermediate', 6.5, 'You will hear four recordings. Listen carefully as you will hear each recording only once. Answer all 40 questions. You have 30 minutes to complete the test.', 'public', '550e8400-e29b-41d4-a716-446655440002'),
+('160e8400-e29b-41d4-a716-446655440012', 'IELTS Academic Writing Test', 'Complete Academic Writing test with Task 1 and Task 2', 'writing', 60, 2, 'intermediate', 6.5, 'Complete both writing tasks. Task 1: Write at least 150 words describing the visual information. Task 2: Write at least 250 words responding to the essay question. You have 60 minutes total.', 'public', '550e8400-e29b-41d4-a716-446655440002'),
+('160e8400-e29b-41d4-a716-446655440013', 'IELTS Academic Speaking Test', 'Complete Academic Speaking test with all three parts', 'speaking', 15, 3, 'intermediate', 6.5, 'This is a complete IELTS Speaking test. Part 1: Answer personal questions. Part 2: Speak for 2 minutes on a given topic. Part 3: Discuss abstract topics. Speak naturally and clearly.', 'public', '550e8400-e29b-41d4-a716-446655440002');
 
 -- Insert test sections for 4 IELTS mock tests
 INSERT INTO test_sections (id, mock_test_id, section_name, section_type, description, duration, ordering) VALUES
@@ -594,10 +594,10 @@ INSERT INTO question_options (id, question_id, option_text, is_correct, ordering
 ('150e8400-e29b-41d4-a716-446655440277', '140e8400-e29b-41d4-a716-446655440216', 'Write a formal letter', TRUE, 0, NULL, 1.00);
 
 -- Insert additional mock tests
-INSERT INTO mock_tests (id, title, description, test_type, duration, total_questions, difficulty_level, target_band_score, instructions, created_by) VALUES
-('160e8400-e29b-41d4-a716-446655440007', 'IELTS Academic Full Test 2', 'Complete IELTS Academic practice test with advanced questions', 'full_test', 165, 40, 'advanced', 7.5, 'This is an advanced IELTS Academic test. Focus on time management and accuracy.', '550e8400-e29b-41d4-a716-446655440002'),
-('160e8400-e29b-41d4-a716-446655440008', 'Reading Practice Test B', 'Advanced reading practice with complex passages', 'reading', 60, 40, 'advanced', 7.5, 'Read three challenging passages and answer all questions within 60 minutes.', '550e8400-e29b-41d4-a716-446655440002'),
-('160e8400-e29b-41d4-a716-446655440009', 'Listening Advanced Test', 'Advanced listening with complex accents and fast speech', 'listening', 30, 40, 'advanced', 7.5, 'Listen carefully to all four sections. Pay attention to details and spelling.', '550e8400-e29b-41d4-a716-446655440003');
+INSERT INTO mock_tests (id, title, description, test_type, duration, total_questions, difficulty_level, target_band_score, instructions, status, created_by) VALUES
+('160e8400-e29b-41d4-a716-446655440007', 'IELTS Academic Full Test 2', 'Complete IELTS Academic practice test with advanced questions', 'full_test', 165, 40, 'advanced', 7.5, 'This is an advanced IELTS Academic test. Focus on time management and accuracy.', 'public', '550e8400-e29b-41d4-a716-446655440002'),
+('160e8400-e29b-41d4-a716-446655440008', 'Reading Practice Test B', 'Advanced reading practice with complex passages', 'reading', 60, 40, 'advanced', 7.5, 'Read three challenging passages and answer all questions within 60 minutes.', 'public', '550e8400-e29b-41d4-a716-446655440002'),
+('160e8400-e29b-41d4-a716-446655440009', 'Listening Advanced Test', 'Advanced listening with complex accents and fast speech', 'listening', 30, 40, 'advanced', 7.5, 'Listen carefully to all four sections. Pay attention to details and spelling.', 'public', '550e8400-e29b-41d4-a716-446655440003');
 
 -- Insert test sections for new mock tests
 INSERT INTO test_sections (id, mock_test_id, section_name, section_type, description, duration, ordering) VALUES
@@ -1205,3 +1205,9 @@ INSERT INTO questions (id, exercise_id, question_group_id, question_text, questi
 ('140e8400-e29b-41d4-a716-446655440187', '130e8400-e29b-41d4-a716-446655440111', '160e8400-e29b-41d4-a716-446655440114', 'How has tourism changed in recent years?', 'speaking', NULL, NULL, NULL, NULL, '{"criteria": "Fluency and coherence, Lexical resource, Grammatical range and accuracy, Pronunciation"}', 0.00, 1, 'Part 3'),
 ('140e8400-e29b-41d4-a716-446655440188', '130e8400-e29b-41d4-a716-446655440111', '160e8400-e29b-41d4-a716-446655440114', 'What are the benefits and drawbacks of tourism?', 'speaking', NULL, NULL, NULL, NULL, '{"criteria": "Fluency and coherence, Lexical resource, Grammatical range and accuracy, Pronunciation"}', 0.00, 2, 'Part 3'),
 ('140e8400-e29b-41d4-a716-446655440189', '130e8400-e29b-41d4-a716-446655440111', '160e8400-e29b-41d4-a716-446655440114', 'How can governments manage tourism effectively?', 'speaking', NULL, NULL, NULL, NULL, '{"criteria": "Fluency and coherence, Lexical resource, Grammatical range and accuracy, Pronunciation"}', 0.00, 3, 'Part 3');
+
+-- Update all existing courses to be featured
+UPDATE courses SET is_featured = TRUE WHERE deleted = FALSE;
+
+-- Update all existing mock tests to be public
+UPDATE mock_tests SET status = 'public' WHERE deleted = FALSE;
