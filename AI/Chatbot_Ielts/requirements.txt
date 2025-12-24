@@ -19,3 +19,4 @@ langchain-ollama
 langchain-core
 pydantic
 asyncpg
+google-generativeai

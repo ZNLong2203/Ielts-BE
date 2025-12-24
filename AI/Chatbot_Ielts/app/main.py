@@ -7,11 +7,12 @@ from .schemas import (
     DocumentListResponse
 )
 from .translator import is_vietnamese, translate_vi_to_en, get_translation_info
-from .ollama_client import query_ollama, warmup_model, health_check_ollama
+from .ollama_client import warmup_model, health_check_ollama
 from .rag_service import get_rag_service
 from .embedding_service import get_embedding_service
 from .milvus_client import get_milvus_client
 from .pdf_extractor import get_pdf_extractor
+from .gemini_fallback import generate_with_fallback
 from .router_service import get_router_service
 from .database_rag_service import get_database_rag_service
 import asyncio
@@ -29,7 +30,6 @@ app = FastAPI(
     version="1.0.0"
 )
 
-# CORS configuration
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
@@ -46,7 +46,6 @@ app.add_middleware(
     max_age=3600,
 )
 
-# Create uploads directory if it doesn't exist
 UPLOAD_DIR = Path("uploads")
 UPLOAD_DIR.mkdir(exist_ok=True)
 
@@ -55,7 +54,6 @@ async def startup_event():
     logger.info("Starting IELTS Assistant API...")
     asyncio.create_task(warmup_model())
     
-    # Initialize embedding service and Milvus
     try:
         embedding_service = get_embedding_service()
         embedding_service.load_model()
@@ -140,7 +138,7 @@ async def chat_endpoint(req: ChatRequest):
                 sources = None
             except Exception as e:
                 logger.warning(f"Database RAG failed, falling back to base model: {e}")
-                # Fallback to base model
+                # Fallback to base model (with Gemini as secondary)
                 if req.conversation_history:
                     from .conversation_service import get_conversation_service
                     conv_service = get_conversation_service()
@@ -149,9 +147,15 @@ async def chat_endpoint(req: ChatRequest):
                         conversation_history=summarized_history,
                         current_query=translated_text
                     )
-                    response = await query_ollama(f"You are an IELTS assistant. Continue the conversation:\n\n{prompt}")
+                    response = await generate_with_fallback(
+                        f"You are an IELTS assistant. Continue the conversation:\n\n{prompt}"
+                    )
                 else:
-                    response = await query_ollama(f"You are an IELTS preparation assistant. Help students with reading, writing, listening, and speaking skills. Answer the following question clearly and provide helpful guidance:\n\n{translated_text}")
+                    response = await generate_with_fallback(
+                        "You are an IELTS preparation assistant. Help students with reading, writing, "
+                        "listening, and speaking skills. Answer the following question clearly and "
+                        f"provide helpful guidance:\n\n{translated_text}"
+                    )
         
         elif router.should_use_vector_db(routing_decision) and req.use_rag:
             # Vector DB RAG: Use Milvus for semantic search in documents
@@ -170,7 +174,7 @@ async def chat_endpoint(req: ChatRequest):
                 )
             except Exception as e:
                 logger.warning(f"Vector DB RAG failed, falling back to base model: {e}")
-                # Fallback with conversation history
+                # Fallback with conversation history (Gemini as secondary)
                 if req.conversation_history:
                     from .conversation_service import get_conversation_service
                     conv_service = get_conversation_service()
@@ -179,12 +183,18 @@ async def chat_endpoint(req: ChatRequest):
                         conversation_history=summarized_history,
                         current_query=translated_text
                     )
-                    response = await query_ollama(f"You are an IELTS assistant. Continue the conversation:\n\n{prompt}")
+                    response = await generate_with_fallback(
+                        f"You are an IELTS assistant. Continue the conversation:\n\n{prompt}"
+                    )
                 else:
-                    response = await query_ollama(f"You are an IELTS preparation assistant. Help students with reading, writing, listening, and speaking skills. Answer the following question clearly and provide helpful guidance:\n\n{translated_text}")
+                    response = await generate_with_fallback(
+                        "You are an IELTS preparation assistant. Help students with reading, writing, "
+                        "listening, and speaking skills. Answer the following question clearly and "
+                        f"provide helpful guidance:\n\n{translated_text}"
+                    )
         
         else:
-            # Base model: Direct generation for general questions
+            # Base model: Direct generation for general questions (with Gemini fallback)
             logger.info("Using base model for query")
             if req.conversation_history:
                 from .conversation_service import get_conversation_service
@@ -194,9 +204,15 @@ async def chat_endpoint(req: ChatRequest):
                     conversation_history=summarized_history,
                     current_query=translated_text
                 )
-                response = await query_ollama(f"You are an IELTS assistant. Continue the conversation:\n\n{prompt}")
+                response = await generate_with_fallback(
+                    f"You are an IELTS assistant. Continue the conversation:\n\n{prompt}"
+                )
             else:
-                response = await query_ollama(f"You are an IELTS preparation assistant. Help students with reading, writing, listening, and speaking skills. Answer the following question clearly and provide helpful guidance:\n\n{translated_text}")
+                response = await generate_with_fallback(
+                    "You are an IELTS preparation assistant. Help students with reading, writing, "
+                    "listening, and speaking skills. Answer the following question clearly and "
+                    f"provide helpful guidance:\n\n{translated_text}"
+                )
         
         return ChatResponse(response=response, sources=sources)
         

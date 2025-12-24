@@ -24,15 +24,13 @@ class RouterDecision(BaseModel):
 class RouterService:    
     def __init__(self):
         ollama_url = os.getenv("OLLAMA_API_URL", "http://localhost:11434/api/generate")
-        # Extract base URL for LangChain (remove /api/generate)
         if "/api/generate" in ollama_url:
             base_url = ollama_url.replace("/api/generate", "")
         else:
             base_url = ollama_url.replace("/api", "")
         
-        # Use the same model as ollama_client
         from .ollama_client import MODEL_NAME
-        model_name = os.getenv("OLLAMA_MODEL", MODEL_NAME.split(":")[0] if ":" in MODEL_NAME else MODEL_NAME)
+        model_name = MODEL_NAME
         
         try:
             # LangChain ChatOllama expects base_url without /api
@@ -119,7 +117,6 @@ Examples:
             
         except Exception as e:
             logger.error(f"Error in routing query: {e}")
-            # Fallback: default to base_model if routing fails
             return RouterDecision(
                 route="base_model",
                 confidence=0.5,
