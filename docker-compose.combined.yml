@@ -153,6 +153,8 @@ services:
       - POSTGRES_DB=ielts
       - RAG_DB_USER=rag_reader
       - RAG_DB_PASSWORD=rag_password
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+      - GEMINI_MODEL=${GEMINI_MODEL:-gemini-2.5-flash}
     depends_on:
       - ollama
       - milvus

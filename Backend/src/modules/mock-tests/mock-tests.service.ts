@@ -1454,6 +1454,7 @@ export class MockTestsService {
     rawQuery: Record<string, any>,
   ) {
     const whereCondition: Prisma.test_resultsWhereInput = {
+      user_id: userId,
       deleted: false,
       ...this.utilsService.buildWhereFromQuery(rawQuery),
     };
@@ -1461,14 +1462,36 @@ export class MockTestsService {
     return this.utilsService.paginate({
       model: this.prisma.test_results,
       query,
-      defaultOrderBy: { created_at: 'asc' },
-      select: {
-        id: true,
-        status: true,
-        band_score: true,
-        time_taken: true,
-        created_at: true,
-        updated_at: true,
+      defaultOrderBy: { created_at: 'desc' },
+      include: {
+        mock_tests: {
+          select: {
+            id: true,
+            title: true,
+            test_type: true,
+            duration: true,
+          },
+        },
+        section_results: {
+          where: { deleted: false },
+          select: {
+            id: true,
+            band_score: true,
+            correct_answers: true,
+            total_questions: true,
+            time_taken: true,
+            grading_method: true,
+            created_at: true,
+            test_sections: {
+              select: {
+                id: true,
+                section_name: true,
+                section_type: true,
+              },
+            },
+          },
+          orderBy: { created_at: 'asc' },
+        },
       },
       where: whereCondition,
     });
