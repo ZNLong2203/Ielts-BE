@@ -101,6 +101,8 @@ services:
     container_name: ai-ielts
     ports:
       - "2222:8000"
+    env_file:
+      - ./.env
     environment:
       - OLLAMA_API_URL=http://ollama:11434/api/generate
       - MILVUS_HOST=milvus

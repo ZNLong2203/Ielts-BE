@@ -1,6 +1,8 @@
 from fastapi import FastAPI, HTTPException, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from pathlib import Path
+from dotenv import load_dotenv
 from .schemas import (
     ChatRequest, ChatResponse, PDFUploadResponse, 
     DocumentSearchRequest, DocumentSearchResponse, CollectionStatsResponse,
@@ -19,7 +21,12 @@ import asyncio
 import logging
 import os
 import aiofiles
-from pathlib import Path
+
+env_path = Path(__file__).parent.parent.parent / ".env"
+if env_path.exists():
+    load_dotenv(env_path)
+else:
+    load_dotenv()
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -121,8 +128,32 @@ async def chat_endpoint(req: ChatRequest):
         
         logger.info(
             f"Router decision: {routing_decision.route} "
-            f"(confidence: {routing_decision.confidence:.2f})"
+            f"(confidence: {routing_decision.confidence:.2f}, "
+            f"router_failed: {routing_decision.router_failed})"
         )
+
+        # If router failed due to serious Ollama error, skip routing and use Gemini directly
+        if routing_decision.router_failed:
+            logger.warning("Router failed due to Ollama error. Skipping routing and using Gemini directly.")
+            from .llm.gemini_fallback import query_gemini
+            if req.conversation_history:
+                from .services.conversation_service import get_conversation_service
+                conv_service = get_conversation_service()
+                summarized_history = await conv_service.summarize_conversation(req.conversation_history)
+                prompt = conv_service.format_conversation_for_prompt(
+                    conversation_history=summarized_history,
+                    current_query=translated_text
+                )
+                response = await query_gemini(
+                    f"You are an IELTS assistant. Continue the conversation:\n\n{prompt}"
+                )
+            else:
+                response = await query_gemini(
+                    "You are an IELTS preparation assistant. Help students with reading, writing, "
+                    "listening, and speaking skills. Answer the following question clearly and "
+                    f"provide helpful guidance:\n\n{translated_text}"
+                )
+            return ChatResponse(response=response, sources=None)
 
         # Route to appropriate handler
         if router.should_use_database_rag(routing_decision):

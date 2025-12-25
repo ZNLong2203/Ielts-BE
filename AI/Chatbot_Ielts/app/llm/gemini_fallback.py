@@ -2,8 +2,16 @@ import os
 import logging
 import re
 import asyncio
+from pathlib import Path
 from fastapi import HTTPException
 from google import genai
+from dotenv import load_dotenv
+
+env_path = Path(__file__).parent.parent.parent / ".env"
+if env_path.exists():
+    load_dotenv(env_path)
+else:
+    load_dotenv()
 
 logger = logging.getLogger(__name__)
 

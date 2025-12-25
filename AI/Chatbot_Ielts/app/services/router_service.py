@@ -20,6 +20,10 @@ class RouterDecision(BaseModel):
     reasoning: str = Field(
         description="Brief explanation of why this route was chosen"
     )
+    router_failed: bool = Field(
+        default=False,
+        description="True if router failed due to Ollama error and should use direct Gemini fallback"
+    )
 
 class RouterService:    
     def __init__(self):
@@ -116,12 +120,31 @@ Examples:
             return decision
             
         except Exception as e:
-            logger.error(f"Error in routing query: {e}")
-            return RouterDecision(
-                route="base_model",
-                confidence=0.5,
-                reasoning=f"Routing failed, defaulting to base_model: {str(e)}"
-            )
+            error_str = str(e).lower()
+            # Check if it's a serious Ollama error (500, timeout, connection issues)
+            # These indicate Ollama is likely down or unreachable
+            is_serious_error = any(keyword in error_str for keyword in [
+                '500', 'timeout', 'connection', 'refused', 'unreachable',
+                'network', 'econnrefused', 'etimedout', 'internal server error'
+            ])
+            
+            if is_serious_error:
+                logger.error(f"Router failed with serious Ollama error: {e}. Will use direct Gemini fallback.")
+                return RouterDecision(
+                    route="base_model",
+                    confidence=0.0,
+                    reasoning=f"Router failed due to Ollama error: {str(e)}",
+                    router_failed=True  # Flag to indicate direct fallback needed
+                )
+            else:
+                # Minor error (e.g., 404 model not found) - might recover, so still try routing
+                logger.warning(f"Router failed with minor error: {e}. Will attempt normal routing with fallback.")
+                return RouterDecision(
+                    route="base_model",
+                    confidence=0.5,
+                    reasoning=f"Routing failed, defaulting to base_model: {str(e)}",
+                    router_failed=False
+                )
     
     def should_use_vector_db(self, decision: RouterDecision) -> bool:
         return decision.route == "vector_db" and decision.confidence >= 0.6

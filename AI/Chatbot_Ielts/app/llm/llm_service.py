@@ -11,7 +11,6 @@ async def generate_with_fallback(prompt: str) -> str:
     try:
         return await query_ollama(prompt)
     except HTTPException as e:
-        # For client errors (4xx) other than 404, just propagate
         if 400 <= e.status_code < 500 and e.status_code != 404:
             raise
 
