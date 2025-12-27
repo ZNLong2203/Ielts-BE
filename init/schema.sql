@@ -608,6 +608,19 @@ CREATE TABLE study_reminders (
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
+CREATE TABLE admins (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID UNIQUE REFERENCES users(id) ON DELETE CASCADE,
+    permission_level VARCHAR(20) DEFAULT 'moderator', -- super_admin, admin, moderator
+    access_rights JSONB, -- JSON object with specific permissions
+    last_login TIMESTAMP,
+    login_count INTEGER DEFAULT 0,
+    notes TEXT, -- internal notes about the admin
+    deleted BOOLEAN DEFAULT FALSE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
 CREATE INDEX idx_users_email ON users(email);
 CREATE INDEX idx_courses_teacher ON courses(teacher_id);
 CREATE INDEX idx_courses_category ON courses(category_id);
