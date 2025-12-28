@@ -612,10 +612,7 @@ CREATE TABLE admins (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id UUID UNIQUE REFERENCES users(id) ON DELETE CASCADE,
     permission_level VARCHAR(20) DEFAULT 'moderator', -- super_admin, admin, moderator
-    access_rights JSONB, -- JSON object with specific permissions
-    last_login TIMESTAMP,
-    login_count INTEGER DEFAULT 0,
-    notes TEXT, -- internal notes about the admin
+    notes TEXT,
     deleted BOOLEAN DEFAULT FALSE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
