@@ -129,8 +129,10 @@ async def chat_endpoint(req: ChatRequest):
         logger.info(
             f"Router decision: {routing_decision.route} "
             f"(confidence: {routing_decision.confidence:.2f}, "
-            f"router_failed: {routing_decision.router_failed})"
+            f"router_failed: {routing_decision.router_failed}, "
+            f"reasoning: {routing_decision.reasoning})"
         )
+        logger.info(f"Query: {translated_text[:100]}")
 
         # If router failed due to serious Ollama error, skip routing and use Gemini directly
         if routing_decision.router_failed:

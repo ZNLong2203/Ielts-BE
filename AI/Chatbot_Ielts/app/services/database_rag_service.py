@@ -212,9 +212,22 @@ class DatabaseRAGService:
         query_type = None
         
         # Determine what to query based on keywords
-        if any(keyword in query_lower for keyword in ["course", "khóa học", "class"]):
-            # Extract search terms
-            search_term = query
+        # Also check for "do you have" pattern which often means asking for courses
+        has_course_keyword = any(keyword in query_lower for keyword in ["course", "khóa học", "class"])
+        has_do_you_have = "do you have" in query_lower or "what do you have" in query_lower
+        
+        if has_course_keyword or has_do_you_have:
+            # Check if this is a general "list courses" query (not searching for specific course)
+            general_list_queries = [
+                "what course", "what courses", "which course", "which courses",
+                "list course", "list courses", "show course", "show courses",
+                "available course", "available courses", "have course", "have courses",
+                "offer course", "offer courses", "do you have"
+            ]
+            is_general_query = any(gen_query in query_lower for gen_query in general_list_queries)
+            
+            # Extract search terms - only if not a general "list all" query
+            search_term = None if is_general_query else query
             skill_focus = None
             difficulty = None
             
@@ -230,12 +243,16 @@ class DatabaseRAGService:
                     difficulty = diff
                     break
             
+            # For general queries, increase limit to show more courses
+            limit = 10 if is_general_query else 5
+            
             courses = await self.query_courses(
                 search_term=search_term,
                 skill_focus=skill_focus,
                 difficulty_level=difficulty,
-                limit=5
+                limit=limit
             )
+            logger.info(f"Database RAG query_courses returned {len(courses)} courses for query: {query} (is_general_query: {is_general_query})")
             results["courses"] = courses
             query_type = "courses"
         
@@ -275,10 +292,29 @@ class DatabaseRAGService:
             query_type = "mock_tests"
         
         else:
-            # Try to query all relevant tables
-            courses = await self.query_courses(search_term=query, limit=3)
-            combo_courses = await self.query_combo_courses(search_term=query, limit=3)
-            blogs = await self.query_blogs(search_term=query, limit=3)
+            # Check if this is a general "what do you have" query (might have typos)
+            general_list_patterns = [
+                "do you have", "what do you have", "what do you offer",
+                "what can you", "show me", "list", "available"
+            ]
+            is_list_query = any(pattern in query_lower for pattern in general_list_patterns)
+            
+            # If it's a list query, don't use search_term to get all results
+            # Otherwise, use search_term for specific queries
+            courses = await self.query_courses(
+                search_term=None if is_list_query else query,
+                limit=10 if is_list_query else 3
+            )
+            combo_courses = await self.query_combo_courses(
+                search_term=None if is_list_query else query,
+                limit=5 if is_list_query else 3
+            )
+            blogs = await self.query_blogs(
+                search_term=None if is_list_query else query,
+                limit=5 if is_list_query else 3
+            )
+            
+            logger.info(f"Database RAG general query - is_list_query: {is_list_query}, courses found: {len(courses)}")
             
             results = {
                 "courses": courses,
@@ -354,7 +390,12 @@ class DatabaseRAGService:
         query: str,
         conversation_history: Optional[List[Dict[str, str]]] = None
     ) -> str:
+        logger.info(f"Database RAG generating answer for query: {query}")
         db_results = await self.intelligent_query(query, conversation_history)
+        
+        logger.info(f"Database RAG query results - query_type: {db_results.get('query_type')}, "
+                   f"formatted_context length: {len(db_results.get('formatted_context', ''))}")
+        logger.debug(f"Database RAG formatted_context preview: {db_results.get('formatted_context', '')[:500]}")
         
         # Summarize conversation history if provided
         summarized_history = None
@@ -369,7 +410,14 @@ class DatabaseRAGService:
         if summarized_history:
             prompt_parts.append(f"Previous conversation:\n{summarized_history}\n")
         
-        prompt_parts.append(f"Database information:\n{db_results['formatted_context']}\n")
+        formatted_context = db_results.get('formatted_context', '')
+        if not formatted_context or formatted_context.strip() == "No relevant information found.":
+            logger.warning(f"Database RAG: No information found for query: {query}")
+            # Still try to generate a helpful response even if no data found
+            prompt_parts.append(f"Database information:\nNo specific course information was found in the database for this query.\n")
+        else:
+            prompt_parts.append(f"Database information:\n{formatted_context}\n")
+        
         prompt_parts.append(f"User question: {query}")
         
         prompt = "\n---\n".join(prompt_parts)
@@ -380,12 +428,15 @@ class DatabaseRAGService:
 
 Instructions:
 - Use the database information above to provide accurate answers about courses, combos, coupons, blogs, and mock tests
-- If the information is not available in the database, say so politely
+- If database information is available, provide details from it
+- If the information is not available in the database, explain that you're checking the platform's offerings and provide general guidance
 - Format your response in a clear and helpful manner
 - Include relevant details like prices, descriptions, and availability when appropriate
 - If asked about specific items, provide details from the database"""
         
+        logger.debug(f"Database RAG enhanced prompt length: {len(enhanced_prompt)}")
         answer = await generate_with_fallback(enhanced_prompt)
+        logger.info(f"Database RAG generated answer length: {len(answer)}")
         return answer
 
 _database_rag_service = None
