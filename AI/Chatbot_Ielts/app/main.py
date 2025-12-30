@@ -129,8 +129,10 @@ async def chat_endpoint(req: ChatRequest):
         logger.info(
             f"Router decision: {routing_decision.route} "
             f"(confidence: {routing_decision.confidence:.2f}, "
-            f"router_failed: {routing_decision.router_failed})"
+            f"router_failed: {routing_decision.router_failed}, "
+            f"reasoning: {routing_decision.reasoning})"
         )
+        logger.info(f"Query: {translated_text[:100]}")
 
         # If router failed due to serious Ollama error, skip routing and use Gemini directly
         if routing_decision.router_failed:
@@ -158,71 +160,133 @@ async def chat_endpoint(req: ChatRequest):
         # Route to appropriate handler
         if router.should_use_database_rag(routing_decision):
             # Database RAG: Query PostgreSQL for combo, coupon, blog, course info
+            logger.info("Using database RAG for query")
+            db_rag_service = get_database_rag_service()
+            
+            # Query database first to get context 
+            db_results = None
+            db_context = None
             try:
-                logger.info("Using database RAG for query")
-                db_rag_service = get_database_rag_service()
-                response = await db_rag_service.generate_answer(
+                db_results = await db_rag_service.intelligent_query(
                     translated_text,
                     conversation_history=req.conversation_history
+                )
+                db_context = db_results.get('formatted_context', '')
+                logger.info(f"Database RAG query results - query_type: {db_results.get('query_type')}, "
+                           f"formatted_context length: {len(db_context)}")
+            except Exception as e:
+                logger.warning(f"Database query failed, will try without context: {e}")
+            
+            # Try to generate answer with database context (pass pre-queried results to avoid duplicate query)
+            try:
+                response = await db_rag_service.generate_answer(
+                    translated_text,
+                    conversation_history=req.conversation_history,
+                    db_results=db_results  # Pass pre-queried results to avoid duplicate query
                 )
                 # Database queries don't return sources in the same format
                 sources = None
             except Exception as e:
-                logger.warning(f"Database RAG failed, falling back to base model: {e}")
-                # Fallback to base model (with Gemini as secondary)
+                logger.warning(f"Database RAG generation failed, falling back to Gemini with context: {e}")
+                # Fallback to Gemini with database context (if available)
+                from .llm.gemini_fallback import query_gemini
+                
+                # Prepare prompt with database context
+                prompt_parts = []
+                
                 if req.conversation_history:
                     from .services.conversation_service import get_conversation_service
                     conv_service = get_conversation_service()
                     summarized_history = await conv_service.summarize_conversation(req.conversation_history)
-                    prompt = conv_service.format_conversation_for_prompt(
-                        conversation_history=summarized_history,
-                        current_query=translated_text
-                    )
-                    response = await generate_with_fallback(
-                        f"You are an IELTS assistant. Continue the conversation:\n\n{prompt}"
-                    )
+                    prompt_parts.append(f"Previous conversation:\n{summarized_history}\n")
+                
+                if db_context and db_context.strip() != "No relevant information found.":
+                    prompt_parts.append(f"Database information:\n{db_context}\n")
                 else:
-                    response = await generate_with_fallback(
-                        "You are an IELTS preparation assistant. Help students with reading, writing, "
-                        "listening, and speaking skills. Answer the following question clearly and "
-                        f"provide helpful guidance:\n\n{translated_text}"
-                    )
+                    prompt_parts.append("Database information:\nNo specific course information was found in the database for this query.\n")
+                
+                prompt_parts.append(f"User question: {translated_text}")
+                prompt = "\n---\n".join(prompt_parts)
+                
+                enhanced_prompt = f"""You are an IELTS learning platform assistant. Use the database information provided to answer the user's question accurately and helpfully.
+
+{prompt}
+
+Instructions:
+- Use the database information above to provide accurate answers about courses, combos, coupons, blogs, and mock tests
+- If database information is available, provide details from it
+- If the information is not available in the database, explain that you're checking the platform's offerings and provide general guidance
+- Format your response in a clear and helpful manner
+- Include relevant details like prices, descriptions, and availability when appropriate
+- If asked about specific items, provide details from the database"""
+                
+                response = await query_gemini(enhanced_prompt)
+                sources = None
         
         elif router.should_use_vector_db(routing_decision) and req.use_rag:
             # Vector DB RAG: Use Milvus for semantic search in documents
+            logger.info("Using vector DB RAG for query")
+            rag_service = get_rag_service()
+            
+            # Retrieve context first to get sources
+            retrieved_docs = []
+            rag_context = None
             try:
-                logger.info("Using vector DB RAG for query")
-                rag_service = get_rag_service()
-                # Retrieve context first to get sources
                 retrieved_docs = rag_service.retrieve_context(translated_text)
                 sources = retrieved_docs if retrieved_docs else None
-                
-                # Generate answer with RAG and conversation history
+                if retrieved_docs:
+                    rag_context = await rag_service.format_and_summarize_context(retrieved_docs)
+                logger.info(f"Retrieved {len(retrieved_docs)} documents, context length: {len(rag_context) if rag_context else 0}")
+            except Exception as e:
+                logger.warning(f"Vector DB context retrieval failed: {e}")
+                sources = None
+            
+            # Generate answer with RAG and conversation history
+            try:
                 response = await rag_service.generate_answer(
                     translated_text,
                     use_rag=True,
                     conversation_history=req.conversation_history
                 )
             except Exception as e:
-                logger.warning(f"Vector DB RAG failed, falling back to base model: {e}")
-                # Fallback with conversation history (Gemini as secondary)
+                logger.warning(f"Vector DB RAG generation failed, falling back to Gemini with context: {e}")
+                # Fallback to Gemini with RAG context (if available)
+                from .llm.gemini_fallback import query_gemini
+                
+                # Prepare prompt with RAG context
+                prompt_parts = []
+                
                 if req.conversation_history:
                     from .services.conversation_service import get_conversation_service
                     conv_service = get_conversation_service()
                     summarized_history = await conv_service.summarize_conversation(req.conversation_history)
-                    prompt = conv_service.format_conversation_for_prompt(
-                        conversation_history=summarized_history,
-                        current_query=translated_text
-                    )
-                    response = await generate_with_fallback(
-                        f"You are an IELTS assistant. Continue the conversation:\n\n{prompt}"
-                    )
-                else:
-                    response = await generate_with_fallback(
-                        "You are an IELTS preparation assistant. Help students with reading, writing, "
-                        "listening, and speaking skills. Answer the following question clearly and "
-                        f"provide helpful guidance:\n\n{translated_text}"
-                    )
+                    prompt_parts.append(f"Previous conversation:\n{summarized_history}\n")
+                
+                if rag_context:
+                    prompt_parts.append(f"Relevant study materials:\n{rag_context}\n")
+                
+                prompt_parts.append(f"User question: {translated_text}")
+                prompt = "\n---\n".join(prompt_parts)
+                
+                instructions = []
+                if req.conversation_history:
+                    instructions.append("- Pay attention to the conversation history above. If the user refers to \"that topic\", \"the topic above\", \"đề đó\", \"cái đó\", or similar references, they are referring to topics/questions mentioned in the previous conversation.")
+                    instructions.append("- Continue the conversation naturally and maintain context from previous messages.")
+                if rag_context:
+                    instructions.append("- Use the relevant study materials provided above to answer accurately.")
+                    instructions.append("- If using information from study materials, cite the source (e.g., Document X).")
+                instructions.append("- Provide a comprehensive and helpful answer.")
+                
+                instructions_text = "\n".join(instructions) if instructions else ""
+                
+                enhanced_prompt = f"""You are an IELTS preparation assistant. Use the following information to answer the question accurately and helpfully.
+
+{prompt}
+
+Instructions:
+{instructions_text}"""
+                
+                response = await query_gemini(enhanced_prompt)
         
         else:
             # Base model: Direct generation for general questions (with Gemini fallback)

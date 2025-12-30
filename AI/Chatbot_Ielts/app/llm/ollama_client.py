@@ -52,14 +52,17 @@ async def query_ollama(prompt: str) -> str:
         # Try to parse as single JSON first
         try:
             data = resp.json()
+            # Prioritize response field, fallback to thinking field if response is empty
             response_text = data.get("response", "")
+            
             # Track if we got data from response field
-            if response_text:
+            if response_text and response_text.strip():
                 from_response_field = True
             else:
-                # Only use thinking if response is empty
+                # Only use thinking if response is empty or None
                 thinking_text = data.get("thinking", "")
-                if thinking_text:
+                if thinking_text and thinking_text.strip():
+                    logger.debug("Response field is empty, using thinking field instead")
                     response_text = thinking_text
         except (ValueError, httpx.DecodeError):
             # If single JSON fails, parse streaming format
@@ -71,13 +74,14 @@ async def query_ollama(prompt: str) -> str:
                 try:
                     chunk = json.loads(line)
                     chunk_response = chunk.get("response", "")
-                    if chunk_response:
+                    if chunk_response and chunk_response.strip():
                         response_text += chunk_response
                         from_response_field = True
                     # Only check thinking if we don't have response yet
                     elif not from_response_field:
                         chunk_thinking = chunk.get("thinking", "")
-                        if chunk_thinking:
+                        if chunk_thinking and chunk_thinking.strip():
+                            logger.debug("Response field is empty in stream, using thinking field instead")
                             thinking_text += chunk_thinking
                             response_text += chunk_thinking
                     if chunk.get("done", False):
@@ -96,13 +100,14 @@ async def query_ollama(prompt: str) -> str:
                         try:
                             data = json.loads(line)
                             response_text = data.get("response", "")
-                            if response_text:
+                            if response_text and response_text.strip():
                                 from_response_field = True
                                 break
                             # Only check thinking if response is empty
                             if not from_response_field:
                                 thinking_text = data.get("thinking", "")
-                                if thinking_text:
+                                if thinking_text and thinking_text.strip():
+                                    logger.debug("Response field is empty, using thinking field instead")
                                     response_text = thinking_text
                                     break
                         except json.JSONDecodeError:
