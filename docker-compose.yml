@@ -16,7 +16,8 @@ services:
       - POSTGRES_DB=ielts
       - POSTGRES_USER=postgres
     networks:
-      - ielts-be
+      - ielts-network
+    restart: unless-stopped
 
   redis:
     image: redis:latest
@@ -29,7 +30,9 @@ services:
       - REDIS_HOST=redis
       - REDIS_PASSWORD=admin
     networks:
-      - ielts-be
+      - ielts-network
+    restart: unless-stopped
+
   minio:
     image: minio/minio:latest
     container_name: minio-ielts
@@ -50,13 +53,8 @@ services:
       timeout: 20s
       retries: 3
     networks:
-      - ielts-be
-
-  # cloudflared:
-  #   image: cloudflare/cloudflared:latest
-  #   container_name: cloudflared-tunnel
-  #   command: tunnel --url http://host.docker.internal:3000
-  #   restart: unless-stopped
+      - ielts-network
+    restart: unless-stopped
 
   ffmpeg:
     build:
@@ -67,10 +65,109 @@ services:
       - ./ffmpeg-data:/data
       - ./temp:/tmp
     networks:
-      - ielts-be
+      - ielts-network
+    restart: unless-stopped
+
+  # ollama:
+  #   image: ollama/ollama:latest
+  #   container_name: ollama-ielts
+  #   ports:
+  #     - "11435:11434"
+  #   volumes:
+  #     - ollama-data:/root/.ollama
+  #     - ./AI/Chatbot_Ielts/scripts/entrypoint.sh:/entrypoint.sh
+  #   environment:
+  #     - OLLAMA_HOST=0.0.0.0
+  #     - OLLAMA_KEEP_ALIVE=24h
+  #     - OLLAMA_NUM_PARALLEL=2
+  #     - OLLAMA_MAX_LOADED_MODELS=1
+  #   entrypoint: ["sh", "/entrypoint.sh"]
+  #   networks:
+  #     - ielts-network
+  #   restart: unless-stopped
+
+  etcd:
+    image: quay.io/coreos/etcd:v3.5.5
+    container_name: milvus-etcd
+    environment:
+      - ETCD_AUTO_COMPACTION_MODE=revision
+      - ETCD_AUTO_COMPACTION_RETENTION=1000
+      - ETCD_QUOTA_BACKEND_BYTES=4294967296
+      - ETCD_SNAPSHOT_COUNT=50000
+    volumes:
+      - etcd-data:/etcd
+    command: >
+      etcd
+      --advertise-client-urls=http://etcd:2379
+      --listen-client-urls=http://0.0.0.0:2379
+      --data-dir /etcd
+    networks:
+      - ielts-network
+    healthcheck:
+      test: ["CMD", "etcdctl", "endpoint", "health"]
+      interval: 30s
+      timeout: 20s
+      retries: 3
+    restart: unless-stopped
+
+  milvus:
+    image: milvusdb/milvus:v2.3.3
+    container_name: milvus-standalone
+    command: ["milvus", "run", "standalone"]
+    environment:
+      ETCD_ENDPOINTS: etcd:2379
+      MINIO_ADDRESS: minio:9000
+      MINIO_ACCESS_KEY_ID: admin
+      MINIO_SECRET_ACCESS_KEY: admin123
+    volumes:
+      - milvus-data:/var/lib/milvus
+    ports:
+      - "19530:19530"
+      - "9091:9091"
+    depends_on:
+      - "etcd"
+      - "minio"
+    networks:
+      - ielts-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9091/healthz"]
+      interval: 30s
+      start_period: 90s
+      timeout: 20s
+      retries: 3
+    restart: unless-stopped
+
+  ielts-ai:
+    build:
+      context: ./AI/Chatbot_Ielts
+      dockerfile: Dockerfile
+    container_name: ai-ielts
+    ports:
+      - "2222:8000"
+    env_file:
+      - ./AI/Chatbot_Ielts/.env
+    environment:
+      # - OLLAMA_API_URL=http://ollama:11434/api/generate
+      - OLLAMA_API_URL=https://eloquent-encouragement-production-dc0a.up.railway.app/api/generate
+      - MILVUS_HOST=milvus-standalone
+      - MILVUS_PORT=19530
+      - POSTGRES_HOST=postgres
+      - POSTGRES_PORT=5432
+      - POSTGRES_DB=ielts
+      - RAG_DB_USER=rag_reader
+      - RAG_DB_PASSWORD=rag_password
+    depends_on:
+      - milvus
+      - postgres
+    volumes:
+      - ./AI/Chatbot_Ielts/uploads:/app/uploads
+    networks:
+      - ielts-network
+    restart: unless-stopped
+    stop_grace_period: 300s
 
 networks:
-  ielts-be:
+  ielts-network:
     driver: bridge
 
 volumes:
@@ -78,3 +175,6 @@ volumes:
   redis-data:
   minio-data:
   ffmpeg-data:
+  # ollama-data:  
+  etcd-data:
+  milvus-data:
