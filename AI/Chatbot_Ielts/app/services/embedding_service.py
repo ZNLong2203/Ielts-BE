@@ -23,22 +23,10 @@ class EmbeddingService:
         logger.info(f"Initialized HuggingFace Inference Client for model: {self.model_name}")
         
     def load_model(self):
-        """No-op for HuggingFace Inference API (model is loaded on-demand)"""
         logger.info(f"Using HuggingFace Inference API for embeddings (model: {self.model_name})")
         pass
     
     def encode(self, texts: List[str], batch_size: int = None, show_progress_bar: bool = False) -> np.ndarray:
-        """
-        Generate embeddings for a list of texts using HuggingFace Inference API
-        
-        Args:
-            texts: List of text strings to encode
-            batch_size: Batch size for encoding (used for batching requests)
-            show_progress_bar: Whether to show progress bar (not supported by API)
-            
-        Returns:
-            numpy array of embeddings with shape (n_texts, embedding_dimension)
-        """
         if not texts:
             return np.array([])
         
@@ -58,26 +46,77 @@ class EmbeddingService:
                         model=self.model_name,
                     )
                     
-                    # Handle different response formats
-                    if isinstance(embeddings, list):
-                        if len(embeddings) > 0 and isinstance(embeddings[0], list):
-                            # Multiple texts: [[emb1], [emb2], ...]
-                            batch_embeddings = np.array(embeddings)
+                    # HuggingFace Inference API returns embeddings as a list
+                    # For batch input, it returns: [[emb1_dim1, ..., emb1_dim1024], [emb2_dim1, ..., emb2_dim1024], ...]
+                    # Try to convert directly to numpy array first (most common case)
+                    try:
+                        batch_embeddings = np.array(embeddings, dtype=np.float32)
+                        # If 1D array (single embedding), reshape to (1, embedding_dim)
+                        if batch_embeddings.ndim == 1:
+                            batch_embeddings = batch_embeddings.reshape(1, -1)
+                        # If 2D array, should be (batch_size, embedding_dim) - verify below
+                    except (ValueError, TypeError) as e:
+                        # If direct conversion fails (unequal lengths), parse manually
+                        logger.debug(f"Direct array conversion failed for batch {i//batch_size + 1}, parsing manually: {e}")
+                        if isinstance(embeddings, list) and len(embeddings) > 0:
+                            if isinstance(embeddings[0], list):
+                                # Nested list: [[emb1], [emb2], ...]
+                                embedding_list = [np.array(emb, dtype=np.float32) for emb in embeddings]
+                                # Validate all have same length before stacking
+                                dims = [emb.shape[0] if emb.ndim == 1 else emb.size for emb in embedding_list]
+                                if len(set(dims)) > 1:
+                                    logger.error(f"Batch {i//batch_size + 1}: Inconsistent embedding dimensions: {dims}")
+                                    raise ValueError(f"Inconsistent embedding dimensions in batch: {dims}")
+                                batch_embeddings = np.vstack(embedding_list)
+                            else:
+                                # Flat list (single embedding)
+                                batch_embeddings = np.array(embeddings, dtype=np.float32).reshape(1, -1)
                         else:
-                            # Single text: [emb1, emb2, ...]
-                            batch_embeddings = np.array([embeddings])
-                    else:
-                        # Single embedding as array
-                        batch_embeddings = np.array([embeddings])
+                            raise ValueError(f"Unexpected embeddings format: {type(embeddings)}")
                     
-                    # Ensure correct shape: (batch_size, embedding_dim)
-                    if batch_embeddings.ndim == 1:
-                        batch_embeddings = batch_embeddings.reshape(1, -1)
+                    # Log shape for debugging
+                    logger.debug(f"Batch {i//batch_size + 1}: Parsed embeddings shape: {batch_embeddings.shape}, expected rows: {len(batch)}")
+                    
+                    # Validate shape: should be (batch_size, embedding_dim)
+                    expected_rows = len(batch)
+                    if batch_embeddings.shape[0] != expected_rows:
+                        logger.warning(
+                            f"Batch {i//batch_size + 1}: Row count mismatch. "
+                            f"Expected {expected_rows} rows (batch size), got {batch_embeddings.shape[0]}. "
+                            f"Shape: {batch_embeddings.shape}"
+                        )
+                        # Adjust to match batch size
+                        if batch_embeddings.shape[0] > expected_rows:
+                            batch_embeddings = batch_embeddings[:expected_rows, :]
+                        else:
+                            # This shouldn't happen normally, but handle it
+                            logger.error(f"Batch {i//batch_size + 1}: Got fewer embeddings than batch size!")
+                            padding = np.zeros((expected_rows - batch_embeddings.shape[0], batch_embeddings.shape[1]), dtype=np.float32)
+                            batch_embeddings = np.vstack([batch_embeddings, padding])
+                    
+                    # Validate embedding dimension matches expected (bge-m3 should be 1024)
+                    if batch_embeddings.shape[1] != self.embedding_dimension:
+                        logger.warning(
+                            f"Batch {i//batch_size + 1}: Expected embedding dimension {self.embedding_dimension}, "
+                            f"got {batch_embeddings.shape[1]}. Reshaping or truncating..."
+                        )
+                        # If dimension is larger, truncate; if smaller, pad with zeros
+                        if batch_embeddings.shape[1] > self.embedding_dimension:
+                            batch_embeddings = batch_embeddings[:, :self.embedding_dimension]
+                        else:
+                            # Pad with zeros
+                            padding = np.zeros((batch_embeddings.shape[0], self.embedding_dimension - batch_embeddings.shape[1]))
+                            batch_embeddings = np.hstack([batch_embeddings, padding])
                     
                     # Normalize embeddings for cosine similarity
                     norms = np.linalg.norm(batch_embeddings, axis=1, keepdims=True)
                     norms = np.where(norms == 0, 1, norms)  # Avoid division by zero
                     batch_embeddings = batch_embeddings / norms
+                    
+                    # Validate final shape before appending
+                    if batch_embeddings.shape[1] != self.embedding_dimension:
+                        logger.error(f"Batch {i//batch_size + 1}: Failed to fix embedding dimension. Shape: {batch_embeddings.shape}")
+                        raise ValueError(f"Invalid embedding dimension: {batch_embeddings.shape[1]}, expected {self.embedding_dimension}")
                     
                     all_embeddings.append(batch_embeddings)
                     
@@ -93,6 +132,19 @@ class EmbeddingService:
                                 emb_array = np.array([emb])
                             if emb_array.ndim == 1:
                                 emb_array = emb_array.reshape(1, -1)
+                            
+                            # Validate and fix embedding dimension
+                            if emb_array.shape[1] != self.embedding_dimension:
+                                logger.warning(
+                                    f"Single text embedding: Expected dimension {self.embedding_dimension}, "
+                                    f"got {emb_array.shape[1]}. Reshaping..."
+                                )
+                                if emb_array.shape[1] > self.embedding_dimension:
+                                    emb_array = emb_array[:, :self.embedding_dimension]
+                                else:
+                                    padding = np.zeros((1, self.embedding_dimension - emb_array.shape[1]))
+                                    emb_array = np.hstack([emb_array, padding])
+                            
                             norms = np.linalg.norm(emb_array, axis=1, keepdims=True)
                             norms = np.where(norms == 0, 1, norms)
                             emb_array = emb_array / norms
@@ -106,8 +158,20 @@ class EmbeddingService:
             if not all_embeddings:
                 return np.array([])
             
+            # Validate all embeddings have same dimension before stacking
+            for idx, emb in enumerate(all_embeddings):
+                if emb.shape[1] != self.embedding_dimension:
+                    logger.error(f"Embedding batch {idx} has invalid dimension: {emb.shape[1]}, expected {self.embedding_dimension}")
+                    raise ValueError(f"Embedding dimension mismatch: batch {idx} has {emb.shape[1]}, expected {self.embedding_dimension}")
+            
             result = np.vstack(all_embeddings)
             logger.debug(f"Generated embeddings for {len(texts)} texts, shape: {result.shape}")
+            
+            # Final validation
+            if result.shape[1] != self.embedding_dimension:
+                logger.error(f"Final embeddings have invalid dimension: {result.shape[1]}, expected {self.embedding_dimension}")
+                raise ValueError(f"Final embedding dimension mismatch: {result.shape[1]}, expected {self.embedding_dimension}")
+            
             return result
             
         except Exception as e:
@@ -115,15 +179,6 @@ class EmbeddingService:
             raise
     
     def encode_single(self, text: str) -> List[float]:
-        """
-        Generate embedding for a single text
-        
-        Args:
-            text: Text string to encode
-            
-        Returns:
-            List of float values representing the embedding
-        """
         embeddings = self.encode([text])
         return embeddings[0].tolist()
     
