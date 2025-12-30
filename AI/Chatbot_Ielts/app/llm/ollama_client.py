@@ -11,8 +11,10 @@ API_URL = os.getenv("OLLAMA_API_URL", "http://ollama:11434/api/generate")
 MODEL_NAME = "hf.co/Zkare/Chatbot_Ielts_Assistant_v2:Q4_K_M"
 
 _http_client = httpx.AsyncClient(
-    timeout=httpx.Timeout(180.0), 
-    limits=httpx.Limits(max_keepalive_connections=5, max_connections=10)
+    timeout=httpx.Timeout(180.0, connect=30.0),  
+    limits=httpx.Limits(max_keepalive_connections=5, max_connections=10),
+    verify=True, 
+    follow_redirects=True  
 )
 
 _response_cache = {}
@@ -159,7 +161,11 @@ async def health_check_ollama() -> bool:
     Check if Ollama service is responding.
     """
     try:
-        resp = await _http_client.get(f"{API_URL.replace('/api/generate', '/api/tags')}")
+        # Handle both /api/generate and /api endpoints
+        health_url = API_URL.replace('/api/generate', '/api/tags')
+        if health_url == API_URL:  # If no /api/generate found, try replacing /api
+            health_url = API_URL.replace('/api', '/api/tags')
+        resp = await _http_client.get(health_url, timeout=10.0)
         return resp.status_code == 200
     except Exception:
         return False

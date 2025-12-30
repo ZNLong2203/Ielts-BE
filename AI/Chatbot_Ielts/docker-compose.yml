@@ -1,21 +1,23 @@
 services:
-  ollama:
-    image: ollama/ollama:latest
-    container_name: ollama-ielts
-    ports:
-      - "11435:11434"
-    volumes:
-      - ollama-test-data:/root/.ollama
-      - ./scripts/entrypoint.sh:/entrypoint.sh
-    environment:
-      - OLLAMA_HOST=0.0.0.0
-      - OLLAMA_KEEP_ALIVE=24h
-      - OLLAMA_NUM_PARALLEL=2
-      - OLLAMA_MAX_LOADED_MODELS=1
-    entrypoint: ["sh", "/entrypoint.sh"]
-    networks:
-      - ai-test
-    restart: unless-stopped
+  # Ollama service removed - using Railway deployment instead
+  # Railway URL: https://eloquent-encouragement-production-dc0a.up.railway.app:8080
+  # ollama:
+  #   image: ollama/ollama:latest
+  #   container_name: ollama-ielts
+  #   ports:
+  #     - "11435:11434"
+  #   volumes:
+  #     - ollama-test-data:/root/.ollama
+  #     - ./scripts/entrypoint.sh:/entrypoint.sh
+  #   environment:
+  #     - OLLAMA_HOST=0.0.0.0
+  #     - OLLAMA_KEEP_ALIVE=24h
+  #     - OLLAMA_NUM_PARALLEL=2
+  #     - OLLAMA_MAX_LOADED_MODELS=1
+  #   entrypoint: ["sh", "/entrypoint.sh"]
+  #   networks:
+  #     - ai-test
+  #   restart: unless-stopped
 
   etcd:
     image: quay.io/coreos/etcd:v3.5.5
@@ -104,11 +106,12 @@ services:
     env_file:
       - ./.env
     environment:
-      - OLLAMA_API_URL=http://ollama:11434/api/generate
+      # Using Railway Ollama service instead of local
+      # Railway automatically routes port, so we don't need :8080 in the URL
+      - OLLAMA_API_URL=https://eloquent-encouragement-production-dc0a.up.railway.app/api/generate
       - MILVUS_HOST=milvus
       - MILVUS_PORT=19530
     depends_on:
-      - ollama
       - milvus
     volumes:
       - ./uploads:/app/uploads
@@ -122,7 +125,7 @@ networks:
     driver: bridge
 
 volumes:
-  ollama-test-data:
+  # ollama-test-data:  # Removed - using Railway Ollama service
   etcd-data:
   minio-data:
   milvus-data:
