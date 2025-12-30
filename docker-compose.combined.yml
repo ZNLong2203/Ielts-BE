@@ -68,23 +68,25 @@ services:
       - ielts-network
     restart: unless-stopped
 
-  ollama:
-    image: ollama/ollama:latest
-    container_name: ollama-ielts
-    ports:
-      - "11435:11434"
-    volumes:
-      - ollama-data:/root/.ollama
-      - ./AI/Chatbot_Ielts/scripts/entrypoint.sh:/entrypoint.sh
-    environment:
-      - OLLAMA_HOST=0.0.0.0
-      - OLLAMA_KEEP_ALIVE=24h
-      - OLLAMA_NUM_PARALLEL=2
-      - OLLAMA_MAX_LOADED_MODELS=1
-    entrypoint: ["sh", "/entrypoint.sh"]
-    networks:
-      - ielts-network
-    restart: unless-stopped
+  # Ollama service removed - using Railway deployment instead
+  # Railway URL: https://eloquent-encouragement-production-dc0a.up.railway.app
+  # ollama:
+  #   image: ollama/ollama:latest
+  #   container_name: ollama-ielts
+  #   ports:
+  #     - "11435:11434"
+  #   volumes:
+  #     - ollama-data:/root/.ollama
+  #     - ./AI/Chatbot_Ielts/scripts/entrypoint.sh:/entrypoint.sh
+  #   environment:
+  #     - OLLAMA_HOST=0.0.0.0
+  #     - OLLAMA_KEEP_ALIVE=24h
+  #     - OLLAMA_NUM_PARALLEL=2
+  #     - OLLAMA_MAX_LOADED_MODELS=1
+  #   entrypoint: ["sh", "/entrypoint.sh"]
+  #   networks:
+  #     - ielts-network
+  #   restart: unless-stopped
 
   etcd:
     image: quay.io/coreos/etcd:v3.5.5
@@ -147,7 +149,8 @@ services:
     env_file:
       - ./AI/Chatbot_Ielts/.env
     environment:
-      - OLLAMA_API_URL=http://ollama-ielts:11434/api/generate
+      # - OLLAMA_API_URL=http://ollama:11434/api/generate
+      - OLLAMA_API_URL=https://eloquent-encouragement-production-dc0a.up.railway.app/api/generate
       - MILVUS_HOST=milvus-standalone
       - MILVUS_PORT=19530
       - POSTGRES_HOST=postgres
@@ -156,7 +159,6 @@ services:
       - RAG_DB_USER=rag_reader
       - RAG_DB_PASSWORD=rag_password
     depends_on:
-      - ollama
       - milvus
       - postgres
     volumes:
@@ -175,7 +177,7 @@ volumes:
   redis-data:
   minio-data:
   ffmpeg-data:
-  ollama-data:
+  # ollama-data:  # Removed - using Railway Ollama service
   etcd-data:
   milvus-data:
 

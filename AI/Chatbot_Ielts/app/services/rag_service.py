@@ -8,9 +8,10 @@ from .conversation_service import get_conversation_service
 logger = logging.getLogger(__name__)
 
 class RAGService:    
-    def __init__(self, top_k: int = 5, score_threshold: float = 0.5):
+    def __init__(self, top_k: int = 5, score_threshold: float = 0.5, min_relevance_score: float = 0.6):
         self.top_k = top_k
-        self.score_threshold = score_threshold
+        self.score_threshold = score_threshold  # Minimum score for retrieval
+        self.min_relevance_score = min_relevance_score  # Minimum score to actually use RAG context
         self.embedding_service = get_embedding_service()
         self.milvus_client = get_milvus_client(
             embedding_dimension=self.embedding_service.get_embedding_dimension()
@@ -35,6 +36,37 @@ class RAGService:
             logger.error(f"Error retrieving context: {e}")
             return []
     
+    def filter_relevant_docs(self, retrieved_docs: List[Dict]) -> List[Dict]:
+        if not retrieved_docs:
+            return []
+        
+        # Get max score to decide strategy
+        max_score = max((doc.get("score", 0.0) for doc in retrieved_docs), default=0.0)
+        
+        # If max score is very low (< 0.55), don't use RAG at all
+        if max_score < 0.55:
+            logger.debug(f"Max relevance score {max_score:.2f} too low, not using RAG context")
+            return []
+        
+        # Filter to only include documents with score above minimum relevance threshold
+        relevant_docs = [
+            doc for doc in retrieved_docs 
+            if doc.get("score", 0.0) >= self.min_relevance_score
+        ]
+        
+        # If we have some highly relevant docs (>= 0.6), use them
+        if relevant_docs:
+            return relevant_docs
+        
+        # If no docs meet the high threshold (0.6), but max score is decent (0.55-0.6)
+        # Use top 2-3 documents with leniency
+        if max_score >= 0.55:
+            logger.debug(f"Using top documents with leniency (max score: {max_score:.2f}, threshold: {self.min_relevance_score})")
+            return retrieved_docs[:min(3, len(retrieved_docs))]
+        
+        # Shouldn't reach here, but return empty as fallback
+        return []
+    
     def format_context(self, retrieved_docs: List[Dict]) -> str:
         if not retrieved_docs:
             return ""
@@ -42,14 +74,12 @@ class RAGService:
         context_parts = []
         for i, doc in enumerate(retrieved_docs, 1):
             source = doc.get("source_file", "Unknown")
-            text = doc.get("text", "")
-            score = doc.get("score", 0.0)
-            
-            context_parts.append(
-                f"[Document {i} from {source} (relevance: {score:.2f})]\n{text}\n"
-            )
+            text = doc.get("text", "").strip()
+            # Only include if text is not empty
+            if text:
+                context_parts.append(f"Document {i}:\n{text}")
         
-        return "\n---\n".join(context_parts)
+        return "\n\n".join(context_parts)
     
     async def format_and_summarize_context(self, retrieved_docs: List[Dict]) -> str:
         context = self.format_context(retrieved_docs)
@@ -97,41 +127,73 @@ Instructions:
             # Retrieve relevant context
             retrieved_docs = self.retrieve_context(query)
             
-            # Format and optionally summarize context
+            # Filter to only use highly relevant documents
+            relevant_docs = self.filter_relevant_docs(retrieved_docs)
+            
+            # Check if we have relevant enough documents to use RAG
+            use_rag_context = len(relevant_docs) > 0
+            
+            if not use_rag_context:
+                # No relevant documents found, use base model instead
+                logger.info(f"No highly relevant documents found (max score: {max((d.get('score', 0.0) for d in retrieved_docs), default=0.0):.2f}), using base model")
+                # Fall through to base model generation below
+                if summarized_history:
+                    prompt = self.conversation_service.format_conversation_for_prompt(
+                        conversation_history=summarized_history,
+                        current_query=query
+                    )
+                    enhanced_prompt = f"""You are an IELTS preparation assistant. Continue the conversation naturally.
+
+{prompt}
+
+Instructions:
+- Pay attention to the conversation history. If the user refers to "that topic", "the topic above", "đề đó", or similar references, they are referring to topics/questions mentioned in the previous conversation.
+- Provide a helpful and accurate response based on the context."""
+                else:
+                    enhanced_prompt = f"""You are an IELTS preparation assistant. Help students with reading, writing, listening, and speaking skills. Answer the following question clearly and provide helpful guidance:
+
+{query}"""
+                return await generate_with_fallback(enhanced_prompt)
+            
+            # Format and optionally summarize context from relevant documents only
             context = ""
-            if retrieved_docs:
-                context = await self.format_and_summarize_context(retrieved_docs)
+            if relevant_docs:
+                context = await self.format_and_summarize_context(relevant_docs)
+                scores_str = ", ".join([f"{d.get('score', 0.0):.2f}" for d in relevant_docs])
+                logger.info(f"Using {len(relevant_docs)} relevant documents (scores: {scores_str})")
             
-            # Build prompt with conversation history and RAG context
-            prompt_text = self.conversation_service.format_conversation_for_prompt(
-                conversation_history=summarized_history,
-                current_query=query,
-                rag_context=context if context else None
-            )
+            # Build prompt with clear structure
+            prompt_parts = []
             
-            # Build instructions based on what's available
-            instructions = []
-            
-            if summarized_history:
-                instructions.append(
-                    "- Pay attention to the conversation history above. If the user refers to \"that topic\", \"the topic above\", \"đề đó\", \"cái đó\", or similar references, they are referring to topics/questions mentioned in the previous conversation."
-                )
-                instructions.append("- Continue the conversation naturally and maintain context from previous messages.")
-            
+            # Add RAG context if we have it
             if context:
-                instructions.append("- Use the relevant study materials provided above to answer accurately.")
-                instructions.append("- If using information from study materials, cite the source (e.g., Document X).")
+                prompt_parts.append(f"Study materials:\n{context}")
             
-            instructions.append("- Provide a comprehensive and helpful answer.")
+            # Add conversation history if available
+            if summarized_history:
+                prompt_parts.append(f"Previous conversation:\n{summarized_history}")
             
-            instructions_text = "\n".join(instructions) if instructions else ""
+            # Add current query
+            prompt_parts.append(f"Question: {query}")
             
-            enhanced_prompt = f"""You are an IELTS preparation assistant. Use the following information to answer the question accurately and helpfully.
+            prompt_text = "\n\n".join(prompt_parts)
+            
+            # Build prompt - use RAG context if available, otherwise base model style
+            if context:
+                system_message = "You are an IELTS preparation assistant. Answer questions clearly and helpfully using the provided study materials."
+                enhanced_prompt = f"""{system_message}
 
 {prompt_text}
 
-Instructions:
-{instructions_text}"""
+Answer the question using information from the study materials. Provide a clear, helpful response."""
+            else:
+                # Shouldn't reach here if logic is correct, but handle it
+                system_message = "You are an IELTS preparation assistant. Help students with reading, writing, listening, and speaking skills."
+                enhanced_prompt = f"""{system_message}
+
+{prompt_text}
+
+Provide a clear, helpful answer to the question."""
             
             # Generate answer
             answer = await generate_with_fallback(enhanced_prompt)
