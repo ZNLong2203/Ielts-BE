@@ -6,7 +6,7 @@ sentencepiece
 torch
 httpx
 python-dotenv
-sentence-transformers
+huggingface-hub
 sacremoses
 pymilvus
 PyPDF2
