@@ -37,11 +37,10 @@ class RouterService:
         model_name = MODEL_NAME
         
         try:
-            # LangChain ChatOllama expects base_url without /api
             self.llm = ChatOllama(
                 model=model_name,
                 base_url=base_url,
-                temperature=0.1,  # Low temperature for consistent routing
+                temperature=0.1,  
             )
         except Exception as e:
             logger.warning(f"Failed to initialize ChatOllama with base_url, trying default: {e}")

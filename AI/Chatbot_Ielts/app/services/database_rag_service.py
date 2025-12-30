@@ -212,12 +212,11 @@ class DatabaseRAGService:
         query_type = None
         
         # Determine what to query based on keywords
-        # Also check for "do you have" pattern which often means asking for courses
         has_course_keyword = any(keyword in query_lower for keyword in ["course", "khóa học", "class"])
         has_do_you_have = "do you have" in query_lower or "what do you have" in query_lower
         
         if has_course_keyword or has_do_you_have:
-            # Check if this is a general "list courses" query (not searching for specific course)
+            # Check if this is a general "list courses" query 
             general_list_queries = [
                 "what course", "what courses", "which course", "which courses",
                 "list course", "list courses", "show course", "show courses",
@@ -388,10 +387,12 @@ class DatabaseRAGService:
     async def generate_answer(
         self,
         query: str,
-        conversation_history: Optional[List[Dict[str, str]]] = None
+        conversation_history: Optional[List[Dict[str, str]]] = None,
+        db_results: Optional[Dict] = None
     ) -> str:
         logger.info(f"Database RAG generating answer for query: {query}")
-        db_results = await self.intelligent_query(query, conversation_history)
+        if db_results is None:
+            db_results = await self.intelligent_query(query, conversation_history)
         
         logger.info(f"Database RAG query results - query_type: {db_results.get('query_type')}, "
                    f"formatted_context length: {len(db_results.get('formatted_context', ''))}")
