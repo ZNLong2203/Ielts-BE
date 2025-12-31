@@ -1,6 +1,4 @@
 services:
-  # Ollama service removed - using Railway deployment instead
-  # Railway URL: https://eloquent-encouragement-production-dc0a.up.railway.app:8080
   # ollama:
   #   image: ollama/ollama:latest
   #   container_name: ollama-ielts
@@ -106,8 +104,6 @@ services:
     env_file:
       - ./.env
     environment:
-      # Using Railway Ollama service instead of local
-      # Railway automatically routes port, so we don't need :8080 in the URL
       - OLLAMA_API_URL=https://eloquent-encouragement-production-dc0a.up.railway.app/api/generate
       - MILVUS_HOST=milvus
       - MILVUS_PORT=19530
@@ -125,7 +121,7 @@ networks:
     driver: bridge
 
 volumes:
-  # ollama-test-data:  # Removed - using Railway Ollama service
+  # ollama-test-data: 
   etcd-data:
   minio-data:
   milvus-data:
