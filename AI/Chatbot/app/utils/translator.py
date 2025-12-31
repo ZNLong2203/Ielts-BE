@@ -1,20 +1,43 @@
 from langdetect import detect, DetectorFactory
 from transformers import pipeline
 import logging
+import os
 
 DetectorFactory.seed = 0
 logger = logging.getLogger(__name__)
 
-try:
-    _translator = pipeline(
-        "translation",
-        model="Helsinki-NLP/opus-mt-vi-en",
-        tokenizer="Helsinki-NLP/opus-mt-vi-en"
-    )
-    logger.info("Vietnamese-English translator loaded successfully")
-except Exception as e:
-    logger.error(f"Failed to load translator: {e}")
-    _translator = None
+_translator = None
+
+def _load_translator():
+    global _translator
+    if _translator is not None:
+        return _translator
+    
+    hf_token = os.getenv("HF_TOKEN")
+    model_name = "Helsinki-NLP/opus-mt-vi-en"
+    
+    try:
+        if hf_token:
+            _translator = pipeline(
+                "translation",
+                model=model_name,
+                tokenizer=model_name,
+                token=hf_token
+            )
+        else:
+            _translator = pipeline(
+                "translation",
+                model=model_name,
+                tokenizer=model_name
+            )
+        logger.info("Vietnamese-English translator loaded successfully")
+    except Exception as e:
+        logger.warning(f"Failed to load translator model '{model_name}': {e}. Translation features will be disabled. The application will continue to work, but Vietnamese text will not be automatically translated.")
+        _translator = None
+    
+    return _translator
+
+_load_translator()
 
 def is_vietnamese(text: str) -> bool:
     if not text or len(text.strip()) < 3:
@@ -39,8 +62,9 @@ def is_vietnamese(text: str) -> bool:
         return any(word in text.lower() for word in vietnamese_words)
 
 async def translate_vi_to_en(text: str) -> str:
-    if not _translator:
-        logger.error("Translator not available")
+    translator = _load_translator()
+    if not translator:
+        logger.debug("Translator not available, returning original text")
         return text
     
     try:
@@ -49,7 +73,7 @@ async def translate_vi_to_en(text: str) -> str:
             logger.warning("Text too long, truncating for translation")
             cleaned_text = cleaned_text[:512]
         
-        result = _translator(cleaned_text, max_length=512, num_return_sequences=1)
+        result = translator(cleaned_text, max_length=512, num_return_sequences=1)
         translated = result[0]["translation_text"]
         
         logger.info(f"Translation: '{cleaned_text[:50]}...' -> '{translated[:50]}...'")

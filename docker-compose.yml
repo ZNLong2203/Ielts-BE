@@ -75,7 +75,7 @@ services:
   #     - "11435:11434"
   #   volumes:
   #     - ollama-data:/root/.ollama
-  #     - ./AI/Chatbot_Ielts/scripts/entrypoint.sh:/entrypoint.sh
+  #     - ./AI/Chatbot/scripts/entrypoint.sh:/entrypoint.sh
   #   environment:
   #     - OLLAMA_HOST=0.0.0.0
   #     - OLLAMA_KEEP_ALIVE=24h
@@ -139,13 +139,13 @@ services:
 
   ielts-ai:
     build:
-      context: ./AI/Chatbot_Ielts
+      context: ./AI/Chatbot
       dockerfile: Dockerfile
     container_name: ai-ielts
     ports:
       - "2222:8000"
     env_file:
-      - ./AI/Chatbot_Ielts/.env
+      - ./AI/Chatbot/.env
     environment:
       # - OLLAMA_API_URL=http://ollama:11434/api/generate
       - OLLAMA_API_URL=https://eloquent-encouragement-production-dc0a.up.railway.app/api/generate
@@ -160,7 +160,7 @@ services:
       - milvus
       - postgres
     volumes:
-      - ./AI/Chatbot_Ielts/uploads:/app/uploads
+      - ./AI/Chatbot/uploads:/app/uploads
     networks:
       - ielts-network
     restart: unless-stopped
