@@ -297,26 +297,32 @@ export class AdminDashboardService {
 
     // Lấy dữ liệu cho 12 tháng trước
     for (let i = 11; i >= 0; i--) {
-      const date = new Date();
-      date.setMonth(currentDate.getMonth() - i);
-      date.setDate(1);
-      date.setHours(0, 0, 0, 0);
+      // Tính toán year và month chính xác để tránh lỗi khi setMonth với số âm
+      const targetDate = new Date(
+        currentDate.getFullYear(),
+        currentDate.getMonth() - i,
+        1,
+      );
+      targetDate.setHours(0, 0, 0, 0);
 
-      const nextMonth = new Date(date);
-      nextMonth.setMonth(date.getMonth() + 1);
+      const nextMonth = new Date(
+        targetDate.getFullYear(),
+        targetDate.getMonth() + 1,
+        1,
+      );
 
       const userCount = await this.prisma.users.count({
         where: {
           deleted: false,
           created_at: {
-            gte: date,
+            gte: targetDate,
             lt: nextMonth,
           },
         },
       });
 
       months.push({
-        name: date.toLocaleDateString('en', { month: 'short' }),
+        name: targetDate.toLocaleDateString('en', { month: 'short' }),
         value: userCount,
         label: 'Users',
       });
@@ -331,20 +337,26 @@ export class AdminDashboardService {
 
     // Lấy dữ liệu cho 12 tháng trước
     for (let i = 11; i >= 0; i--) {
-      const date = new Date();
-      date.setMonth(currentDate.getMonth() - i);
-      date.setDate(1);
-      date.setHours(0, 0, 0, 0);
+      // Tính toán year và month chính xác để tránh lỗi khi setMonth với số âm
+      const targetDate = new Date(
+        currentDate.getFullYear(),
+        currentDate.getMonth() - i,
+        1,
+      );
+      targetDate.setHours(0, 0, 0, 0);
 
-      const nextMonth = new Date(date);
-      nextMonth.setMonth(date.getMonth() + 1);
+      const nextMonth = new Date(
+        targetDate.getFullYear(),
+        targetDate.getMonth() + 1,
+        1,
+      );
 
       const revenue = await this.prisma.payments.aggregate({
         where: {
           deleted: false,
           status: PaymentStatus.COMPLETED,
           processed_at: {
-            gte: date,
+            gte: targetDate,
             lt: nextMonth,
           },
         },
@@ -354,7 +366,7 @@ export class AdminDashboardService {
       });
 
       months.push({
-        name: date.toLocaleDateString('en', { month: 'short' }),
+        name: targetDate.toLocaleDateString('en', { month: 'short' }),
         value: Number(revenue._sum.amount) || 0,
         label: 'Revenue ($)',
       });

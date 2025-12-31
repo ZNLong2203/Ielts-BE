@@ -210,12 +210,43 @@ class DatabaseRAGService:
         query_lower = query.lower()
         results = {}
         query_type = None
+                
+        if any(keyword in query_lower for keyword in ["coupon", "discount", "promo", "mã giảm", "khuyến mãi"]):
+            coupons = await self.query_coupons(limit=10)
+            results["coupons"] = coupons
+            query_type = "coupons"
         
-        # Determine what to query based on keywords
-        has_course_keyword = any(keyword in query_lower for keyword in ["course", "khóa học", "class"])
-        has_do_you_have = "do you have" in query_lower or "what do you have" in query_lower
+        elif any(keyword in query_lower for keyword in ["combo", "package", "bundle", "gói"]):
+            combo_courses = await self.query_combo_courses(
+                search_term=query,
+                limit=5
+            )
+            results["combo_courses"] = combo_courses
+            query_type = "combo_courses"
         
-        if has_course_keyword or has_do_you_have:
+        elif any(keyword in query_lower for keyword in ["blog", "article", "post", "bài viết"]):
+            blogs = await self.query_blogs(
+                search_term=query,
+                limit=5
+            )
+            results["blogs"] = blogs
+            query_type = "blogs"
+        
+        elif any(keyword in query_lower for keyword in ["mock test", "practice test", "đề thi thử"]):
+            test_type = None
+            for ttype in ["reading", "writing", "listening", "speaking", "full_test"]:
+                if ttype in query_lower:
+                    test_type = ttype
+                    break
+            
+            mock_tests = await self.query_mock_tests(
+                test_type=test_type,
+                limit=5
+            )
+            results["mock_tests"] = mock_tests
+            query_type = "mock_tests"
+        
+        elif any(keyword in query_lower for keyword in ["course", "khóa học", "class"]):
             # Check if this is a general "list courses" query 
             general_list_queries = [
                 "what course", "what courses", "which course", "which courses",
@@ -254,41 +285,6 @@ class DatabaseRAGService:
             logger.info(f"Database RAG query_courses returned {len(courses)} courses for query: {query} (is_general_query: {is_general_query})")
             results["courses"] = courses
             query_type = "courses"
-        
-        elif any(keyword in query_lower for keyword in ["combo", "package", "bundle", "gói"]):
-            combo_courses = await self.query_combo_courses(
-                search_term=query,
-                limit=5
-            )
-            results["combo_courses"] = combo_courses
-            query_type = "combo_courses"
-        
-        elif any(keyword in query_lower for keyword in ["coupon", "discount", "promo", "mã giảm", "khuyến mãi"]):
-            coupons = await self.query_coupons(limit=10)
-            results["coupons"] = coupons
-            query_type = "coupons"
-        
-        elif any(keyword in query_lower for keyword in ["blog", "article", "post", "bài viết"]):
-            blogs = await self.query_blogs(
-                search_term=query,
-                limit=5
-            )
-            results["blogs"] = blogs
-            query_type = "blogs"
-        
-        elif any(keyword in query_lower for keyword in ["mock test", "practice test", "đề thi thử"]):
-            test_type = None
-            for ttype in ["reading", "writing", "listening", "speaking", "full_test"]:
-                if ttype in query_lower:
-                    test_type = ttype
-                    break
-            
-            mock_tests = await self.query_mock_tests(
-                test_type=test_type,
-                limit=5
-            )
-            results["mock_tests"] = mock_tests
-            query_type = "mock_tests"
         
         else:
             # Check if this is a general "what do you have" query (might have typos)
