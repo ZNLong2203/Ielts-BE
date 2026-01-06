@@ -148,8 +148,8 @@ services:
       - ./AI/Chatbot/.env
     environment:
       # - OLLAMA_API_URL=http://ollama:11434/api/generate
-      - OLLAMA_API_URL=https://eloquent-encouragement-production-dc0a.up.railway.app/api/generate
-      # - OLLAMA_API_URL=https://xl2wto3170tmjl-11434.proxy.runpod.net/api/generate
+      # - OLLAMA_API_URL=https://eloquent-encouragement-production-dc0a.up.railway.app/api/generate
+      - OLLAMA_API_URL=https://xl2wto3170tmjl-11434.proxy.runpod.net/api/generate
       - MILVUS_HOST=milvus-standalone
       - MILVUS_PORT=19530
       - POSTGRES_HOST=postgres
