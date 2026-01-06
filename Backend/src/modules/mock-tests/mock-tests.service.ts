@@ -2582,6 +2582,9 @@ export class MockTestsService {
     let weightedSum = 0;
     let totalWeight = 0;
     const partScores: Record<string, number> = {};
+    const hasPart1 = partResults[SpeakingPart.PART_1].results.length > 0;
+    const hasPart2 = partResults[SpeakingPart.PART_2].results.length > 0;
+    const hasPart3 = partResults[SpeakingPart.PART_3].results.length > 0;
 
     for (const partType of [
       SpeakingPart.PART_1,
@@ -2601,6 +2604,52 @@ export class MockTestsService {
     let bandScore: number;
     if (totalWeight > 0) {
       bandScore = weightedSum / totalWeight;
+      
+      // If only Part 1 is completed: maximum score is 4.0 (Part 1 is the easiest part)
+      if (hasPart1 && !hasPart2 && !hasPart3) {
+        bandScore = Math.min(bandScore, 4.0);
+        this.logger.warn(
+          `Only Part 1 completed. Score capped at 4.0. Calculated score: ${bandScore}`,
+        );
+      }
+      // If Part 2 is missing (most important part): apply significant penalty (1.0-1.5 band reduction)
+      else if (hasPart1 && !hasPart2 && hasPart3) {
+        const penalty = 1.5;
+        bandScore = Math.max(0, bandScore - penalty);
+        this.logger.warn(
+          `Part 2 (Long Turn) is missing. Applied penalty of ${penalty} bands. Score: ${bandScore}`,
+        );
+      }
+      // If Part 3 is missing: apply moderate penalty (0.5-1.0 band reduction)
+      else if (hasPart1 && hasPart2 && !hasPart3) {
+        const penalty = 1.0;
+        bandScore = Math.max(0, bandScore - penalty);
+        this.logger.warn(
+          `Part 3 (Discussion) is missing. Applied penalty of ${penalty} bands. Score: ${bandScore}`,
+        );
+      }
+      // If Part 2 + Part 3 (missing Part 1): apply moderate penalty
+      else if (!hasPart1 && hasPart2 && hasPart3) {
+        const penalty = 0.5;
+        bandScore = Math.max(0, bandScore - penalty);
+        this.logger.warn(
+          `Part 1 (Introduction) is missing. Applied penalty of ${penalty} bands. Score: ${bandScore}`,
+        );
+      }
+      // If only Part 2: cap at 4.5 (incomplete test)
+      else if (!hasPart1 && hasPart2 && !hasPart3) {
+        bandScore = Math.min(bandScore, 4.5);
+        this.logger.warn(
+          `Only Part 2 completed. Score capped at 4.5. Calculated score: ${bandScore}`,
+        );
+      }
+      // If only Part 3: cap at 4.5 (incomplete test)
+      else if (!hasPart1 && !hasPart2 && hasPart3) {
+        bandScore = Math.min(bandScore, 4.5);
+        this.logger.warn(
+          `Only Part 3 completed. Score capped at 4.5. Calculated score: ${bandScore}`,
+        );
+      }
     } else {
       // Fallback: simple average of all questions (if no parts are identified)
       const allResults = questionResults.filter((r) => r && r.grading);

@@ -200,6 +200,9 @@ INSERT INTO question_options (id, question_id, option_text, is_correct, ordering
 ('150e8400-e29b-41d4-a716-446655440004', '140e8400-e29b-41d4-a716-446655440002', 'Technology improves education quality', TRUE, 1, 'Supported by examples in paragraph 2', 1.00),
 ('150e8400-e29b-41d4-a716-446655440005', '140e8400-e29b-41d4-a716-446655440002', 'Traditional methods are outdated', FALSE, 2, 'The text suggests balance, not replacement', 0.00),
 ('150e8400-e29b-41d4-a716-446655440006', '140e8400-e29b-41d4-a716-446655440006', 'Traffic congestion in the city', TRUE, 1, 'Mentioned repeatedly throughout the audio', 1.00),
+('150e8400-e29b-41d4-a716-446655440010', '140e8400-e29b-41d4-a716-446655440006', 'Public transportation improvements', FALSE, 2, 'Not the main concern mentioned', 0.00),
+('150e8400-e29b-41d4-a716-446655440011', '140e8400-e29b-41d4-a716-446655440006', 'Environmental pollution', FALSE, 3, 'Not discussed as the primary concern', 0.00),
+('150e8400-e29b-41d4-a716-446655440012', '140e8400-e29b-41d4-a716-446655440006', 'Urban planning challenges', FALSE, 4, 'Not the focus of the speakers concern', 0.00),
 -- Options for true_false question 003
 ('150e8400-e29b-41d4-a716-446655440007', '140e8400-e29b-41d4-a716-446655440003', 'TRUE', TRUE, 0, NULL, 1.00),
 -- Options for fill_blank question 004
