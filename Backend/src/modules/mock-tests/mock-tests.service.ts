@@ -863,10 +863,21 @@ export class MockTestsService {
               ? JSON.parse(task1Question.exercises.content)
               : task1Question.exercises.content;
           imageUrl =
-            exerciseContent.chart_url || exerciseContent.image_url || undefined;
+            exerciseContent.questionImage ||
+            exerciseContent.chart_url ||
+            exerciseContent.image_url ||
+            undefined;
         } catch (e) {
           this.logger.warn(`Failed to parse exercise content: ${e}`);
         }
+      }
+
+      // Fallback to question_group or question image_url
+      if (!imageUrl) {
+        imageUrl =
+          task1Question.question_groups?.[0]?.image_url ||
+          task1Question.image_url ||
+          undefined;
       }
 
       detailedAnswers.tasks.push({
@@ -932,6 +943,148 @@ export class MockTestsService {
           band_score: null,
           correct_answers: null,
           total_questions: questions.length,
+          grading_method: 'teacher',
+          graded_at: null,
+        },
+      };
+    });
+  }
+
+  /**
+   * Save speaking section for teacher grading (without AI grading)
+   */
+  private async saveSpeakingForTeacherGrading(
+    answers: TestSectionSubmissionDto,
+    testResult: any,
+    testSection: any,
+  ) {
+    const audioData = answers.speaking_audio_data || [];
+
+    // Get questions from DB to retrieve question details
+    const questionIds = audioData.map((item) => item.question_id);
+    const questionsFromDb = await this.prisma.questions.findMany({
+      where: {
+        id: { in: questionIds },
+        deleted: false,
+      },
+      include: {
+        question_groups: {
+          select: {
+            id: true,
+            group_instruction: true,
+            group_title: true,
+          },
+        },
+        exercises: {
+          select: {
+            id: true,
+            content: true,
+          },
+        },
+      },
+    });
+
+    // Prepare detailed answers structure with student audio data only
+    const detailedAnswers: any = {
+      all_questions: audioData.map((audioItem) => {
+        const questionFromDb = questionsFromDb.find(
+          (q) => q.id === audioItem.question_id,
+        );
+        const questionText =
+          audioItem.question_text ||
+          questionFromDb?.question_text ||
+          questionFromDb?.question_groups?.[0]?.group_instruction ||
+          'Speaking question';
+
+        // Determine part type (similar logic to AI grading)
+        let partType = 'part_1';
+        if (questionFromDb?.exercises?.content) {
+          try {
+            const exerciseContent =
+              typeof questionFromDb.exercises.content === 'string'
+                ? JSON.parse(questionFromDb.exercises.content)
+                : questionFromDb.exercises.content;
+            const contentPartType =
+              exerciseContent.partType || exerciseContent.part_type;
+            if (contentPartType) {
+              partType = contentPartType;
+            }
+          } catch (e) {
+            this.logger.warn(
+              `Failed to parse exercise content for part type: ${e}`,
+            );
+          }
+        }
+
+        // Fallback to question_group title
+        if (
+          partType === 'part_1' &&
+          questionFromDb?.question_groups?.[0]?.group_title
+        ) {
+          const groupTitle =
+            questionFromDb.question_groups[0].group_title.toLowerCase();
+          if (
+            groupTitle.includes('part 2') ||
+            groupTitle.includes('part2') ||
+            groupTitle.includes('long turn')
+          ) {
+            partType = 'part_2';
+          } else if (
+            groupTitle.includes('part 3') ||
+            groupTitle.includes('part3') ||
+            groupTitle.includes('discussion')
+          ) {
+            partType = 'part_3';
+          }
+        }
+
+        return {
+          question_id: audioItem.question_id,
+          question_text: questionText,
+          audio_url: audioItem.audio_url,
+          part_type: partType,
+        };
+      }),
+    };
+
+    // Save section result without grading (graded_at = null, grading_method = 'teacher')
+    this.logger.log(
+      `Saving speaking for teacher grading - testSection: ${JSON.stringify({
+        id: testSection.id,
+        section_type: testSection.section_type,
+        section_name: testSection.section_name || testSection.name,
+        deleted: testSection.deleted,
+      })}`,
+    );
+
+    return await this.prisma.$transaction(async (tx) => {
+      const created = await tx.section_results.create({
+        data: {
+          test_result_id: testResult.id,
+          test_section_id: testSection.id,
+          band_score: null, // Will be set by teacher
+          time_taken: answers.time_taken,
+          correct_answers: null,
+          total_questions: audioData.length,
+          detailed_answers: this.serializeToJson(detailedAnswers),
+          grading_method: 'teacher',
+          graded_at: null, // Not graded yet
+          graded_by: null, // Will be set when teacher grades
+        },
+      });
+
+      this.logger.log(
+        `Saved speaking section for teacher grading: section_result_id=${created.id}, test_result_id=${testResult.id}, test_section_id=${testSection.id}, grading_method=${created.grading_method}, graded_at=${created.graded_at}`,
+      );
+
+      return {
+        success: true,
+        data: {
+          message:
+            'Your speaking has been submitted for teacher grading. You will receive an email notification when grading is complete.',
+          band_score: null,
+          correct_answers: null,
+          total_questions: audioData.length,
           grading_method: 'teacher',
           graded_at: null,
         },
@@ -1446,6 +1599,405 @@ export class MockTestsService {
   }
 
   /**
+   * Get pending speaking submissions for teacher grading
+   */
+  async getPendingSpeakingSubmissions(
+    teacherId: string,
+    query: PaginationQueryDto,
+  ) {
+    const page = query.page || 1;
+    const limit = query.limit || 10;
+    const skip = (page - 1) * limit;
+
+    const pendingSubmissions = await this.prisma.section_results.findMany({
+      where: {
+        grading_method: 'teacher',
+        graded_at: null,
+        deleted: false,
+        test_sections: {
+          section_type: 'speaking',
+        },
+      },
+      include: {
+        test_results: {
+          include: {
+            users: {
+              select: {
+                id: true,
+                full_name: true,
+                email: true,
+              },
+            },
+            mock_tests: {
+              select: {
+                id: true,
+                title: true,
+                test_type: true,
+              },
+            },
+          },
+        },
+        test_sections: {
+          select: {
+            id: true,
+            section_name: true,
+            section_type: true,
+            duration: true,
+          },
+        },
+      },
+      orderBy: {
+        created_at: 'desc',
+      },
+      skip,
+      take: limit,
+    });
+
+    const total = await this.prisma.section_results.count({
+      where: {
+        grading_method: 'teacher',
+        graded_at: null,
+        deleted: false,
+        test_sections: {
+          section_type: 'speaking',
+        },
+      },
+    });
+
+    this.logger.log(
+      `Found ${pendingSubmissions.length} speaking submissions pending grading (total: ${total})`,
+    );
+
+    return {
+      success: true,
+      data: {
+        items: pendingSubmissions,
+        pagination: {
+          page,
+          limit,
+          total,
+          totalPages: Math.ceil(total / limit),
+        },
+      },
+    };
+  }
+
+  /**
+   * Get graded speaking submissions for teacher review
+   */
+  async getGradedSpeakingSubmissions(
+    teacherId: string,
+    query: PaginationQueryDto,
+  ) {
+    const page = query.page || 1;
+    const limit = query.limit || 10;
+    const skip = (page - 1) * limit;
+
+    const gradedSubmissions = await this.prisma.section_results.findMany({
+      where: {
+        grading_method: 'teacher',
+        graded_at: { not: null },
+        deleted: false,
+        test_sections: {
+          section_type: 'speaking',
+        },
+      },
+      include: {
+        test_results: {
+          include: {
+            users: {
+              select: {
+                id: true,
+                full_name: true,
+                email: true,
+              },
+            },
+            mock_tests: {
+              select: {
+                id: true,
+                title: true,
+                test_type: true,
+              },
+            },
+          },
+        },
+        test_sections: {
+          select: {
+            id: true,
+            section_name: true,
+            section_type: true,
+            duration: true,
+          },
+        },
+        users: {
+          select: {
+            id: true,
+            full_name: true,
+            email: true,
+          },
+        },
+      },
+      orderBy: {
+        graded_at: 'desc',
+      },
+      skip,
+      take: limit,
+    });
+
+    const total = await this.prisma.section_results.count({
+      where: {
+        grading_method: 'teacher',
+        graded_at: { not: null },
+        deleted: false,
+        test_sections: {
+          section_type: 'speaking',
+        },
+      },
+    });
+
+    this.logger.log(
+      `Found ${gradedSubmissions.length} graded speaking submissions (total: ${total})`,
+    );
+
+    return {
+      success: true,
+      data: {
+        items: gradedSubmissions,
+        pagination: {
+          page,
+          limit,
+          total,
+          totalPages: Math.ceil(total / limit),
+        },
+      },
+    };
+  }
+
+  /**
+   * Get speaking submission details for grading
+   */
+  async getSpeakingSubmissionForGrading(
+    sectionResultId: string,
+    _teacherId: string,
+  ) {
+    const sectionResult = await this.prisma.section_results.findFirst({
+      where: {
+        id: sectionResultId,
+        grading_method: 'teacher',
+        deleted: false,
+      },
+      include: {
+        test_results: {
+          include: {
+            users: {
+              select: {
+                id: true,
+                full_name: true,
+                email: true,
+              },
+            },
+            mock_tests: {
+              select: {
+                id: true,
+                title: true,
+                test_type: true,
+                duration: true,
+              },
+            },
+          },
+        },
+        test_sections: {
+          include: {
+            exercises: {
+              where: { deleted: false },
+              include: {
+                question_groups: {
+                  where: { deleted: false },
+                  include: {
+                    questions: {
+                      where: { deleted: false },
+                      orderBy: { ordering: 'asc' },
+                    },
+                  },
+                  orderBy: { ordering: 'asc' },
+                },
+              },
+              orderBy: { ordering: 'asc' },
+            },
+          },
+        },
+      },
+    });
+
+    if (!sectionResult) {
+      throw new NotFoundException(
+        'Speaking submission not found',
+      );
+    }
+
+    return {
+      success: true,
+      data: sectionResult,
+    };
+  }
+
+  /**
+   * Submit teacher grading for speaking submission
+   */
+  async submitSpeakingGrading(
+    sectionResultId: string,
+    gradingDto: any,
+    userId: string,
+  ) {
+    // Verify user is a teacher
+    const user = await this.prisma.users.findUnique({
+      where: {
+        id: userId,
+        deleted: false,
+      },
+      select: {
+        id: true,
+        role: true,
+      },
+    });
+
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    if (user.role !== 'teacher') {
+      throw new BadRequestException(
+        'Only teachers can grade speaking submissions',
+      );
+    }
+
+    this.logger.log(
+      `Teacher ${userId} submitting grading for speaking ${sectionResultId}`,
+    );
+
+    const sectionResult = await this.prisma.section_results.findFirst({
+      where: {
+        id: sectionResultId,
+        grading_method: 'teacher',
+        graded_at: null,
+        deleted: false,
+      },
+      include: {
+        test_results: {
+          include: {
+            users: {
+              select: {
+                id: true,
+                full_name: true,
+                email: true,
+              },
+            },
+            mock_tests: {
+              select: {
+                id: true,
+                title: true,
+              },
+            },
+          },
+        },
+      },
+    });
+
+    if (!sectionResult) {
+      throw new NotFoundException(
+        'Speaking submission not found or already graded',
+      );
+    }
+
+    const detailedAnswers = sectionResult.detailed_answers as any;
+    const overallBandScore = gradingDto.overall_score || 0;
+
+    // Round to nearest 0.5
+    const roundedBandScore = Math.round(overallBandScore * 2) / 2;
+
+    // Update detailed_answers with teacher scores and feedback
+    const updatedDetailedAnswers = {
+      ...detailedAnswers,
+      overall_score: roundedBandScore,
+      fluency_coherence: gradingDto.fluency_coherence || null,
+      lexical_resource: gradingDto.lexical_resource || null,
+      grammatical_range_accuracy: gradingDto.grammatical_range_accuracy || null,
+      pronunciation: gradingDto.pronunciation || null,
+      teacher_feedback: gradingDto.feedback || null,
+    };
+
+    this.logger.log(
+      `Submitting teacher grading for speaking ${sectionResultId}: overall_score=${roundedBandScore}`,
+    );
+
+    return await this.prisma.$transaction(async (tx) => {
+      // Update section result
+      const updatedSectionResult = await tx.section_results.update({
+        where: { id: sectionResultId },
+        data: {
+          band_score: roundedBandScore,
+          teacher_score: roundedBandScore,
+          teacher_feedback: gradingDto.feedback || null,
+          detailed_answers: this.serializeToJson(updatedDetailedAnswers),
+          grading_method: 'teacher',
+          graded_by: userId,
+          graded_at: new Date(),
+          updated_at: new Date(),
+        },
+      });
+
+      // Update test result speaking score and overall band score
+      const testResult = sectionResult.test_results;
+      if (!testResult) {
+        throw new NotFoundException('Test result not found');
+      }
+
+      const overallTestScore = this.gradingService.calculateOverallTestScore(
+        Number(testResult.reading_score) || null,
+        Number(testResult.listening_score) || null,
+        Number(testResult.writing_score) || null,
+        roundedBandScore,
+      );
+
+      await tx.test_results.update({
+        where: { id: testResult.id },
+        data: {
+          speaking_score: roundedBandScore,
+          band_score: overallTestScore,
+          updated_at: new Date(),
+        },
+      });
+
+      // Send email notification to student
+      try {
+        await this.mailService.sendSpeakingGradingComplete({
+          to: testResult.users?.email || '',
+          userName: testResult.users?.full_name || 'Student',
+          testTitle: testResult.mock_tests?.title || 'Mock Test',
+          bandScore: roundedBandScore,
+          testResultId: testResult.id,
+        });
+      } catch (error) {
+        this.logger.error(`Failed to send email notification: ${error}`);
+        // Don't fail the grading if email fails
+      }
+
+      this.logger.log(
+        `Teacher ${userId} graded speaking submission ${sectionResultId} with score ${roundedBandScore}`,
+      );
+
+      return {
+        success: true,
+        data: {
+          ...updatedSectionResult,
+          message:
+            'Grading submitted successfully. Student has been notified via email.',
+        },
+      };
+    });
+  }
+
+  /**
    * Get user test history
    */
   async getUserTestHistory(
@@ -1651,12 +2203,22 @@ export class MockTestsService {
     testResult: any,
     testSection: any,
   ) {
+    const gradingMethod = answers.grading_method || 'ai'; // Default to 'ai' if not specified
     const audioData = answers.speaking_audio_data || [];
 
     // Validate audio data
     if (!audioData || audioData.length === 0) {
       throw new BadRequestException(
         'No audio files provided for speaking section. Please record or upload audio for at least one question.',
+      );
+    }
+
+    // If grading_method is 'teacher', save submission without grading and return
+    if (gradingMethod === 'teacher') {
+      return await this.saveSpeakingForTeacherGrading(
+        answers,
+        testResult,
+        testSection,
       );
     }
 
@@ -2542,18 +3104,24 @@ export class MockTestsService {
     const gradingPromises: Promise<any>[] = [];
 
     if (task1Question && task1Answer.trim().length > 0) {
-      // Get image_url from exercise.content (chart_url) first, then question or question_group
+      // Get image_url with priority: question_group > exercise.content.questionImage > chart_url/image_url > question.image_url
       let imageUrl: string | undefined = undefined;
 
-      // Priority 1: Get from exercise.content (chart_url) - this is the main source for Task 1
-      if (task1Question.exercises?.content) {
+      // Priority 1: Get from question_group.image_url (backend saves from admin form)
+      imageUrl = task1Question.question_groups?.[0]?.image_url || undefined;
+
+      // Priority 2: Get from exercise.content.questionImage (backend saves from admin form)
+      if (!imageUrl && task1Question.exercises?.content) {
         try {
           const exerciseContent =
             typeof task1Question.exercises.content === 'string'
               ? JSON.parse(task1Question.exercises.content)
               : task1Question.exercises.content;
           imageUrl =
-            exerciseContent.chart_url || exerciseContent.image_url || undefined;
+            exerciseContent.questionImage ||
+            exerciseContent.chart_url ||
+            exerciseContent.image_url ||
+            undefined;
         } catch (e) {
           this.logger.warn(
             `Failed to parse exercise content for imageUrl: ${e}`,
@@ -2561,12 +3129,9 @@ export class MockTestsService {
         }
       }
 
-      // Priority 2: Fallback to question.image_url or question_group.image_url
+      // Priority 3: Fallback to question.image_url
       if (!imageUrl) {
-        imageUrl =
-          task1Question.image_url ||
-          task1Question.question_groups?.image_url ||
-          undefined;
+        imageUrl = task1Question.image_url || undefined;
       }
 
       // Get question text from question.question_text or question_groups.group_instruction

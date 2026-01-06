@@ -35,6 +35,7 @@ import {
 } from './dto/create-mock-test.dto';
 import { UpdateMockTestDto } from './dto/update-mock-test.dto';
 import { SubmitWritingGradingDto } from './dto/submit-writing-grading.dto';
+import { SubmitSpeakingGradingDto } from './dto/submit-speaking-grading.dto';
 import { MockTestsService } from './mock-tests.service';
 
 @ApiTags('Mock Tests')
@@ -469,6 +470,126 @@ export class MockTestsController {
     @CurrentUser() user: IUser,
   ) {
     return await this.mockTestsService.submitWritingGrading(
+      sectionResultId,
+      gradingDto,
+      user.id,
+    );
+  }
+
+  /**
+   * Get pending speaking submissions for teacher grading
+   */
+  @Get('speaking/pending')
+  @ApiOperation({
+    summary: 'Get pending speaking submissions for teacher grading',
+    description:
+      'Retrieves all speaking section results that are pending teacher grading',
+  })
+  @ApiQuery({ name: 'page', required: false, type: Number })
+  @ApiQuery({ name: 'limit', required: false, type: Number })
+  @ApiResponse({
+    status: HttpStatus.OK,
+    description: 'Pending speaking submissions retrieved successfully',
+  })
+  @SkipCheckPermission()
+  @HttpCode(HttpStatus.OK)
+  @MessageResponse('Pending speaking submissions retrieved successfully')
+  async getPendingSpeakingSubmissions(
+    @Query() query: PaginationQueryDto,
+    @CurrentUser() user: IUser,
+  ) {
+    return await this.mockTestsService.getPendingSpeakingSubmissions(
+      user.id,
+      query,
+    );
+  }
+
+  /**
+   * Get graded speaking submissions for teacher review
+   */
+  @Get('speaking/graded')
+  @ApiOperation({
+    summary: 'Get graded speaking submissions',
+    description:
+      'Retrieves all speaking section results that have been graded by teachers',
+  })
+  @ApiQuery({ name: 'page', required: false, type: Number })
+  @ApiQuery({ name: 'limit', required: false, type: Number })
+  @ApiResponse({
+    status: HttpStatus.OK,
+    description: 'Graded speaking submissions retrieved successfully',
+  })
+  @SkipCheckPermission()
+  @HttpCode(HttpStatus.OK)
+  @MessageResponse('Graded speaking submissions retrieved successfully')
+  async getGradedSpeakingSubmissions(
+    @Query() query: PaginationQueryDto,
+    @CurrentUser() user: IUser,
+  ) {
+    return await this.mockTestsService.getGradedSpeakingSubmissions(
+      user.id,
+      query,
+    );
+  }
+
+  /**
+   * Get a specific speaking submission for grading
+   */
+  @Get('speaking/:sectionResultId')
+  @ApiOperation({
+    summary: 'Get speaking submission details for grading',
+    description:
+      'Retrieves detailed information about a specific speaking submission for teacher grading',
+  })
+  @ApiParam({ name: 'sectionResultId', description: 'Section result UUID' })
+  @ApiResponse({
+    status: HttpStatus.OK,
+    description: 'Speaking submission retrieved successfully',
+  })
+  @ApiResponse({
+    status: HttpStatus.NOT_FOUND,
+    description: 'Speaking submission not found',
+  })
+  @SkipCheckPermission()
+  @HttpCode(HttpStatus.OK)
+  @MessageResponse('Speaking submission retrieved successfully')
+  async getSpeakingSubmissionForGrading(
+    @Param('sectionResultId', ParseUUIDPipe) sectionResultId: string,
+    @CurrentUser() user: IUser,
+  ) {
+    return await this.mockTestsService.getSpeakingSubmissionForGrading(
+      sectionResultId,
+      user.id,
+    );
+  }
+
+  /**
+   * Submit teacher grading for speaking submission
+   */
+  @Post('speaking/:sectionResultId/grade')
+  @ApiOperation({
+    summary: 'Submit teacher grading for speaking submission',
+    description:
+      'Allows teacher to submit scores and feedback for a speaking submission',
+  })
+  @ApiParam({ name: 'sectionResultId', description: 'Section result UUID' })
+  @ApiResponse({
+    status: HttpStatus.OK,
+    description: 'Grading submitted successfully',
+  })
+  @ApiResponse({
+    status: HttpStatus.NOT_FOUND,
+    description: 'Speaking submission not found',
+  })
+  @SkipCheckPermission()
+  @HttpCode(HttpStatus.OK)
+  @MessageResponse('Grading submitted successfully')
+  async submitSpeakingGrading(
+    @Param('sectionResultId', ParseUUIDPipe) sectionResultId: string,
+    @Body() gradingDto: SubmitSpeakingGradingDto,
+    @CurrentUser() user: IUser,
+  ) {
+    return await this.mockTestsService.submitSpeakingGrading(
       sectionResultId,
       gradingDto,
       user.id,
